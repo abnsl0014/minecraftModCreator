@@ -1,6 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-# Install JDK 17 for Gradle builds
+# Install JDK 17 for Gradle builds (bookworm has openjdk-17)
 RUN apt-get update && \
     apt-get install -y openjdk-17-jdk-headless && \
     rm -rf /var/lib/apt/lists/*
