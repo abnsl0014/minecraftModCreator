@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: minecraft-mod-creator
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: MOD_TEMPLATE_DIR
+        value: /app/mod-template
+      - key: TEMP_DIR_BASE
+        value: /tmp/modcreator
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: MAX_FIX_ITERATIONS
+        value: "3"
+      - key: BUILD_TIMEOUT_SECONDS
+        value: "300"
