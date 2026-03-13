@@ -178,6 +178,56 @@ async def generate_bedrock_entities(spec: ModSpec) -> Dict[str, str]:
     return files
 
 
+def fix_bedrock_item_json(data: dict, namespace: str) -> dict:
+    """Fix common issues in generated Bedrock item JSON."""
+    if "minecraft:item" not in data:
+        return data
+    item = data["minecraft:item"]
+    desc = item.get("description", {})
+    components = item.get("components", {})
+
+    # Fix: category -> menu_category
+    if "category" in desc and "menu_category" not in desc:
+        cat = desc.pop("category").lower()
+        desc["menu_category"] = {"category": cat}
+
+    # Ensure menu_category exists
+    if "menu_category" not in desc:
+        desc["menu_category"] = {"category": "items"}
+
+    # Remove invalid components
+    for bad_key in ["minecraft:damage", "minecraft:hand_equipped", "minecraft:enchantable"]:
+        components.pop(bad_key, None)
+
+    item["description"] = desc
+    item["components"] = components
+    return data
+
+
+def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
+    """Fix common issues in generated Bedrock block JSON."""
+    if "minecraft:block" not in data:
+        return data
+    block = data["minecraft:block"]
+    desc = block.get("description", {})
+    components = block.get("components", {})
+
+    # Ensure menu_category
+    if "menu_category" not in desc:
+        desc["menu_category"] = {"category": "construction"}
+
+    # Ensure material_instances for textures
+    if "minecraft:material_instances" not in components:
+        tex_key = "%s_%s" % (namespace, block_name)
+        components["minecraft:material_instances"] = {
+            "*": {"texture": tex_key, "render_method": "opaque"}
+        }
+
+    block["description"] = desc
+    block["components"] = components
+    return data
+
+
 async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
     all_files = {}
 
@@ -196,11 +246,28 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
     # Items
     if spec.items:
         item_files = await generate_bedrock_items(spec)
+        # Post-process: fix common item issues
+        for path, content in item_files.items():
+            try:
+                data = json.loads(content)
+                data = fix_bedrock_item_json(data, spec.mod_id)
+                item_files[path] = json.dumps(data, indent=2)
+            except json.JSONDecodeError:
+                pass
         all_files.update(item_files)
 
     # Blocks
     if spec.blocks:
         block_files = await generate_bedrock_blocks(spec)
+        # Post-process: fix common block issues
+        for path, content in block_files.items():
+            try:
+                data = json.loads(content)
+                block_name = path.split("/")[-1].replace(".json", "")
+                data = fix_bedrock_block_json(data, spec.mod_id, block_name)
+                block_files[path] = json.dumps(data, indent=2)
+            except json.JSONDecodeError:
+                pass
         all_files.update(block_files)
 
     # Entities

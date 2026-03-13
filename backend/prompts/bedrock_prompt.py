@@ -46,16 +46,26 @@ Rules:
 
 BEDROCK_ITEM_SYSTEM_PROMPT = """You are an expert Minecraft Bedrock Edition add-on developer. Generate JSON for custom items.
 
-Output ONLY valid JSON for each item as a behavior pack item file. Use format_version "1.20.30".
+Output ONLY valid JSON. Use format_version "1.20.30".
 
-COMPLETE WORKING EXAMPLE:
+CRITICAL RULES FOR BEDROCK 1.20.30:
+- Use "menu_category" in description, NOT "category"
+- Do NOT use "minecraft:damage" (not a valid component)
+- Do NOT use "minecraft:hand_equipped" (not valid in 1.20.30)
+- Do NOT use "minecraft:enchantable" (not valid in 1.20.30)
+- For weapons, use "minecraft:durability" only
+- Always include "minecraft:icon" and "minecraft:display_name"
+
+COMPLETE WORKING ITEM EXAMPLE:
 ```json
 {
   "format_version": "1.20.30",
   "minecraft:item": {
     "description": {
       "identifier": "demo:ruby",
-      "category": "Items"
+      "menu_category": {
+        "category": "items"
+      }
     },
     "components": {
       "minecraft:max_stack_size": 64,
@@ -70,14 +80,16 @@ COMPLETE WORKING EXAMPLE:
 }
 ```
 
-For a sword/weapon item:
+COMPLETE WORKING WEAPON EXAMPLE:
 ```json
 {
   "format_version": "1.20.30",
   "minecraft:item": {
     "description": {
       "identifier": "demo:fire_sword",
-      "category": "Equipment"
+      "menu_category": {
+        "category": "equipment"
+      }
     },
     "components": {
       "minecraft:max_stack_size": 1,
@@ -89,12 +101,39 @@ For a sword/weapon item:
       },
       "minecraft:durability": {
         "max_durability": 500
+      }
+    }
+  }
+}
+```
+
+COMPLETE WORKING FOOD EXAMPLE:
+```json
+{
+  "format_version": "1.20.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "demo:magic_apple",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 64,
+      "minecraft:icon": {
+        "texture": "demo:magic_apple"
       },
-      "minecraft:damage": 8,
-      "minecraft:hand_equipped": true,
-      "minecraft:enchantable": {
-        "value": 10,
-        "slot": "sword"
+      "minecraft:display_name": {
+        "value": "Magic Apple"
+      },
+      "minecraft:food": {
+        "nutrition": 6,
+        "saturation_modifier": 1.2,
+        "can_always_eat": true
+      },
+      "minecraft:use_animation": "eat",
+      "minecraft:use_modifiers": {
+        "use_duration": 1.6
       }
     }
   }
@@ -107,13 +146,23 @@ BEDROCK_BLOCK_SYSTEM_PROMPT = """You are an expert Minecraft Bedrock Edition add
 
 Output ONLY valid JSON. Use format_version "1.20.30".
 
-COMPLETE WORKING EXAMPLE:
+CRITICAL RULES FOR BEDROCK 1.20.30:
+- MUST include "menu_category" in description for blocks to appear in creative
+- MUST include "minecraft:material_instances" for textures to render
+- Use "minecraft:light_emission" (0-15) for glowing blocks
+- Use "minecraft:map_color" with hex color string
+
+COMPLETE WORKING BLOCK EXAMPLE:
 ```json
 {
   "format_version": "1.20.30",
   "minecraft:block": {
     "description": {
-      "identifier": "demo:ruby_ore"
+      "identifier": "demo:ruby_ore",
+      "menu_category": {
+        "category": "construction",
+        "group": "itemGroup.name.ore"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
@@ -122,14 +171,48 @@ COMPLETE WORKING EXAMPLE:
       "minecraft:destructible_by_explosion": {
         "explosion_resistance": 6.0
       },
-      "minecraft:map_color": "#cc0000",
-      "minecraft:light_emission": 0
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "demo_ruby_ore",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:map_color": "#cc0000"
     }
   }
 }
 ```
 
-For a glowing block, set "minecraft:light_emission" to a value 0-15.
+GLOWING BLOCK EXAMPLE:
+```json
+{
+  "format_version": "1.20.30",
+  "minecraft:block": {
+    "description": {
+      "identifier": "demo:glowing_crystal",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 2.0
+      },
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "demo_glowing_crystal",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:light_emission": 15,
+      "minecraft:map_color": "#00ffcc"
+    }
+  }
+}
+```
+
+IMPORTANT: The texture name in material_instances must match the key in terrain_texture.json.
+Use format: {namespace}_{block_name} (underscores, no colons).
 
 Output a JSON array of block definitions."""
 
@@ -213,11 +296,6 @@ RESOURCE PACK EXAMPLE:
   }
 }
 ```
-
-For hostile mobs, add attack behaviors:
-- "minecraft:behavior.melee_attack": {"priority": 3, "speed_multiplier": 1.2}
-- "minecraft:behavior.nearest_attackable_target": {"priority": 2, "entity_types": [{"filters": {"test": "is_family", "subject": "other", "value": "player"}}]}
-- "minecraft:attack": {"damage": 4}
 
 Output behavior JSON, then // === RESOURCE ===, then resource JSON for each entity."""
 
