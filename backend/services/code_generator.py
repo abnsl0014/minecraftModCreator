@@ -36,6 +36,21 @@ def fix_common_1_20_1_issues(code: str) -> str:
     code = re.sub(r'\.tab\([^)]*\)', '', code)
     # Replace .maxDamage() with .durability()
     code = re.sub(r'\.maxDamage\(', '.durability(', code)
+    # Fix entity issues: replace FollowPlayerGoal with LookAtPlayerGoal
+    code = code.replace('FollowPlayerGoal', 'LookAtPlayerGoal')
+    # Fix: replace "extends Animal" with "extends PathfinderMob" in entity classes
+    if 'extends Animal' in code and 'getBreedOffspring' not in code:
+        code = code.replace('extends Animal', 'extends PathfinderMob')
+        code = code.replace('EntityType<? extends Animal>', 'EntityType<? extends PathfinderMob>')
+        code = re.sub(r'import\s+net\.minecraft\.world\.entity\.animal\.Animal;\n?',
+                       'import net.minecraft.world.entity.PathfinderMob;\n', code)
+    # Fix: replace "extends Monster" with "extends PathfinderMob"
+    if 'extends Monster' in code:
+        code = code.replace('extends Monster', 'extends PathfinderMob')
+        code = code.replace('EntityType<? extends Monster>', 'EntityType<? extends PathfinderMob>')
+        code = re.sub(r'import\s+net\.minecraft\.world\.entity\.monster\.Monster;\n?',
+                       'import net.minecraft.world.entity.PathfinderMob;\n', code)
+        code = code.replace('Monster.createMonsterAttributes()', 'Mob.createMobAttributes()')
     return code
 
 
