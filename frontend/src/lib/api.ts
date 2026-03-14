@@ -11,6 +11,7 @@ export interface JobStatus {
   error: string | null;
   edition: "java" | "bedrock";
   can_edit: boolean;
+  mod_id: string | null;
 }
 
 export async function generateMod(
@@ -68,4 +69,31 @@ export async function editMod(
 
 export function getDownloadUrl(jobId: string): string {
   return `${API_BASE}/api/download/${jobId}`;
+}
+
+export interface GalleryMod {
+  id: string;
+  name: string;
+  description: string;
+  edition: "java" | "bedrock";
+  author: string;
+  created_at: string;
+  download_url: string;
+  weapons_count: number;
+  tools_count: number;
+  armor_count: number;
+  food_count: number;
+  blocks_count: number;
+}
+
+export async function getGallery(
+  sort: string = "recent",
+  edition: string = "all",
+  limit: number = 20,
+  offset: number = 0,
+): Promise<{ mods: GalleryMod[]; total: number }> {
+  const params = new URLSearchParams({ sort, edition, limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/gallery?${params}`);
+  if (!res.ok) throw new Error("Failed to fetch gallery");
+  return res.json();
 }

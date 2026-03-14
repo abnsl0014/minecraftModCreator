@@ -4,8 +4,8 @@ import { JobStatus } from "@/lib/api";
 
 const STEPS = [
   { key: "parsing", label: "Analyzing" },
-  { key: "generating", label: "Generating Code" },
-  { key: "compiling", label: "Compiling" },
+  { key: "generating", label: "Generating" },
+  { key: "compiling", label: "Building" },
   { key: "complete", label: "Done" },
 ] as const;
 

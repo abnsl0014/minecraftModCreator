@@ -11,6 +11,8 @@ from services.mod_compiler import compile_mod
 from services.error_fixer import fix_compilation_errors
 from services.bedrock_generator import generate_all_bedrock_code
 from services.bedrock_assembler import assemble_bedrock_addon
+from services.ai_texture_generator import generate_all_textures
+from utils.file_utils import create_build_dir
 from utils.supabase_client import supabase
 
 logger = logging.getLogger(__name__)
@@ -28,8 +30,8 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
             job_id,
             mod_id=spec.mod_id,
             mod_spec=spec.model_dump(),
-            progress_message="Found %d items, %d blocks, %d mobs to create" % (
-                len(spec.items), len(spec.blocks), len(spec.mobs)
+            progress_message="Found %d items, %d blocks to create" % (
+                len(spec.items), len(spec.blocks)
             ),
         )
 
@@ -58,7 +60,12 @@ async def _run_bedrock_loop(job_id: str, spec):
     # Store generated files for editing
     await update_job(job_id, generated_files=generated_files)
 
-    # Step 3: Assemble .mcaddon
+    # Step 2.5: Generate AI textures
+    await update_job(job_id, progress_message="Creating pixel art textures...")
+    build_dir = create_build_dir(job_id)
+    await generate_all_textures(spec, build_dir, edition="bedrock")
+
+    # Step 3: Assemble .mcaddon (uses solid color fallback for missing textures)
     await update_job(job_id, status="compiling", iteration=1, progress_message="Packaging .mcaddon file...")
     mcaddon_path = assemble_bedrock_addon(job_id, spec, generated_files)
 
@@ -87,6 +94,10 @@ async def _run_java_loop(job_id: str, spec):
     # Step 3: Assemble the project
     await update_job(job_id, progress_message="Assembling mod project...")
     project_dir = assemble_mod(job_id, spec, generated_files)
+
+    # Step 3.5: Generate AI textures (overwrites solid color fallbacks)
+    await update_job(job_id, progress_message="Creating pixel art textures...")
+    await generate_all_textures(spec, project_dir, edition="java")
 
     # Step 4: Compile + fix loop
     max_iterations = settings.max_fix_iterations

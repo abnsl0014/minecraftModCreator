@@ -110,7 +110,7 @@ async def generate_main_class(spec: ModSpec) -> Dict[str, str]:
         main_class=main_class,
         has_items=bool(spec.items),
         has_blocks=bool(spec.blocks),
-        has_entities=bool(spec.mobs),
+        has_entities=False,
         first_item=first_item,
     )
 
@@ -252,10 +252,6 @@ async def generate_all_code(spec: ModSpec) -> Dict[str, str]:
     if spec.blocks:
         block_files = await generate_blocks(spec)
         all_files.update(block_files)
-
-    if spec.mobs:
-        mob_files = await generate_mobs(spec)
-        all_files.update(mob_files)
 
     # Auto-fix common 1.20.1 API issues
     for path in all_files:

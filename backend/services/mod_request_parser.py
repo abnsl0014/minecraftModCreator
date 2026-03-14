@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Optional
 
-from models import ModSpec, ItemSpec, BlockSpec, MobSpec
+from models import ModSpec, ItemSpec, BlockSpec
 from prompts.parse_prompt import PARSE_SYSTEM_PROMPT, PARSE_USER_TEMPLATE
 from utils.groq_client import groq_client
 
@@ -39,7 +39,6 @@ async def parse_mod_request(description: str, mod_name: Optional[str] = None) ->
 
     items = [ItemSpec(**item) for item in data.get("items", [])]
     blocks = [BlockSpec(**block) for block in data.get("blocks", [])]
-    mobs = [MobSpec(**mob) for mob in data.get("mobs", [])]
 
     mod_id = sanitize_mod_id(data.get("mod_id", mod_name or "custom_mod"))
 
@@ -49,5 +48,4 @@ async def parse_mod_request(description: str, mod_name: Optional[str] = None) ->
         mod_description=data.get("mod_description", description[:200]),
         items=items,
         blocks=blocks,
-        mobs=mobs,
     )

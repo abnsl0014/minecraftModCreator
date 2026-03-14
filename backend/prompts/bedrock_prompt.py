@@ -1,181 +1,171 @@
-BEDROCK_PARSE_SYSTEM_PROMPT = """You analyze Minecraft Bedrock Edition mod descriptions and extract structured specifications.
-Output valid JSON matching this schema:
-{
-  "mod_id": "namespace_id",
-  "mod_name": "Display Name",
-  "mod_description": "Brief description",
-  "items": [
-    {
-      "registry_name": "snake_case_name",
-      "display_name": "Display Name",
-      "item_type": "basic|sword|food|tool",
-      "properties": {},
-      "color": "#hex_color"
-    }
-  ],
-  "blocks": [
-    {
-      "registry_name": "snake_case_name",
-      "display_name": "Display Name",
-      "hardness": 2.0,
-      "resistance": 6.0,
-      "properties": {},
-      "color": "#hex_color"
-    }
-  ],
-  "mobs": [
-    {
-      "registry_name": "snake_case_name",
-      "display_name": "Display Name",
-      "mob_category": "monster|animal|ambient",
-      "health": 20,
-      "speed": 0.25,
-      "damage": 2.0,
-      "behaviors": ["melee_attack", "random_stroll", "look_at_player"],
-      "base_mob_model": "zombie|pig|cow|chicken|spider|skeleton",
-      "color": "#hex_color"
-    }
-  ]
-}
-
-Rules:
-- mod_id must be lowercase, alphanumeric + underscores, max 16 chars (Bedrock namespace limit)
-- registry_name must be snake_case
-- Choose contextually appropriate colors
-- Keep it simple - don't add more than what the user described"""
-
 BEDROCK_ITEM_SYSTEM_PROMPT = """You are an expert Minecraft Bedrock Edition add-on developer. Generate JSON for custom items.
 
-Output ONLY valid JSON. Use format_version "1.20.30".
+Output ONLY valid JSON. Use format_version "1.21.40".
 
-CRITICAL RULES FOR BEDROCK 1.20.30:
-- Use "menu_category" in description, NOT "category"
-- Do NOT use "minecraft:damage" (not a valid component)
-- Do NOT use "minecraft:hand_equipped" (not valid in 1.20.30)
-- Do NOT use "minecraft:enchantable" (not valid in 1.20.30)
-- For weapons, use "minecraft:durability" only
-- Always include "minecraft:icon" and "minecraft:display_name"
+VALID COMPONENTS:
+- "minecraft:damage": 10 (integer - extra attack damage)
+- "minecraft:max_stack_size": 1
+- "minecraft:icon": "namespace:item_name" (simple string matching item_texture.json key)
+- "minecraft:display_name": {"value": "Display Name"}
+- "minecraft:durability": {"max_durability": 500}
+- "minecraft:hand_equipped": true (makes item render as held weapon/tool)
+- "minecraft:food": {"nutrition": 4, "saturation_modifier": 0.6, "can_always_eat": false}
+- "minecraft:use_animation": "eat"
+- "minecraft:use_modifiers": {"use_duration": 1.6}
+- "minecraft:wearable": {"slot": "slot.armor.chest", "protection": 8}
+- "minecraft:enchantable": {"value": 10, "slot": "armor_torso"}
+- "minecraft:cooldown": {"category": "attack", "duration": 3.0}
 
-COMPLETE WORKING ITEM EXAMPLE:
+WEAPON EXAMPLE:
 ```json
 {
-  "format_version": "1.20.30",
+  "format_version": "1.20.80",
   "minecraft:item": {
     "description": {
-      "identifier": "demo:ruby",
+      "identifier": "mymod:fire_sword",
       "menu_category": {
-        "category": "items"
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
       }
     },
     "components": {
-      "minecraft:max_stack_size": 64,
-      "minecraft:icon": {
-        "texture": "demo:ruby"
-      },
-      "minecraft:display_name": {
-        "value": "Ruby"
-      }
+      "minecraft:damage": 10,
+      "minecraft:max_stack_size": 1,
+      "minecraft:icon": "mymod_fire_sword",
+      "minecraft:display_name": {"value": "Fire Sword"},
+      "minecraft:durability": {"max_durability": 500},
+      "minecraft:hand_equipped": true
     }
   }
 }
 ```
 
-COMPLETE WORKING WEAPON EXAMPLE:
+TOOL EXAMPLE:
 ```json
 {
-  "format_version": "1.20.30",
+  "format_version": "1.20.80",
   "minecraft:item": {
     "description": {
-      "identifier": "demo:fire_sword",
+      "identifier": "mymod:emerald_pickaxe",
       "menu_category": {
-        "category": "equipment"
+        "category": "equipment",
+        "group": "itemGroup.name.pickaxe"
+      }
+    },
+    "components": {
+      "minecraft:damage": 3,
+      "minecraft:max_stack_size": 1,
+      "minecraft:icon": "mymod_emerald_pickaxe",
+      "minecraft:display_name": {"value": "Emerald Pickaxe"},
+      "minecraft:durability": {"max_durability": 1000},
+      "minecraft:hand_equipped": true
+    }
+  }
+}
+```
+
+ARMOR EXAMPLE (chestplate):
+```json
+{
+  "format_version": "1.20.80",
+  "minecraft:item": {
+    "description": {
+      "identifier": "mymod:dragon_chestplate",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.chestplate"
       }
     },
     "components": {
       "minecraft:max_stack_size": 1,
-      "minecraft:icon": {
-        "texture": "demo:fire_sword"
+      "minecraft:icon": "mymod_dragon_chestplate",
+      "minecraft:display_name": {"value": "Dragon Chestplate"},
+      "minecraft:durability": {"max_durability": 500},
+      "minecraft:wearable": {
+        "slot": "slot.armor.chest",
+        "protection": 8
       },
-      "minecraft:display_name": {
-        "value": "Fire Sword"
-      },
-      "minecraft:durability": {
-        "max_durability": 500
+      "minecraft:enchantable": {
+        "value": 10,
+        "slot": "armor_torso"
       }
     }
   }
 }
 ```
+Armor enchantable slots: "armor_head", "armor_torso", "armor_legs", "armor_feet"
+Wearable slots: "slot.armor.head", "slot.armor.chest", "slot.armor.legs", "slot.armor.feet"
 
-COMPLETE WORKING FOOD EXAMPLE:
+FOOD EXAMPLE (with effects like enchanted golden apple):
 ```json
 {
-  "format_version": "1.20.30",
+  "format_version": "1.20.80",
   "minecraft:item": {
     "description": {
-      "identifier": "demo:magic_apple",
+      "identifier": "mymod:golden_pie",
       "menu_category": {
-        "category": "items"
+        "category": "items",
+        "group": "itemGroup.name.miscFood"
       }
     },
     "components": {
       "minecraft:max_stack_size": 64,
-      "minecraft:icon": {
-        "texture": "demo:magic_apple"
-      },
-      "minecraft:display_name": {
-        "value": "Magic Apple"
-      },
+      "minecraft:icon": "mymod_golden_pie",
+      "minecraft:display_name": {"value": "Golden Pie"},
       "minecraft:food": {
-        "nutrition": 6,
-        "saturation_modifier": 1.2,
-        "can_always_eat": true
+        "nutrition": 8,
+        "saturation_modifier": "supernatural",
+        "can_always_eat": true,
+        "effects": [
+          {"name": "regeneration", "chance": 1, "duration": 30, "amplifier": 1},
+          {"name": "absorption", "chance": 1, "duration": 120, "amplifier": 3},
+          {"name": "resistance", "chance": 1, "duration": 300, "amplifier": 0}
+        ]
       },
       "minecraft:use_animation": "eat",
-      "minecraft:use_modifiers": {
-        "use_duration": 1.6
-      }
+      "minecraft:use_modifiers": {"use_duration": 1.6}
     }
   }
 }
 ```
+Valid effect names: regeneration, speed, strength, absorption, resistance, fire_resistance, night_vision, water_breathing, jump_boost, instant_health, haste
+Valid saturation_modifier: "poor", "low", "normal", "good", "max", "supernatural"
 
-Output a JSON array of item definitions. Each element is a complete item file."""
+IMPORTANT RULES:
+- minecraft:icon MUST be a simple string like "namespace:item_name" (NOT an object)
+- minecraft:damage MUST be a simple integer (NOT an object)
+- minecraft:hand_equipped MUST be true for weapons and tools
+- For weapons: always include minecraft:damage with the damage value
+- The icon string must match a key in item_texture.json
+
+Output a JSON array of item definitions."""
 
 BEDROCK_BLOCK_SYSTEM_PROMPT = """You are an expert Minecraft Bedrock Edition add-on developer. Generate JSON for custom blocks.
 
-Output ONLY valid JSON. Use format_version "1.20.30".
+Output ONLY valid JSON. Use format_version "1.21.40".
 
-CRITICAL RULES FOR BEDROCK 1.20.30:
-- MUST include "menu_category" in description for blocks to appear in creative
-- MUST include "minecraft:material_instances" for textures to render
-- Use "minecraft:light_emission" (0-15) for glowing blocks
-- Use "minecraft:map_color" with hex color string
+CRITICAL RULES:
+- MUST include "menu_category" in description
+- MUST include "minecraft:material_instances" for textures
+- Texture name in material_instances: use underscore format "namespace_blockname"
 
-COMPLETE WORKING BLOCK EXAMPLE:
+BLOCK EXAMPLE:
 ```json
 {
-  "format_version": "1.20.30",
+  "format_version": "1.20.80",
   "minecraft:block": {
     "description": {
-      "identifier": "demo:ruby_ore",
+      "identifier": "mymod:ruby_ore",
       "menu_category": {
         "category": "construction",
         "group": "itemGroup.name.ore"
       }
     },
     "components": {
-      "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 3.0
-      },
-      "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 6.0
-      },
+      "minecraft:destructible_by_mining": {"seconds_to_destroy": 3.0},
+      "minecraft:destructible_by_explosion": {"explosion_resistance": 6.0},
       "minecraft:material_instances": {
-        "*": {
-          "texture": "demo_ruby_ore",
-          "render_method": "opaque"
-        }
+        "*": {"texture": "mymod_ruby_ore", "render_method": "opaque"}
       },
       "minecraft:map_color": "#cc0000"
     }
@@ -183,26 +173,19 @@ COMPLETE WORKING BLOCK EXAMPLE:
 }
 ```
 
-GLOWING BLOCK EXAMPLE:
+GLOWING BLOCK:
 ```json
 {
-  "format_version": "1.20.30",
+  "format_version": "1.20.80",
   "minecraft:block": {
     "description": {
-      "identifier": "demo:glowing_crystal",
-      "menu_category": {
-        "category": "construction"
-      }
+      "identifier": "mymod:glow_crystal",
+      "menu_category": {"category": "construction"}
     },
     "components": {
-      "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 2.0
-      },
+      "minecraft:destructible_by_mining": {"seconds_to_destroy": 2.0},
       "minecraft:material_instances": {
-        "*": {
-          "texture": "demo_glowing_crystal",
-          "render_method": "opaque"
-        }
+        "*": {"texture": "mymod_glow_crystal", "render_method": "opaque"}
       },
       "minecraft:light_emission": 15,
       "minecraft:map_color": "#00ffcc"
@@ -211,93 +194,7 @@ GLOWING BLOCK EXAMPLE:
 }
 ```
 
-IMPORTANT: The texture name in material_instances must match the key in terrain_texture.json.
-Use format: {namespace}_{block_name} (underscores, no colons).
-
 Output a JSON array of block definitions."""
-
-BEDROCK_ENTITY_SYSTEM_PROMPT = """You are an expert Minecraft Bedrock Edition add-on developer. Generate JSON for custom entities.
-
-You need to generate TWO JSON objects per entity:
-1. Behavior pack entity definition (minecraft:entity)
-2. Resource pack client entity definition (minecraft:client_entity)
-
-Separate them with: // === RESOURCE ===
-
-BEHAVIOR PACK EXAMPLE:
-```json
-{
-  "format_version": "1.12.0",
-  "minecraft:entity": {
-    "description": {
-      "identifier": "demo:friendly_fox",
-      "is_spawnable": true,
-      "is_summonable": true
-    },
-    "components": {
-      "minecraft:physics": {},
-      "minecraft:health": {
-        "value": 20,
-        "max": 20
-      },
-      "minecraft:movement": {
-        "value": 0.3
-      },
-      "minecraft:movement.basic": {},
-      "minecraft:jump.static": {},
-      "minecraft:navigation.walk": {
-        "avoid_water": true,
-        "can_walk": true
-      },
-      "minecraft:behavior.random_stroll": {
-        "priority": 6,
-        "speed_multiplier": 1.0
-      },
-      "minecraft:behavior.look_at_player": {
-        "priority": 7,
-        "look_distance": 8
-      },
-      "minecraft:behavior.random_look_around": {
-        "priority": 8
-      },
-      "minecraft:collision_box": {
-        "width": 0.6,
-        "height": 0.7
-      }
-    }
-  }
-}
-```
-
-RESOURCE PACK EXAMPLE:
-```json
-{
-  "format_version": "1.10.0",
-  "minecraft:client_entity": {
-    "description": {
-      "identifier": "demo:friendly_fox",
-      "materials": {
-        "default": "entity"
-      },
-      "textures": {
-        "default": "textures/entity/friendly_fox"
-      },
-      "geometry": {
-        "default": "geometry.friendly_fox"
-      },
-      "render_controllers": [
-        "controller.render.default"
-      ],
-      "spawn_egg": {
-        "base_color": "#d4782f",
-        "overlay_color": "#ffffff"
-      }
-    }
-  }
-}
-```
-
-Output behavior JSON, then // === RESOURCE ===, then resource JSON for each entity."""
 
 BEDROCK_EDIT_PROMPT = """You are editing an existing Minecraft Bedrock Edition add-on.
 

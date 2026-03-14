@@ -80,9 +80,6 @@ def assemble_mod(job_id: str, spec: ModSpec, generated_code: dict[str, str]) -> 
         lang_data[f"item.{spec.mod_id}.{item.registry_name}"] = item.display_name
     for block in spec.blocks:
         lang_data[f"block.{spec.mod_id}.{block.registry_name}"] = block.display_name
-    for mob in spec.mobs:
-        lang_data[f"entity.{spec.mod_id}.{mob.registry_name}"] = mob.display_name
-
     lang_dir = os.path.join(assets_base, "lang")
     os.makedirs(lang_dir, exist_ok=True)
     with open(os.path.join(lang_dir, "en_us.json"), 'w') as f:
@@ -134,14 +131,38 @@ def assemble_mod(job_id: str, spec: ModSpec, generated_code: dict[str, str]) -> 
         with open(os.path.join(models_item_dir, f"{block.registry_name}.json"), 'w') as f:
             json.dump(block_item_model, f, indent=2)
 
-    # 7. Generate textures
+    # 7. Generate textures (solid color fallback - AI textures overwrite these later)
     textures_item_dir = os.path.join(assets_base, "textures", "item")
     textures_block_dir = os.path.join(assets_base, "textures", "block")
 
     for item in spec.items:
-        generate_texture(item.color, os.path.join(textures_item_dir, f"{item.registry_name}.png"))
+        tex_path = os.path.join(textures_item_dir, f"{item.registry_name}.png")
+        if not os.path.exists(tex_path):
+            generate_texture(item.color, tex_path)
 
     for block in spec.blocks:
-        generate_texture(block.color, os.path.join(textures_block_dir, f"{block.registry_name}.png"))
+        tex_path = os.path.join(textures_block_dir, f"{block.registry_name}.png")
+        if not os.path.exists(tex_path):
+            generate_texture(block.color, tex_path)
+
+    # 8. Generate crafting recipes
+    data_dir = os.path.join(build_dir, "src", "main", "resources", "data", spec.mod_id, "recipes")
+    os.makedirs(data_dir, exist_ok=True)
+
+    for item in spec.items:
+        if item.recipe and item.recipe.pattern:
+            recipe_json = {
+                "type": "minecraft:crafting_shaped",
+                "pattern": item.recipe.pattern,
+                "key": {},
+                "result": {
+                    "item": f"{spec.mod_id}:{item.registry_name}",
+                    "count": item.recipe.result_count
+                }
+            }
+            for char, ingredient in item.recipe.key.items():
+                recipe_json["key"][char] = {"item": ingredient}
+            with open(os.path.join(data_dir, f"{item.registry_name}.json"), 'w') as f:
+                json.dump(recipe_json, f, indent=2)
 
     return build_dir

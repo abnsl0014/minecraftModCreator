@@ -1,4 +1,5 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi.responses import RedirectResponse, Response
 
 from models import GenerateRequest, EditRequest, JobStatus
 from services.job_manager import create_job, get_job
@@ -44,6 +45,7 @@ async def get_status(job_id: str):
         error=job.get("error"),
         edition=job.get("edition", "java"),
         can_edit=job["status"] in ("complete", "failed") and bool(job.get("generated_files")),
+        mod_id=job.get("mod_id"),
     )
 
 
@@ -77,4 +79,29 @@ async def download_mod(job_id: str):
     if not jar_url:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return {"download_url": jar_url}
+    # Build a proper filename
+    mod_id = job.get("mod_id") or "mod"
+    edition = job.get("edition", "java")
+    ext = ".mcaddon" if edition == "bedrock" else "-1.0.0.jar"
+    filename = "%s%s" % (mod_id, ext)
+
+    # Redirect to Supabase URL with content-disposition header hint
+    return RedirectResponse(
+        url="%s?download=%s" % (jar_url, filename),
+        headers={"Content-Disposition": "attachment; filename=\"%s\"" % filename},
+    )
+
+
+@router.get("/preview-texture")
+async def preview_texture(
+    item_type: str = Query("weapon"),
+    sub_type: str = Query("sword"),
+    material: str = Query("diamond"),
+):
+    """Generate a texture preview PNG (128x128 scaled up from 16x16)."""
+    from services.procedural_textures import generate_preview_base64
+    try:
+        data_url = generate_preview_base64(item_type, sub_type, material)
+        return {"preview": data_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
