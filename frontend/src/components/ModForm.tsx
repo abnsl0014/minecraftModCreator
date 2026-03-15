@@ -8,6 +8,7 @@ import ToolBuilder, { ToolEntry } from "./builder/ToolBuilder";
 import ArmorBuilder, { ArmorEntry } from "./builder/ArmorBuilder";
 import FoodBuilder, { FoodEntry } from "./builder/FoodBuilder";
 import BlockBuilder, { BlockEntry } from "./builder/BlockBuilder";
+import QuickTextureUpload from "./builder/QuickTextureUpload";
 
 type CreationMode = "quick" | "builder";
 type BuilderTab = "weapons" | "tools" | "armor" | "food" | "blocks";
@@ -205,6 +206,7 @@ export default function ModForm() {
   const [edition, setEdition] = useState<"java" | "bedrock">("bedrock");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [quickTextures, setQuickTextures] = useState<{name: string; dataUrl: string}[]>([]);
 
   // Builder state
   const [activeTab, setActiveTab] = useState<BuilderTab>("weapons");
@@ -275,9 +277,13 @@ export default function ModForm() {
     setLoading(true);
     setError("");
     try {
-      // Collect custom textures from builder entries
+      // Collect custom textures
       const customTextures: CustomTexture[] = [];
-      if (mode === "builder") {
+      if (mode === "quick") {
+        for (const qt of quickTextures) {
+          customTextures.push({ registry_name: qt.name, custom_texture: qt.dataUrl });
+        }
+      } else if (mode === "builder") {
         const allItems = [
           ...weapons.map(w => ({ name: w.name.toLowerCase().replace(/\s+/g, "_"), tex: w.customTexture })),
           ...tools.map(t => ({ name: t.name.toLowerCase().replace(/\s+/g, "_"), tex: t.customTexture })),
@@ -350,6 +356,7 @@ export default function ModForm() {
             placeholder={"Example: Create a diamond sword called Thunder Blade with 18 damage that summons lightning on hit, a netherite helmet with 8 defense that gives speed and night vision, and a golden apple that gives regeneration, absorption and fire resistance"}
             rows={6} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             required={mode === "quick"} />
+          <QuickTextureUpload textures={quickTextures} setTextures={setQuickTextures} />
           <PromptGuide />
         </div>
       ) : (
