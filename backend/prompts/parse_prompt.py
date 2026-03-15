@@ -31,15 +31,47 @@ FOOD/POTIONS should:
 - Have effects that match the name (healing potion → instant_health + regeneration)
 - Speed potion → speed effect, strength potion → strength effect
 
+=== SMART DAMAGE & EFFECT INFERENCE ===
+
+If user says "one shot" / "instakill" / "overpowered" → damage=50-100
+If user says "strong" / "powerful" → damage=15-25
+If user says "basic" / "normal" → damage=7-10
+If user says "rapid fire" / "goes brrrr" / "automatic" → weapon_type="gun"
+If user says "heals you" / "vampire" / "drain" → on_hit_effects=["lifesteal"]
+If user says "burns" / "fire" / "flame" / "inferno" → on_hit_effects=["fire"]
+If user says "freezes" / "ice" / "frost" / "cryo" → on_hit_effects=["freeze"]
+If user says "electric" / "thunder" / "shock" / "zeus" → on_hit_effects=["lightning"]
+If user says "explosive" / "blast" / "nuke" / "boom" → on_hit_effects=["explosion"]
+If user says "launches" / "yeets" / "sends flying" → on_hit_effects=["knockback","levitation"]
+If user says "invincible" / "god mode" / "unkillable" → all defensive effects on armor/food
+If user says "unbreakable" / "infinite" / "forever" → durability=9999
+
 If the user describes ANYTHING — even fictional, sci-fi, anime, or movie weapons — figure out the closest Minecraft equivalent:
 - Lightsaber → glowing sword with high damage + fire
 - Infinity Gauntlet → gauntlet with lightning + explosion + wither
 - Portal Gun → staff with teleport effect
 - Gravity Gun → staff with levitation effect
 - Kamehameha → staff with explosion + knockback
-- Thor's Hammer → hammer with lightning + knockback
+- Thor's Hammer (Mjolnir) → hammer with lightning + knockback
 - Captain America's Shield → shield with knockback
 - Wolverine Claws → gauntlet with lifesteal + fast speed
+- Master Sword (Zelda) → glowing sword with lightning + knockback
+- Goku Power Pole → staff with knockback
+- Senzu Bean → food with instant_health + regeneration
+- Iron Man Armor → full armor set with regen + resistance + repulsor gauntlet
+- Halo Energy Sword → glowing katana with high damage + fire
+- Gravity Hammer (Halo) → hammer with levitation + knockback
+- Trident of Poseidon → spear with lightning + knockback
+- Excalibur → glowing epic sword with high damage
+- Gungnir (Odin's Spear) → spear with lightning
+- Stormbreaker → axe with lightning + knockback
+- Demon Slayer Sword → katana with fire + wither
+- Death Note → staff with wither (instant)
+- Dragon Ball → throwable with explosion + fire
+- Pokeball → throwable with teleport
+- BFG 9000 (Doom) → rpg with explosion
+- Keyblade (Kingdom Hearts) → sword with all effects
+- Buster Sword (FF7) → hammer-sized sword with high damage
 
 The mod can contain 5 categories. All weapons/tools/armor/food go into the "items" array.
 
@@ -242,7 +274,10 @@ Rules:
 - material: infer from name/description (e.g. "diamond sword" → material="diamond", "void blade" → material="obsidian")
 - For recipes: set to null unless user explicitly mentions crafting ingredients
 - Keep it simple — don't add items the user didn't describe
-- NEVER create mobs or entities"""
+- NEVER create mobs or entities
+- If the prompt is VAGUE (like "make me something cool" or "surprise me"), create a cool themed set:
+  a powerful weapon with on-hit effects, an armor piece with effects, and a special food item.
+  Use creative names and interesting effects. Don't return empty — ALWAYS create at least 1 item."""
 
 PARSE_USER_TEMPLATE = """Analyze this Minecraft mod description and extract the specifications:
 
