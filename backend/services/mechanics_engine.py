@@ -1,0 +1,168 @@
+"""Mechanics Engine — reasons about how each item should WORK in Minecraft
+and enriches the spec with the correct implementation details.
+
+This runs AFTER parsing (Step 1) and BEFORE code generation (Step 2).
+It doesn't use any LLM — pure rule-based logic.
+"""
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# Keywords → on-hit effects
+EFFECT_KEYWORDS = {
+    "fire": ["fire"], "flame": ["fire"], "burn": ["fire"], "inferno": ["fire"], "blaze": ["fire"],
+    "ice": ["freeze"], "frost": ["freeze"], "frozen": ["freeze"], "cryo": ["freeze"], "cold": ["freeze"],
+    "lightning": ["lightning"], "thunder": ["lightning"], "electric": ["lightning"], "shock": ["lightning"], "storm": ["lightning"],
+    "poison": ["poison"], "toxic": ["poison"], "venom": ["poison"],
+    "wither": ["wither"], "decay": ["wither"], "death": ["wither"], "necrotic": ["wither"],
+    "explosive": ["explosion"], "blast": ["explosion"], "boom": ["explosion"], "detonate": ["explosion"],
+    "knockback": ["knockback"], "push": ["knockback"], "yeet": ["knockback"],
+    "lifesteal": ["lifesteal"], "vampire": ["lifesteal"], "drain": ["lifesteal"], "heal on hit": ["lifesteal"],
+    "blind": ["blindness"], "dark": ["blindness"],
+    "levitate": ["levitation"], "launch": ["levitation"], "float": ["levitation"], "gravity": ["levitation"],
+    "teleport": ["teleport"], "warp": ["teleport"], "blink": ["teleport"],
+}
+
+# Weapon type → default behavior
+WEAPON_DEFAULTS = {
+    "sword":    {"damage_range": (7, 20), "speed": "normal", "melee": True},
+    "katana":   {"damage_range": (8, 25), "speed": "fast", "melee": True},
+    "hammer":   {"damage_range": (12, 30), "speed": "slow", "melee": True},
+    "axe":      {"damage_range": (9, 25), "speed": "slow", "melee": True},
+    "spear":    {"damage_range": (6, 15), "speed": "normal", "melee": True},
+    "staff":    {"damage_range": (5, 18), "speed": "fast", "melee": True},
+    "gauntlet": {"damage_range": (8, 20), "speed": "fast", "melee": True},
+    "whip":     {"damage_range": (5, 12), "speed": "fast", "melee": True},
+    "shield":   {"damage_range": (3, 8),  "speed": "slow", "melee": True},
+    "bow":      {"damage_range": (5, 12), "speed": "normal", "ranged": "shooter"},
+    "crossbow": {"damage_range": (10, 15), "speed": "slow", "ranged": "shooter"},
+    "gun":      {"damage_range": (8, 20), "speed": "fast", "ranged": "shooter"},
+    "rpg":      {"damage_range": (15, 40), "speed": "slow", "ranged": "throwable"},
+    "throwable":{"damage_range": (5, 15), "speed": "fast", "ranged": "throwable"},
+    "nuke":     {"damage_range": (50, 200), "speed": "slow", "ranged": "throwable"},
+}
+
+
+def analyze_and_enrich(spec) -> str:
+    """Analyze each item's mechanics and enrich the spec. Returns a summary."""
+    analysis_lines = []
+
+    for item in spec.items:
+        name_lower = item.display_name.lower()
+        desc_lower = (item.display_name + " " + str(item.on_hit_effects)).lower()
+
+        if item.item_type == "weapon":
+            wtype = item.weapon_type or "sword"
+
+            # 1. Infer effects from item NAME if none specified
+            if not item.on_hit_effects:
+                inferred = []
+                for keyword, effects in EFFECT_KEYWORDS.items():
+                    if keyword in name_lower:
+                        inferred.extend(effects)
+                if inferred:
+                    item.on_hit_effects = list(set(inferred))
+                    analysis_lines.append("%s: inferred effects %s from name" % (item.display_name, item.on_hit_effects))
+
+            # 2. Set default damage if 0
+            if not item.damage or item.damage <= 0:
+                defaults = WEAPON_DEFAULTS.get(wtype, WEAPON_DEFAULTS["sword"])
+                item.damage = defaults["damage_range"][0]
+                analysis_lines.append("%s: set default damage %d for %s" % (item.display_name, item.damage, wtype))
+
+            # 3. Set default durability if 0
+            if not item.durability or item.durability <= 0:
+                item.durability = 500
+                analysis_lines.append("%s: set default durability 500" % item.display_name)
+
+            # 4. Auto-add explosion for nukes/rpg
+            if wtype in ("nuke", "rpg") and "explosion" not in (item.on_hit_effects or []):
+                item.on_hit_effects = (item.on_hit_effects or []) + ["explosion"]
+                analysis_lines.append("%s: auto-added explosion for %s" % (item.display_name, wtype))
+
+            # 5. Ensure high damage for nukes
+            if wtype == "nuke" and item.damage < 50:
+                item.damage = max(item.damage, 50)
+                analysis_lines.append("%s: boosted nuke damage to %d" % (item.display_name, item.damage))
+
+            # 6. Auto glowing for magical weapons
+            if wtype in ("staff",) and not item.glowing:
+                item.glowing = True
+                analysis_lines.append("%s: auto-glow for staff" % item.display_name)
+
+            # 7. Mark weapon type for ranged mechanics
+            defaults = WEAPON_DEFAULTS.get(wtype, {})
+            if "ranged" in defaults:
+                analysis_lines.append("%s: ranged weapon (%s) → will add %s component" % (item.display_name, wtype, defaults["ranged"]))
+
+        elif item.item_type == "armor":
+            # 1. Set default defense if 0
+            if not item.defense or item.defense <= 0:
+                slot_defaults = {"helmet": 3, "chestplate": 8, "leggings": 6, "boots": 3}
+                item.defense = slot_defaults.get(item.armor_slot, 5)
+                analysis_lines.append("%s: set default defense %d for %s" % (item.display_name, item.defense, item.armor_slot))
+
+            # 2. Set default durability
+            if not item.durability or item.durability <= 0:
+                item.durability = 500
+                analysis_lines.append("%s: set default durability 500" % item.display_name)
+
+            # 3. Infer effects from name
+            if not item.armor_effects:
+                inferred = []
+                if any(k in name_lower for k in ["speed", "swift", "quick", "fast"]): inferred.append("speed")
+                if any(k in name_lower for k in ["night", "dark", "shadow", "void"]): inferred.append("night_vision")
+                if any(k in name_lower for k in ["regen", "heal", "life", "vitality"]): inferred.append("regeneration")
+                if any(k in name_lower for k in ["fire", "flame", "lava", "magma"]): inferred.append("fire_resistance")
+                if any(k in name_lower for k in ["jump", "leap", "bounce", "spring"]): inferred.append("jump_boost")
+                if any(k in name_lower for k in ["strong", "power", "might", "titan"]): inferred.append("strength")
+                if any(k in name_lower for k in ["water", "ocean", "aqua", "sea"]): inferred.append("water_breathing")
+                if any(k in name_lower for k in ["tank", "fortress", "iron", "resist"]): inferred.append("resistance")
+                if inferred:
+                    item.armor_effects = inferred
+                    analysis_lines.append("%s: inferred armor effects %s from name" % (item.display_name, inferred))
+
+        elif item.item_type == "food":
+            # 1. Set default nutrition if 0
+            if not item.nutrition or item.nutrition <= 0:
+                item.nutrition = 6
+                analysis_lines.append("%s: set default nutrition 6" % item.display_name)
+
+            # 2. Infer effects from name
+            if not item.food_effects:
+                inferred = []
+                if any(k in name_lower for k in ["heal", "health", "regen", "life"]): inferred.extend(["regeneration", "instant_health"])
+                if any(k in name_lower for k in ["god", "divine", "legendary", "ultimate"]): inferred.extend(["regeneration", "absorption", "resistance", "speed", "strength"])
+                if any(k in name_lower for k in ["speed", "swift", "quick"]): inferred.append("speed")
+                if any(k in name_lower for k in ["strength", "power", "might"]): inferred.append("strength")
+                if any(k in name_lower for k in ["golden", "enchanted"]): inferred.extend(["regeneration", "absorption"])
+                if inferred:
+                    item.food_effects = list(set(inferred))
+                    analysis_lines.append("%s: inferred food effects %s from name" % (item.display_name, item.food_effects))
+
+        elif item.item_type == "tool":
+            # Default durability
+            if not item.durability or item.durability <= 0:
+                item.durability = 1000
+                analysis_lines.append("%s: set default durability 1000" % item.display_name)
+
+    # Also infer material from name if not set properly
+    for item in spec.items:
+        if not item.material or item.material == "iron":
+            name_lower = item.display_name.lower()
+            for mat in ["diamond", "netherite", "emerald", "ruby", "gold", "obsidian", "amethyst", "copper", "redstone", "lapis"]:
+                if mat in name_lower:
+                    item.material = mat
+                    analysis_lines.append("%s: inferred material=%s from name" % (item.display_name, mat))
+                    break
+
+    summary = "Analyzed %d items: %s" % (len(spec.items), "; ".join(analysis_lines[:5]))
+    if len(analysis_lines) > 5:
+        summary += " (+%d more)" % (len(analysis_lines) - 5)
+
+    logger.info("Mechanics analysis: %d enrichments" % len(analysis_lines))
+    for line in analysis_lines:
+        logger.info("  %s" % line)
+
+    return summary

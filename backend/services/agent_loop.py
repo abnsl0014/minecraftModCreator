@@ -12,6 +12,7 @@ from services.error_fixer import fix_compilation_errors
 from services.bedrock_generator import generate_all_bedrock_code
 from services.bedrock_assembler import assemble_bedrock_addon
 from services.ai_texture_generator import generate_all_textures
+from services.mechanics_engine import analyze_and_enrich
 from utils.file_utils import create_build_dir
 from utils.supabase_client import supabase
 
@@ -46,8 +47,18 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         await update_job(
             job_id,
             mod_id=spec.mod_id,
+            progress_message="Processing user prompt... Done\nAnalyzing item mechanics...",
+        )
+
+        # Step 1.5: Mechanics Engine — reason about HOW each item works
+        analysis = analyze_and_enrich(spec)
+        logger.info("Mechanics: %s" % analysis)
+
+        # Save enriched spec
+        await update_job(
+            job_id,
             mod_spec=spec.model_dump(),
-            progress_message="Processing user prompt... Done\nGenerating mod details: %s" % ", ".join(items_summary),
+            progress_message="Processing user prompt... Done\nAnalyzing item mechanics... Done\nGenerating mod details: %s" % ", ".join(items_summary),
         )
 
         if edition == "bedrock":
