@@ -168,7 +168,7 @@ async def run_edit_loop(job_id: str, edit_description: str):
         return
 
     # Clear old error when starting edit
-    await update_job(job_id, error=None, status="generating", progress_message="Applying edits...")
+    await update_job(job_id, error=None, status="generating", progress_message="Processing edit request...")
 
     edition = job.get("edition", "java")
     spec_data = job.get("mod_spec", {})
@@ -181,19 +181,27 @@ async def run_edit_loop(job_id: str, edit_description: str):
     spec = ModSpec(**spec_data)
 
     try:
-        await update_job(job_id, status="generating", progress_message="Applying edits...")
+        await update_job(job_id, status="generating",
+            progress_message="Processing edit request... Done\nApplying changes to code...")
 
         # Apply edits to existing files
         new_files = await apply_edits(old_files, edit_description, spec, edition)
 
         if edition == "bedrock":
-            await update_job(job_id, generated_files=new_files, status="compiling",
-                           progress_message="Repackaging .mcaddon...")
+            await update_job(job_id, generated_files=new_files,
+                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures...")
+
+            build_dir = create_build_dir(job_id)
+            await generate_all_textures(spec, build_dir, edition="bedrock")
+
+            await update_job(job_id, status="compiling",
+                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files...")
+
             mcaddon_path = assemble_bedrock_addon(job_id, spec, new_files)
             addon_url = await upload_file(job_id, mcaddon_path, "%s.mcaddon" % spec.mod_id)
             await update_job(
                 job_id, status="complete",
-                progress_message="Edited add-on ready!",
+                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files... Done",
                 jar_file_url=addon_url,
             )
         else:
