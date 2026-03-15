@@ -13,6 +13,9 @@ WEAPONS (item_type="weapon") — held items that deal damage when attacking
   - "spear": long pointy weapon, good reach (typically 6-12 dmg)
   - "staff": magic weapon with gem on top, for casters (typically 5-15 dmg)
   - "bow": ranged weapon with string, shoots arrows (typically 5-10 dmg)
+  - "gun": ranged projectile weapon, shoots fast projectiles (typically 8-20 dmg)
+  - "rpg": explosive launcher, shoots explosive projectiles (typically 15-40 dmg)
+  - "crossbow": slower ranged weapon, high damage per shot (typically 10-15 dmg)
   Fields: weapon_type, damage, attack_speed, durability, on_hit_effects, special_ability, cooldown
 
 TOOLS (item_type="tool") — held items for mining/harvesting, NOT for combat
@@ -43,7 +46,10 @@ BLOCKS — placeable cube in the world
 How to decide the item_type:
 - If user says "sword", "blade", "katana", "scythe", "dagger" → item_type="weapon"
 - If user says "hammer", "mace", "club", "warhammer" → item_type="weapon", weapon_type="hammer"
-- If user says "bow", "crossbow", "longbow" → item_type="weapon", weapon_type="bow"
+- If user says "bow", "longbow" → item_type="weapon", weapon_type="bow"
+- If user says "crossbow" → item_type="weapon", weapon_type="crossbow"
+- If user says "gun", "pistol", "rifle", "ak47", "glock", "shotgun", "sniper" → item_type="weapon", weapon_type="gun"
+- If user says "rpg", "rocket launcher", "bazooka", "grenade launcher" → item_type="weapon", weapon_type="rpg"
 - If user says "staff", "wand", "scepter", "rod" (magic) → item_type="weapon", weapon_type="staff"
 - If user says "pickaxe", "shovel", "hoe" → item_type="tool"
 - If user says "axe" for chopping wood → item_type="tool", tool_type="axe"

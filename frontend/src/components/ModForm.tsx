@@ -57,6 +57,9 @@ function PromptGuide() {
                 { type: "Staff", desc: "Magic weapon with gem, for casters", ex: "An amethyst staff called \"Frost Wand\" with 15 damage and freeze effect", dmg: "5-18" },
                 { type: "Spear", desc: "Long pointy weapon, good reach", ex: "An emerald spear with 12 damage and poison on hit", dmg: "6-15" },
                 { type: "Bow", desc: "Ranged weapon, shoots arrows", ex: "A ruby bow called \"Flame Bow\" with 10 damage and fire effect", dmg: "5-12" },
+                { type: "Gun", desc: "Rapid-fire projectile weapon (pistol, rifle, shotgun)", ex: "An iron gun called \"AK-47\" with 12 damage and fire effect", dmg: "8-20" },
+                { type: "RPG", desc: "Explosive launcher, shoots fireballs", ex: "A diamond RPG called \"Nuke Launcher\" with 30 damage", dmg: "15-40" },
+                { type: "Crossbow", desc: "Slow but powerful ranged weapon", ex: "A netherite crossbow with 15 damage and wither on hit", dmg: "10-15" },
               ].map(w => (
                 <div key={w.type} className="bg-gray-900/40 p-2 rounded">
                   <div className="flex items-center gap-2 mb-1">

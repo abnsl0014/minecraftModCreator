@@ -164,6 +164,9 @@ _RECIPE_PATTERNS = {
     "hammer": (["MMM", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
     "axe":    (["MM", "MS", " S"], {"M": None, "S": {"item": "minecraft:stick"}}),
     "bow":    ([" MS", "S M", " MS"], {"M": None, "S": {"item": "minecraft:string"}}),
+    "gun":    (["M M", "MMM", " S "], {"M": None, "S": {"item": "minecraft:redstone"}}),
+    "rpg":    (["MMM", "MRM", " S "], {"M": None, "R": {"item": "minecraft:tnt"}, "S": {"item": "minecraft:stick"}}),
+    "crossbow": (["SMS", "STS", " S "], {"M": None, "S": {"item": "minecraft:stick"}, "T": {"item": "minecraft:string"}}),
     # Tools
     "pickaxe": (["MMM", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
     "shovel":  ([" M ", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),

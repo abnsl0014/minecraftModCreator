@@ -96,6 +96,70 @@ ARMOR EXAMPLE (chestplate):
 Armor enchantable slots: "armor_head", "armor_torso", "armor_legs", "armor_feet"
 Wearable slots: "slot.armor.head", "slot.armor.chest", "slot.armor.legs", "slot.armor.feet"
 
+GUN/PROJECTILE WEAPON EXAMPLE:
+```json
+{
+  "format_version": "1.20.80",
+  "minecraft:item": {
+    "description": {
+      "identifier": "mymod:ak47",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 1,
+      "minecraft:icon": {"textures": {"default": "mymod_ak47"}},
+      "minecraft:display_name": {"value": "AK-47"},
+      "minecraft:durability": {"max_durability": 500},
+      "minecraft:hand_equipped": true,
+      "minecraft:shooter": {
+        "max_draw_duration": 0.1,
+        "charge_on_draw": true,
+        "scale_power_by_draw_duration": false,
+        "ammunition": [
+          {"item": "minecraft:arrow", "use_offhand": false, "use_in_creative": true}
+        ]
+      },
+      "minecraft:use_modifiers": {"use_duration": 0.1},
+      "minecraft:use_animation": "bow"
+    }
+  }
+}
+```
+
+RPG/EXPLOSIVE LAUNCHER EXAMPLE:
+```json
+{
+  "format_version": "1.20.80",
+  "minecraft:item": {
+    "description": {
+      "identifier": "mymod:rpg",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 1,
+      "minecraft:icon": {"textures": {"default": "mymod_rpg"}},
+      "minecraft:display_name": {"value": "RPG Launcher"},
+      "minecraft:durability": {"max_durability": 200},
+      "minecraft:hand_equipped": true,
+      "minecraft:throwable": {
+        "do_swing_animation": true,
+        "max_draw_duration": 0,
+        "scale_power_by_draw_duration": false
+      },
+      "minecraft:projectile": {
+        "projectile_entity": "minecraft:fireball",
+        "minimum_critical_power": 0
+      },
+      "minecraft:use_animation": "bow"
+    }
+  }
+}
+```
+
 FOOD EXAMPLE (with effects like enchanted golden apple):
 ```json
 {

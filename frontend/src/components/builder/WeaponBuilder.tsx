@@ -37,7 +37,7 @@ const EMPTY: WeaponEntry = {
   recipe: Array(9).fill(""),
 };
 
-const WEAPON_TYPES = ["sword", "bow", "axe", "staff", "hammer", "spear"];
+const WEAPON_TYPES = ["sword", "katana", "bow", "axe", "staff", "hammer", "spear", "gun", "rpg", "crossbow"];
 const ATTACK_SPEEDS = ["fast", "normal", "slow"];
 const HIT_EFFECTS = [
   { id: "fire", label: "Fire Damage" },

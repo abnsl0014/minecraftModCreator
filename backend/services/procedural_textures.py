@@ -484,6 +484,81 @@ def generate_pack_icon_procedural(material, output_path, item_type="weapon", sub
     _save(img, output_path)
 
 
+# ======= RANGED WEAPONS =======
+
+def generate_gun_texture(material, output_path, style="classic"):
+    """Gun — horizontal weapon shape with barrel, grip, trigger."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Barrel (horizontal)
+    _draw(px, [(6,5),(7,5),(8,5),(9,5),(10,5),(11,5),(12,5),(13,5),(14,5),(15,5)], p["main"])
+    _draw(px, [(6,6),(7,6),(8,6),(9,6),(10,6),(11,6),(12,6),(13,6),(14,6),(15,6)], p["dark"])
+    # Muzzle
+    px[15,4] = (*p["light"], 255); px[15,7] = (*p["light"], 255)
+    # Body/receiver
+    _draw(px, [(4,5),(5,5),(4,6),(5,6),(4,7),(5,7),(6,7),(7,7),(8,7)], p["main"])
+    _draw(px, [(4,4),(5,4),(6,4)], p["light"])
+    # Grip
+    _draw(px, [(5,8),(5,9),(5,10),(4,9),(4,10),(4,11)], p["handle"])
+    _draw(px, [(3,10),(3,11)], p["handle_dark"])
+    # Trigger
+    px[6,8] = (*p["guard"], 255); px[7,8] = (*p["guard"], 255)
+    # Sight
+    px[10,4] = (*p["light"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_rpg_texture(material, output_path, style="classic"):
+    """RPG — tube launcher on shoulder."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Tube (thick horizontal)
+    for y in range(4, 8):
+        for x in range(3, 15):
+            px[x, y] = (*p["main"], 255)
+    # Tube shading
+    for x in range(3, 15): px[x, 4] = (*p["light"], 255)
+    for x in range(3, 15): px[x, 7] = (*p["dark"], 255)
+    # Muzzle opening
+    px[15, 5] = (*p["dark"], 255); px[15, 6] = (*p["dark"], 255)
+    # Back opening
+    px[2, 5] = (*p["dark"], 255); px[2, 6] = (*p["dark"], 255)
+    # Grip
+    _draw(px, [(7,8),(7,9),(7,10),(6,9),(6,10)], p["handle"])
+    _draw(px, [(8,8),(8,9)], p["handle_dark"])
+    # Trigger guard
+    px[9, 8] = (*p["guard"], 255)
+    # Sight
+    px[11, 3] = (*p["light"], 255); px[11, 2] = (*p["light"], 255)
+    # Warhead tip
+    px[15, 4] = (*shade(p["main"], 1.3), 255)
+    px[15, 7] = (*shade(p["main"], 1.3), 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_crossbow_texture(material, output_path, style="classic"):
+    """Crossbow — horizontal bow with stock."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Stock (horizontal)
+    _draw(px, [(2,7),(3,7),(4,7),(5,7),(6,7),(7,7),(8,7),(9,7),(10,7)], p["handle"])
+    _draw(px, [(2,8),(3,8),(4,8),(5,8)], p["handle_dark"])
+    # Bow limbs (vertical at front)
+    _draw(px, [(11,3),(11,4),(11,5),(11,6),(11,7),(11,8),(11,9),(11,10),(11,11)], p["main"])
+    _draw(px, [(12,4),(12,5),(12,10),(12,9)], p["main"])
+    # String
+    _draw(px, [(10,4),(10,5),(10,6),(10,8),(10,9),(10,10)], (220,220,220))
+    # Arrow loaded
+    _draw(px, [(12,7),(13,7),(14,7),(15,7)], p["light"])
+    px[15,6] = (*p["light"], 255); px[15,8] = (*p["light"], 255)
+    # Trigger
+    px[6,9] = (*p["guard"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
 # ======= PREVIEW =======
 
 def generate_preview_base64(item_type, sub_type, material, style="classic"):
@@ -509,6 +584,8 @@ TEXTURE_GENERATORS = {
     "sword": generate_sword_texture, "katana": generate_katana_texture,
     "spear": generate_spear_texture, "staff": generate_staff_texture,
     "hammer": generate_hammer_texture, "bow": generate_bow_texture,
+    "gun": generate_gun_texture, "rpg": generate_rpg_texture,
+    "crossbow": generate_crossbow_texture,
     "pickaxe": generate_pickaxe_texture, "axe": generate_axe_texture,
     "shovel": generate_shovel_texture, "hoe": generate_hoe_texture,
     "helmet": generate_helmet_texture, "chestplate": generate_chestplate_texture,
