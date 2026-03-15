@@ -100,24 +100,30 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
         with open(os.path.join(texts_dir, "languages.json"), 'w') as f:
             json.dump(["en_US"], f)
 
-    # Recipes
+    # Recipes — auto-generate for EVERY item so they work in survival
     for item in spec.items:
         if item.recipe and item.recipe.pattern:
-            recipe = {
-                "format_version": "1.20.10",
-                "minecraft:recipe_shaped": {
-                    "description": {"identifier": "%s:%s" % (spec.mod_id, item.registry_name)},
-                    "tags": ["crafting_table"],
-                    "pattern": item.recipe.pattern,
-                    "key": {k: {"item": v} for k, v in item.recipe.key.items()},
-                    "unlock": [{"context": "PlayerInWater"}],
-                    "result": {"item": "%s:%s" % (spec.mod_id, item.registry_name), "count": item.recipe.result_count}
-                }
+            pattern = item.recipe.pattern
+            key = {k: {"item": v} for k, v in item.recipe.key.items()}
+        else:
+            # Auto-generate recipe based on item type + material
+            pattern, key = _auto_recipe(item)
+
+        recipe = {
+            "format_version": "1.20.10",
+            "minecraft:recipe_shaped": {
+                "description": {"identifier": "%s:%s_recipe" % (spec.mod_id, item.registry_name)},
+                "tags": ["crafting_table"],
+                "pattern": pattern,
+                "key": key,
+                "unlock": [{"context": "PlayerInWater"}],
+                "result": {"item": "%s:%s" % (spec.mod_id, item.registry_name), "count": 1}
             }
-            recipe_path = os.path.join(bp_dir, "recipes", "%s.json" % item.registry_name)
-            os.makedirs(os.path.dirname(recipe_path), exist_ok=True)
-            with open(recipe_path, 'w') as f:
-                json.dump(recipe, f, indent=2)
+        }
+        recipe_path = os.path.join(bp_dir, "recipes", "%s.json" % item.registry_name)
+        os.makedirs(os.path.dirname(recipe_path), exist_ok=True)
+        with open(recipe_path, 'w') as f:
+            json.dump(recipe, f, indent=2)
 
     # Generate armor attachables + textures so armor shows on player model
     _generate_armor_attachables(spec, rp_dir)
@@ -134,6 +140,79 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
                     zf.write(fp, arcname)
 
     return mcaddon_path
+
+
+# === AUTO RECIPE GENERATION ===
+# Maps material name to Minecraft crafting ingredient
+_MATERIAL_INGREDIENTS = {
+    "wood": "minecraft:oak_planks", "stone": "minecraft:cobblestone",
+    "iron": "minecraft:iron_ingot", "gold": "minecraft:gold_ingot",
+    "diamond": "minecraft:diamond", "netherite": "minecraft:netherite_ingot",
+    "emerald": "minecraft:emerald", "ruby": "minecraft:redstone_block",
+    "amethyst": "minecraft:amethyst_shard", "obsidian": "minecraft:obsidian",
+    "copper": "minecraft:copper_ingot", "redstone": "minecraft:redstone",
+    "lapis": "minecraft:lapis_lazuli",
+}
+
+# Crafting patterns for each item type (M=material, S=stick, L=leather)
+_RECIPE_PATTERNS = {
+    # Weapons
+    "sword":  (["M", "M", "S"], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "katana": (["M", "M", "S"], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "spear":  (["M", " ", " "], ["S", " ", " "], ["S", " ", " "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "staff":  (["M", " ", " "], ["S", " ", " "], ["S", " ", " "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "hammer": (["MMM", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "axe":    (["MM", "MS", " S"], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "bow":    ([" MS", "S M", " MS"], {"M": None, "S": {"item": "minecraft:string"}}),
+    # Tools
+    "pickaxe": (["MMM", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "shovel":  ([" M ", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    "hoe":     (["MM ", " S ", " S "], {"M": None, "S": {"item": "minecraft:stick"}}),
+    # Armor
+    "helmet":     (["MMM", "M M", "   "], {"M": None}),
+    "chestplate": (["M M", "MMM", "MMM"], {"M": None}),
+    "leggings":   (["MMM", "M M", "M M"], {"M": None}),
+    "boots":      (["   ", "M M", "M M"], {"M": None}),
+    # Food (surround with gold nuggets)
+    "food": (["GGG", "GAG", "GGG"], {"G": {"item": "minecraft:gold_nugget"}, "A": {"item": "minecraft:apple"}}),
+}
+
+
+def _auto_recipe(item):
+    """Generate a default crafting recipe based on item type and material."""
+    mat = (item.material or "iron").lower()
+    ingredient = _MATERIAL_INGREDIENTS.get(mat, "minecraft:iron_ingot")
+
+    # Determine recipe key
+    sub = item.weapon_type or item.tool_type or item.armor_slot or ""
+    key = sub.lower() if sub else item.item_type
+
+    if key in _RECIPE_PATTERNS:
+        data = _RECIPE_PATTERNS[key]
+        # Patterns can be (pattern, keys) or (row1, row2, row3, keys)
+        if isinstance(data[-1], dict):
+            keys_template = data[-1]
+            pattern = list(data[:-1])
+            # Flatten if nested
+            if len(pattern) == 1 and isinstance(pattern[0], list):
+                pattern = pattern[0]
+        else:
+            pattern = ["MMM", " S ", " S "]
+            keys_template = {"M": None, "S": {"item": "minecraft:stick"}}
+    else:
+        # Default: 3 material on top, 2 sticks
+        pattern = ["MMM", " S ", " S "]
+        keys_template = {"M": None, "S": {"item": "minecraft:stick"}}
+
+    # Replace None with actual ingredient
+    final_keys = {}
+    for k, v in keys_template.items():
+        if v is None:
+            final_keys[k] = {"item": ingredient}
+        else:
+            final_keys[k] = v
+
+    return pattern, final_keys
 
 
 # Armor slot → geometry, script, enchantable slot mappings
