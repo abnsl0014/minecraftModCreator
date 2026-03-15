@@ -330,6 +330,36 @@ This is a mod pack icon — it should be eye-catching and recognizable at small 
         return False
 
 
+def _save_custom_pack_icon(data_url: str, output_path: str):
+    """Save custom texture as 128x128 pack icon with background."""
+    import base64 as b64mod
+    import io as iomod
+    from PIL import Image as PILImage
+
+    if "," in data_url:
+        data_url = data_url.split(",", 1)[1]
+    img_data = b64mod.b64decode(data_url)
+    custom_img = PILImage.open(iomod.BytesIO(img_data)).convert("RGBA")
+    # Resize to 16x16 first (pixel art), then scale to 80x80
+    custom_small = custom_img.resize((16, 16), PILImage.NEAREST)
+    custom_big = custom_small.resize((80, 80), PILImage.NEAREST)
+
+    # Create 128x128 with dark background
+    icon = PILImage.new("RGBA", (128, 128), (30, 30, 40, 255))
+    px = icon.load()
+    # Border
+    for x in range(128):
+        for y in range(128):
+            if x < 4 or x >= 124 or y < 4 or y >= 124:
+                px[x, y] = (15, 15, 20, 255)
+            elif x < 8 or x >= 120 or y < 8 or y >= 120:
+                px[x, y] = (50, 50, 60, 255)
+    # Paste custom image in center
+    icon.paste(custom_big, (24, 24), custom_big)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    icon.save(output_path)
+
+
 def _save_custom_texture(data_url: str, output_path: str):
     """Save a base64 data URL as a 16x16 PNG file."""
     import base64 as b64mod
@@ -371,14 +401,27 @@ async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
             tex_path = os.path.join(rp_dir, "textures", "blocks", "%s.png" % block.registry_name)
             generate_procedural_texture("block", "", "ore", tex_path)
 
-        # Pack icon — uses the first item's actual shape
-        first_item = spec.items[0] if spec.items else None
-        primary_mat = first_item.material if first_item else "diamond"
-        icon_item_type = first_item.item_type if first_item else "weapon"
-        icon_sub_type = (first_item.weapon_type or first_item.tool_type or first_item.armor_slot or "") if first_item else "sword"
+        # Pack icon — use custom texture if uploaded, else procedural
         rp_icon = os.path.join(rp_dir, "pack_icon.png")
         bp_icon = os.path.join(build_dir, "behavior_pack", "pack_icon.png")
-        generate_pack_icon_procedural(primary_mat, rp_icon, icon_item_type, icon_sub_type)
+
+        # Check if any item has a custom texture — use it as pack icon
+        custom_icon_item = None
+        for item in spec.items:
+            if item.custom_texture:
+                custom_icon_item = item
+                break
+
+        if custom_icon_item:
+            _save_custom_pack_icon(custom_icon_item.custom_texture, rp_icon)
+            logger.info("Using custom texture as pack icon")
+        else:
+            first_item = spec.items[0] if spec.items else None
+            primary_mat = first_item.material if first_item else "diamond"
+            icon_item_type = first_item.item_type if first_item else "weapon"
+            icon_sub_type = (first_item.weapon_type or first_item.tool_type or first_item.armor_slot or "") if first_item else "sword"
+            generate_pack_icon_procedural(primary_mat, rp_icon, icon_item_type, icon_sub_type)
+
         os.makedirs(os.path.dirname(bp_icon), exist_ok=True)
         shutil.copy2(rp_icon, bp_icon)
 
