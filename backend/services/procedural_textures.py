@@ -1,15 +1,16 @@
 """Procedural Minecraft-style texture generator.
-Each weapon/tool/armor type has a UNIQUE silhouette.
+3 styles: Classic, Enchanted, Battle-worn.
+Each weapon/tool/armor type has a unique silhouette.
 """
 import base64
 import io
 import os
 import random
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 from PIL import Image
 
-# === MINECRAFT MATERIAL PALETTES ===
+# === MATERIAL PALETTES ===
 MATERIAL_PALETTES = {
     "wood":      {"main": (143, 119, 72), "light": (188, 152, 98), "dark": (95, 75, 42),  "handle": (107, 76, 18), "handle_dark": (74, 52, 9),   "guard": (143, 119, 72)},
     "stone":     {"main": (154, 154, 154),"light": (188, 188, 188),"dark": (104, 104, 104),"handle": (107, 76, 18), "handle_dark": (74, 52, 9),   "guard": (154, 154, 154)},
@@ -46,10 +47,10 @@ BLOCK_PALETTES = {
     "nether":  {"base": (80, 20, 20),    "spot": (120, 40, 40),   "spot_light": (60, 10, 10)},
 }
 
+TEXTURE_STYLES = ["classic", "enchanted", "battle_worn"]
 
 def shade(c, f):
     return tuple(max(0, min(255, int(v * f))) for v in c)
-
 
 def get_palette(m):
     return MATERIAL_PALETTES.get(m.lower(), MATERIAL_PALETTES["iron"])
@@ -60,112 +61,172 @@ def get_food_palette(f):
 def get_block_palette(b):
     return BLOCK_PALETTES.get(b.lower(), BLOCK_PALETTES["ore"])
 
-
 def _draw(px, points, color):
     for x, y in points:
         if 0 <= x < 16 and 0 <= y < 16:
-            px[x, y] = (*color, 255)
-
+            px[x, y] = (*color, 255) if len(color) == 3 else color
 
 def _save(img, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
 
 
-# ============ WEAPONS (each has unique shape) ============
+# ======= STYLE OVERLAYS =======
 
-def generate_sword_texture(material, output_path):
-    """Classic Minecraft sword - thin diagonal blade + crossguard + handle."""
+def _apply_enchanted(img):
+    """Add enchanted shimmer/glow effect."""
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > 100:
+                # Purple-blue shimmer on diagonal
+                if (x + y) % 4 == 0:
+                    px[x, y] = (min(255, r + 40), min(255, g + 20), min(255, b + 60), a)
+                elif (x + y) % 4 == 2:
+                    px[x, y] = (min(255, r + 20), min(255, g + 10), min(255, b + 40), a)
+    # Add sparkle dots
+    sparkles = [(2, 2), (13, 4), (5, 1), (11, 10), (3, 13)]
+    for sx, sy in sparkles:
+        if 0 <= sx < w and 0 <= sy < h and px[sx, sy][3] < 50:
+            px[sx, sy] = (220, 200, 255, 200)
+    return img
+
+
+def _apply_battle_worn(img):
+    """Add scratches, darker tone, battle damage."""
+    px = img.load()
+    w, h = img.size
+    random.seed(42)
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > 100:
+                # Darken everything slightly
+                r = int(r * 0.85)
+                g = int(g * 0.85)
+                b = int(b * 0.85)
+                # Random scratches (lighter streaks)
+                if random.random() < 0.08:
+                    r = min(255, r + 50)
+                    g = min(255, g + 50)
+                    b = min(255, b + 50)
+                # Random nicks (darker spots)
+                if random.random() < 0.05:
+                    r = max(0, r - 40)
+                    g = max(0, g - 40)
+                    b = max(0, b - 40)
+                px[x, y] = (r, g, b, a)
+    return img
+
+
+def _apply_style(img, style):
+    if style == "enchanted":
+        return _apply_enchanted(img)
+    elif style == "battle_worn":
+        return _apply_battle_worn(img)
+    return img  # classic — no modification
+
+
+# ======= WEAPONS =======
+
+def generate_sword_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Thin blade: 1px wide diagonal
+    # Blade - 3 pixel wide diagonal with proper shading
     _draw(px, [(14,0),(13,1),(12,2),(11,3),(10,4),(9,5),(8,6),(7,7),(6,8)], p["light"])
     _draw(px, [(13,0),(12,1),(11,2),(10,3),(9,4),(8,5),(7,6),(6,7),(5,8)], p["main"])
     _draw(px, [(12,0),(11,1),(10,2),(9,3),(8,4),(7,5),(6,6),(5,7)], p["dark"])
-    # Crossguard
-    _draw(px, [(4,9),(5,9),(6,9),(7,9),(4,10)], p["guard"])
-    # Handle
-    _draw(px, [(3,10),(3,11),(2,12)], p["handle"])
-    _draw(px, [(2,11),(2,13),(1,13)], p["handle_dark"])
+    # Blade edge highlight
+    px[15, 0] = (*shade(p["light"], 1.2), 255)
+    px[14, 1] = (*shade(p["light"], 1.1), 255)
+    # Crossguard with detail
+    _draw(px, [(4,9),(5,9),(6,9),(7,9),(8,9)], p["guard"])
+    _draw(px, [(4,10),(5,10)], shade(p["guard"], 0.7))
+    # Handle with wrapping detail
+    _draw(px, [(3,10),(3,11)], p["handle"])
+    _draw(px, [(2,12),(2,11)], p["handle_dark"])
+    _draw(px, [(3,12)], p["handle"])
+    px[1,13] = (*p["handle_dark"], 255)
     px[1,14] = (*p["guard"], 255)
-    _save(img, output_path)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_katana_texture(material, output_path):
-    """Katana - longer, thinner, slightly curved blade."""
+def generate_katana_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Thin curved blade (1px, with curve offset)
+    # Thin curved blade
     blade = [(14,0),(13,1),(13,2),(12,3),(11,4),(11,5),(10,6),(9,7),(8,8),(7,9)]
     _draw(px, blade, p["light"])
-    _draw(px, [(x-1,y) for x,y in blade], p["main"])
-    # Tsuba (round guard)
-    _draw(px, [(6,10),(7,10),(6,11)], p["guard"])
-    # Wrapped handle (alternating)
-    for i, (x, y) in enumerate([(5,11),(5,12),(4,13),(4,14)]):
-        px[x,y] = (*(p["handle"] if i % 2 == 0 else p["handle_dark"]), 255)
-    _save(img, output_path)
+    _draw(px, [(x-1,y) for x,y in blade if x-1>=0], p["main"])
+    # Back edge
+    _draw(px, [(x-2,y) for x,y in blade[2:] if x-2>=0], p["dark"])
+    # Tsuba
+    _draw(px, [(6,10),(7,10),(6,11),(7,11)], p["guard"])
+    # Wrapped handle
+    for i, (x, y) in enumerate([(5,11),(5,12),(4,12),(4,13),(3,14)]):
+        px[x,y] = (*(p["handle"] if i%2==0 else p["handle_dark"]), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_spear_texture(material, output_path):
-    """Spear - very long thin shaft with pointed tip."""
+def generate_spear_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Long shaft
     for i in range(11):
-        px[2 + i, 14 - i] = (*p["handle"], 255)
-    # Spear head (triangle at top)
+        px[2+i, 14-i] = (*p["handle"], 255)
+    # Spearhead
     _draw(px, [(13,2),(14,1),(14,2),(13,3)], p["main"])
     _draw(px, [(15,0),(14,0),(15,1)], p["light"])
     _draw(px, [(13,4),(12,3)], p["dark"])
-    _save(img, output_path)
+    # Binding wraps
+    _draw(px, [(11,5),(12,4)], shade(p["guard"], 0.8))
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_staff_texture(material, output_path):
-    """Staff/wand - thin rod with glowing gem on top."""
+def generate_staff_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Rod
     for i in range(9):
-        px[3 + i, 14 - i] = (*p["handle"], 255)
-    # Gem at top (3x3 glowing)
+        px[3+i, 14-i] = (*p["handle"], 255)
+    # Gem (3x3)
     _draw(px, [(12,4),(13,4),(14,4),(12,5),(13,5),(14,5),(12,3),(13,3),(14,3)], p["main"])
     _draw(px, [(13,3),(14,3),(14,4)], p["light"])
     _draw(px, [(12,5),(13,5)], p["dark"])
-    # Sparkle
-    px[15,2] = (*p["light"], 255)
-    px[11,2] = (*p["light"], 255)
-    _save(img, output_path)
+    # Inner gem glow
+    px[13,4] = (*shade(p["light"], 1.3), 255)
+    # Sparkles
+    for sx,sy in [(15,2),(11,2),(15,5),(11,6)]:
+        px[sx,sy] = (*shade(p["light"], 1.5), 180)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_hammer_texture(material, output_path):
-    """Hammer - massive rectangular head on a handle."""
+def generate_hammer_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Handle
     for i in range(6):
         px[2+i, 14-i] = (*p["handle"], 255)
         px[3+i, 14-i] = (*p["handle_dark"], 255)
-    # Massive head (6x4 rectangle)
-    for y in range(2, 6):
+    # Head (large rectangle)
+    for y in range(2, 7):
         for x in range(8, 15):
-            px[x, y] = (*p["main"], 255)
-    # Highlight top
-    for x in range(8, 15): px[x, 2] = (*p["light"], 255)
-    # Shadow bottom
-    for x in range(8, 15): px[x, 5] = (*p["dark"], 255)
-    # Shadow right
-    for y in range(2, 6): px[14, y] = (*p["dark"], 255)
-    _save(img, output_path)
+            px[x,y] = (*p["main"], 255)
+    for x in range(8, 15): px[x,2] = (*p["light"], 255)
+    for x in range(8, 15): px[x,6] = (*p["dark"], 255)
+    for y in range(2, 7): px[14,y] = (*p["dark"], 255)
+    for y in range(2, 7): px[8,y] = (*p["light"], 255)
+    # Face detail
+    px[11,4] = (*shade(p["main"], 1.1), 255)
+    px[10,3] = (*shade(p["light"], 0.9), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_bow_texture(material, output_path):
-    """Bow - curved arc with string."""
+def generate_bow_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
@@ -173,79 +234,78 @@ def generate_bow_texture(material, output_path):
     limb = [(5,1),(4,2),(3,3),(3,4),(2,5),(2,6),(2,7),(2,8),(2,9),(2,10),(3,11),(3,12),(4,13),(5,14)]
     _draw(px, limb, p["handle"])
     _draw(px, [(x+1,y) for x,y in limb if x+1<16], p["handle_dark"])
-    # Grip (thicker middle)
-    _draw(px, [(4,7),(4,8),(5,7),(5,8)], shade(p["handle"], 0.8))
+    # Grip
+    _draw(px, [(4,7),(4,8),(5,7),(5,8)], shade(p["handle"], 0.7))
     # String
-    for y in range(2, 14):
-        px[9, y] = (220, 220, 220, 255)
-    # Arrow nocked
+    for y in range(2, 14): px[9,y] = (220, 220, 220, 255)
+    # Arrow
     _draw(px, [(10,7),(11,7),(12,7),(13,7),(14,7)], p["main"])
     px[14,6] = (*p["light"], 255)
     px[14,8] = (*p["light"], 255)
-    _save(img, output_path)
+    px[15,7] = (*p["dark"], 255)
+    _save(_apply_style(img, style), output_path)
 
 
-# ============ TOOLS (each unique) ============
+# ======= TOOLS =======
 
-def generate_pickaxe_texture(material, output_path):
+def generate_pickaxe_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     for i in range(7):
         px[2+i, 14-i] = (*p["handle"], 255)
         px[3+i, 14-i] = (*p["handle_dark"], 255)
-    # Pick head - two prongs
-    _draw(px, [(13,1),(12,2),(11,3),(10,4)], p["light"])  # right prong
-    _draw(px, [(10,7),(11,6),(12,5)], p["main"])           # left prong
-    _draw(px, [(9,6),(9,7),(10,5),(10,6),(11,4),(11,5)], p["main"])  # center
+    _draw(px, [(13,1),(12,2),(11,3),(10,4)], p["light"])
+    _draw(px, [(10,7),(11,6),(12,5)], p["main"])
+    _draw(px, [(9,6),(9,7),(10,5),(10,6),(11,4),(11,5)], p["main"])
     _draw(px, [(9,8),(10,8)], p["dark"])
-    _save(img, output_path)
+    px[14,0] = (*shade(p["light"], 1.1), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_axe_texture(material, output_path):
+def generate_axe_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     for i in range(7):
         px[2+i, 14-i] = (*p["handle"], 255)
         px[3+i, 14-i] = (*p["handle_dark"], 255)
-    # Axe head - broad curved wedge
     _draw(px, [(10,4),(10,5),(10,6),(11,3),(11,4),(11,5),(11,6),(12,2),(12,3),(12,4),(12,5),(13,2),(13,3),(13,4)], p["main"])
     _draw(px, [(13,1),(14,2),(14,3)], p["light"])
     _draw(px, [(10,7),(11,7)], p["dark"])
-    _save(img, output_path)
+    # Edge detail
+    px[14,4] = (*shade(p["light"], 0.9), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_shovel_texture(material, output_path):
+def generate_shovel_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     for i in range(7):
         px[2+i, 14-i] = (*p["handle"], 255)
         px[3+i, 14-i] = (*p["handle_dark"], 255)
-    # Shovel blade - rounded
     _draw(px, [(10,5),(10,6),(11,4),(11,5),(11,6),(12,3),(12,4),(12,5),(13,3),(13,4)], p["main"])
     _draw(px, [(13,2),(12,2)], p["light"])
     _draw(px, [(10,7),(11,7)], p["dark"])
-    _save(img, output_path)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_hoe_texture(material, output_path):
+def generate_hoe_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     for i in range(7):
         px[2+i, 14-i] = (*p["handle"], 255)
         px[3+i, 14-i] = (*p["handle_dark"], 255)
-    # Hoe blade - flat, perpendicular
     _draw(px, [(10,5),(11,4),(11,5),(12,3),(12,4),(13,3),(14,3)], p["main"])
     _draw(px, [(14,2),(13,2)], p["light"])
-    _save(img, output_path)
+    _save(_apply_style(img, style), output_path)
 
 
-# ============ ARMOR (each slot unique) ============
+# ======= ARMOR =======
 
-def generate_helmet_texture(material, output_path):
+def generate_helmet_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
@@ -256,12 +316,16 @@ def generate_helmet_texture(material, output_path):
             elif y <= 11 and (x <= 4 or x >= 11): px[x,y] = (*p["main"], 255)
             elif y <= 11 and 5 <= x <= 10: px[x,y] = (*p["dark"], 255)
     for x in range(5, 11): px[x,3] = (*p["light"], 255)
+    for x in range(3, 13): px[x,4] = (*shade(p["main"], 1.05), 255)
     for x in range(3, 13):
         if px[x,11] != (0,0,0,0): px[x,12] = (*p["dark"], 255)
-    _save(img, output_path)
+    # Visor detail
+    px[6,9] = (*shade(p["dark"], 0.7), 255)
+    px[9,9] = (*shade(p["dark"], 0.7), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_chestplate_texture(material, output_path):
+def generate_chestplate_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
@@ -281,78 +345,87 @@ def generate_chestplate_texture(material, output_path):
         if px[12,y][3] > 0: px[12,y] = (*p["dark"], 255)
     for x in range(3, 13):
         if px[x,4][3] > 0: px[x,4] = (*p["light"], 255)
-    _save(img, output_path)
+    # Center line detail
+    for y in range(5, 11): px[7,y] = (*shade(p["main"], 1.08), 255); px[8,y] = (*shade(p["main"], 0.92), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_leggings_texture(material, output_path):
+def generate_leggings_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     for x in range(4, 12): px[x,2] = (*p["main"], 255); px[x,3] = (*p["light"], 255)
+    # Belt buckle
+    px[7,2] = (*p["guard"], 255); px[8,2] = (*p["guard"], 255)
     for y in range(4, 14):
         for x in range(4, 7): px[x,y] = (*p["main"], 255)
         px[4,y] = (*p["light"], 255); px[6,y] = (*p["dark"], 255)
         for x in range(9, 12): px[x,y] = (*p["main"], 255)
         px[9,y] = (*p["light"], 255); px[11,y] = (*p["dark"], 255)
-    _save(img, output_path)
+    # Knee detail
+    px[5,9] = (*shade(p["main"], 1.1), 255); px[10,9] = (*shade(p["main"], 1.1), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-def generate_boots_texture(material, output_path):
+def generate_boots_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
+    # Left boot
     for y in range(5, 11):
         for x in range(3, 6): px[x,y] = (*p["main"], 255)
-    for x in range(2, 6): px[x,11] = (*p["main"], 255); px[x,12] = (*p["dark"], 255)
+    for x in range(2, 7): px[x,11] = (*p["main"], 255)
+    for x in range(2, 7): px[x,12] = (*p["dark"], 255)
     px[3,5] = (*p["light"], 255); px[4,5] = (*p["light"], 255)
+    # Ankle strap
+    for x in range(3, 6): px[x,8] = (*shade(p["main"], 1.1), 255)
+    # Right boot
     for y in range(5, 11):
         for x in range(10, 13): px[x,y] = (*p["main"], 255)
-    for x in range(10, 14): px[x,11] = (*p["main"], 255); px[x,12] = (*p["dark"], 255)
+    for x in range(9, 14): px[x,11] = (*p["main"], 255)
+    for x in range(9, 14): px[x,12] = (*p["dark"], 255)
     px[10,5] = (*p["light"], 255); px[11,5] = (*p["light"], 255)
-    _save(img, output_path)
+    for x in range(10, 13): px[x,8] = (*shade(p["main"], 1.1), 255)
+    _save(_apply_style(img, style), output_path)
 
 
-# ============ FOOD (different shapes) ============
+# ======= FOOD =======
 
 FOOD_SHAPES = {
-    "golden":  [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],  # apple
-    "cooked":  [(5,11),(4,12),(4,12),(4,13),(4,13),(5,12),(6,11),(7,10)],        # steak
-    "raw":     [(5,11),(4,12),(4,12),(4,13),(4,13),(5,12),(6,11),(7,10)],        # meat
-    "berry":   [(6,9),(6,10),(6,10),(6,10),(6,9)],                               # small berries
-    "bread":   [(4,12),(3,13),(3,13),(3,13),(3,13),(3,13),(4,12)],               # loaf
-    "veggie":  [(6,10),(5,11),(5,12),(5,12),(5,11),(6,10)],                      # carrot-like
-    "magical": [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],  # glowing apple
-    "divine":  [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],  # golden apple
+    "golden":  [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],
+    "cooked":  [(5,11),(4,12),(4,12),(4,13),(4,13),(5,12),(6,11),(7,10)],
+    "raw":     [(5,11),(4,12),(4,12),(4,13),(4,13),(5,12),(6,11),(7,10)],
+    "berry":   [(6,9),(6,10),(6,10),(6,10),(6,9)],
+    "bread":   [(4,12),(3,13),(3,13),(3,13),(3,13),(3,13),(4,12)],
+    "veggie":  [(7,9),(6,10),(6,11),(6,11),(6,10),(7,9)],
+    "magical": [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],
+    "divine":  [(6,10),(5,11),(4,12),(4,12),(4,12),(4,12),(5,11),(6,10),(7,9)],
 }
 
-
-def generate_food_texture(food_type, output_path):
+def generate_food_texture(food_type, output_path, style="classic"):
     p = get_food_palette(food_type)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
     rows = FOOD_SHAPES.get(food_type, FOOD_SHAPES["cooked"])
     for i, (xs, xe) in enumerate(rows):
         y = 4 + i
-        for x in range(xs, xe + 1): px[x, y] = (*p["main"], 255)
-        if xs <= xe: px[xs, y] = (*p["dark"], 255); px[xe, y] = (*p["dark"], 255)
-    # Highlight
+        for x in range(xs, xe+1): px[x,y] = (*p["main"], 255)
+        if xs <= xe: px[xs,y] = (*p["dark"], 255); px[xe,y] = (*p["dark"], 255)
     if len(rows) > 1:
         xs, xe = rows[0]
-        for x in range(xs, xe + 1): px[x, 4] = (*p["light"], 255)
-    # Stem/leaf for apple types
+        for x in range(xs, xe+1): px[x,4] = (*p["light"], 255)
+        px[xs+1,5] = (*p["light"], 255); px[xs+2,5] = (*p["light"], 255)
     if food_type in ("golden", "magical", "divine"):
-        px[8, 3] = (74, 52, 9, 255); px[8, 2] = (107, 76, 18, 255)
-        px[9, 2] = (50, 160, 50, 255); px[10, 3] = (50, 160, 50, 255)
-    # Sparkles for magical
+        px[8,3] = (74, 52, 9, 255); px[8,2] = (107, 76, 18, 255)
+        px[9,2] = (50, 160, 50, 255); px[10,3] = (50, 160, 50, 255)
     if food_type in ("magical", "divine"):
-        px[3, 6] = (*p["light"], 255); px[11, 8] = (*p["light"], 255)
-        px[6, 3] = (*p["light"], 255)
-    _save(img, output_path)
+        for sx,sy in [(3,6),(11,8),(6,3),(10,5)]: px[sx,sy] = (*shade(p["light"],1.4), 180)
+    _save(_apply_style(img, style), output_path)
 
 
-# ============ BLOCKS ============
+# ======= BLOCKS =======
 
-def generate_block_texture(block_type, output_path):
+def generate_block_texture(block_type, output_path, style="classic"):
     p = get_block_palette(block_type)
     random.seed(hash(block_type + output_path))
     img = Image.new('RGB', (16, 16), p["base"])
@@ -360,90 +433,108 @@ def generate_block_texture(block_type, output_path):
     for y in range(16):
         for x in range(16):
             n = random.randint(-15, 15)
-            px[x, y] = tuple(max(0, min(255, c + n)) for c in p["base"])
-    for _ in range(random.randint(4, 8)):
+            px[x,y] = tuple(max(0, min(255, c+n)) for c in p["base"])
+    for _ in range(random.randint(5, 10)):
         sx, sy = random.randint(1, 14), random.randint(1, 14)
-        px[sx, sy] = p["spot"]
-        if random.random() > 0.4: px[min(15, sx + 1), sy] = p["spot"]
-        if random.random() > 0.4: px[sx, min(15, sy + 1)] = p["spot_light"]
+        px[sx,sy] = p["spot"]
+        if random.random() > 0.3: px[min(15,sx+1),sy] = p["spot"]
+        if random.random() > 0.3: px[sx,min(15,sy+1)] = p["spot_light"]
+        if random.random() > 0.5: px[min(15,sx+1),min(15,sy+1)] = p["spot"]
     _save(img, output_path)
 
 
-# ============ PACK ICON ============
+# ======= PACK ICON =======
 
 def generate_pack_icon_procedural(material, output_path):
+    """Generate a 128x128 pack icon — Minecraft needs at least 128x128 to display."""
     p = get_palette(material) if material in MATERIAL_PALETTES else get_palette("diamond")
-    bg = shade(p["main"], 0.3)
-    img = Image.new('RGB', (64, 64), bg)
+
+    # Generate a 16x16 sword icon first, then scale up
+    sword_img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    spx = sword_img.load()
+    # Draw sword silhouette
+    _draw(spx, [(14,0),(13,1),(12,2),(11,3),(10,4),(9,5),(8,6),(7,7),(6,8)], p["light"])
+    _draw(spx, [(13,0),(12,1),(11,2),(10,3),(9,4),(8,5),(7,6),(6,7),(5,8)], p["main"])
+    _draw(spx, [(12,0),(11,1),(10,2),(9,3),(8,4),(7,5),(6,6),(5,7)], p["dark"])
+    _draw(spx, [(4,9),(5,9),(6,9),(7,9),(8,9),(4,10),(5,10)], p["guard"])
+    _draw(spx, [(3,10),(3,11),(2,12)], p["handle"])
+    _draw(spx, [(2,11),(2,13),(1,13)], p["handle_dark"])
+    spx[1,14] = (*p["guard"], 255)
+
+    # Create 128x128 icon with colored background
+    bg = shade(p["main"], 0.25)
+    border = shade(p["dark"], 0.4)
+    img = Image.new('RGBA', (128, 128), (*bg, 255))
     px = img.load()
-    for x in range(64):
-        for y in range(64):
-            if x < 3 or x >= 61 or y < 3 or y >= 61: px[x, y] = shade(p["dark"], 0.5)
-            elif x < 5 or x >= 59 or y < 5 or y >= 59: px[x, y] = p["dark"]
-    c = 32
-    for y in range(16, 48):
-        d = abs(y - c)
-        w = max(0, 16 - d)
-        for x in range(c - w, c + w):
-            px[x, y] = shade(p["main"], 1.0 + 0.3 * (1 - d / 16))
-    for y in range(20, 30):
-        for x in range(c - 4, c + 4): px[x, y] = p["light"]
+
+    # Border (4px)
+    for x in range(128):
+        for y in range(128):
+            if x < 4 or x >= 124 or y < 4 or y >= 124:
+                px[x, y] = (*border, 255)
+            elif x < 8 or x >= 120 or y < 8 or y >= 120:
+                px[x, y] = (*shade(bg, 1.3), 255)
+
+    # Paste scaled sword in center
+    sword_big = sword_img.resize((80, 80), Image.NEAREST)
+    img.paste(sword_big, (24, 24), sword_big)
+
+    # Add subtle glow behind the sword
+    for y in range(20, 108):
+        for x in range(20, 108):
+            r, g, b, a = px[x, y]
+            if a < 200:  # transparent area near sword
+                dist = ((x - 64) ** 2 + (y - 64) ** 2) ** 0.5
+                if dist < 50:
+                    glow = max(0, int(30 * (1 - dist / 50)))
+                    px[x, y] = (min(255, bg[0] + glow), min(255, bg[1] + glow), min(255, bg[2] + glow), 255)
+
     _save(img, output_path)
 
 
-# ============ PREVIEW ============
+# ======= PREVIEW =======
 
-def generate_preview_base64(item_type, sub_type, material):
+def generate_preview_base64(item_type, sub_type, material, style="classic"):
     buf = io.BytesIO()
-    img = _generate_preview_image(item_type, sub_type, material)
+    img = _generate_preview_image(item_type, sub_type, material, style)
     img = img.resize((128, 128), Image.NEAREST)
     img.save(buf, format='PNG')
     return "data:image/png;base64,%s" % base64.b64encode(buf.getvalue()).decode()
 
-
-def _generate_preview_image(item_type, sub_type, material):
+def _generate_preview_image(item_type, sub_type, material, style="classic"):
     import tempfile
     tmp = tempfile.mktemp(suffix=".png")
     try:
-        generate_procedural_texture(item_type, sub_type, material, tmp)
+        generate_procedural_texture(item_type, sub_type, material, tmp, style)
         return Image.open(tmp).copy()
     finally:
         if os.path.exists(tmp): os.unlink(tmp)
 
 
-# ============ DISPATCH ============
+# ======= DISPATCH =======
 
 TEXTURE_GENERATORS = {
-    "sword": generate_sword_texture,
-    "katana": generate_katana_texture,
-    "spear": generate_spear_texture,
-    "staff": generate_staff_texture,
-    "hammer": generate_hammer_texture,
-    "bow": generate_bow_texture,
-    "pickaxe": generate_pickaxe_texture,
-    "axe": generate_axe_texture,
-    "shovel": generate_shovel_texture,
-    "hoe": generate_hoe_texture,
-    "helmet": generate_helmet_texture,
-    "chestplate": generate_chestplate_texture,
-    "leggings": generate_leggings_texture,
-    "boots": generate_boots_texture,
+    "sword": generate_sword_texture, "katana": generate_katana_texture,
+    "spear": generate_spear_texture, "staff": generate_staff_texture,
+    "hammer": generate_hammer_texture, "bow": generate_bow_texture,
+    "pickaxe": generate_pickaxe_texture, "axe": generate_axe_texture,
+    "shovel": generate_shovel_texture, "hoe": generate_hoe_texture,
+    "helmet": generate_helmet_texture, "chestplate": generate_chestplate_texture,
+    "leggings": generate_leggings_texture, "boots": generate_boots_texture,
 }
 
-
-def generate_procedural_texture(item_type, sub_type, material, output_path):
+def generate_procedural_texture(item_type, sub_type, material, output_path, style="classic"):
     key = sub_type.lower() if sub_type else item_type.lower()
-    if key in TEXTURE_GENERATORS:
-        TEXTURE_GENERATORS[key](material or "iron", output_path)
-    elif item_type == "weapon":
-        generate_sword_texture(material or "iron", output_path)
-    elif item_type == "tool":
-        generate_pickaxe_texture(material or "iron", output_path)
-    elif item_type == "armor":
-        generate_chestplate_texture(material or "iron", output_path)
-    elif item_type == "food":
-        generate_food_texture(material or "cooked", output_path)
-    elif item_type == "block":
-        generate_block_texture(material or "ore", output_path)
+    gen = TEXTURE_GENERATORS.get(key)
+    if not gen:
+        if item_type == "food": gen = generate_food_texture
+        elif item_type == "block": gen = generate_block_texture
+        elif item_type == "weapon": gen = generate_sword_texture
+        elif item_type == "tool": gen = generate_pickaxe_texture
+        elif item_type == "armor": gen = generate_chestplate_texture
+        else: gen = generate_sword_texture
+
+    if gen in (generate_food_texture, generate_block_texture):
+        gen(material or "cooked", output_path, style)
     else:
-        generate_sword_texture(material or "iron", output_path)
+        gen(material or "iron", output_path, style)

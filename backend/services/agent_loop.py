@@ -26,6 +26,13 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         spec = await parse_mod_request(request.description, request.mod_name)
         spec.author_name = request.author_name
 
+        # Inject custom textures from the request into spec items
+        if request.custom_textures:
+            tex_map = {t.registry_name: t.custom_texture for t in request.custom_textures}
+            for item in spec.items:
+                if item.registry_name in tex_map:
+                    item.custom_texture = tex_map[item.registry_name]
+
         await update_job(
             job_id,
             mod_id=spec.mod_id,

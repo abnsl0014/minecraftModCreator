@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import MaterialSelect, { TexturePreview } from "./MaterialSelect";
+import TextureUpload from "./TextureUpload";
 
 export interface BlockEntry {
   name: string;
@@ -9,6 +10,8 @@ export interface BlockEntry {
   resistance: number;
   luminance: number;
   material: string;
+  style: string;
+  customTexture: string | null;
   description: string;
 }
 
@@ -17,7 +20,9 @@ const EMPTY_BLOCK: BlockEntry = {
   hardness: 2.0,
   resistance: 6.0,
   luminance: 0,
+  customTexture: null,
   material: "ore",
+  style: "classic",
   description: "",
 };
 
@@ -70,7 +75,7 @@ export default function BlockBuilder({ blocks, setBlocks, accentColor }: Props) 
           {blocks.map((block, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-gray-800/40 border border-gray-700/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <TexturePreview itemType="block" subType="" material={block.material} size={36} />
+                {block.customTexture ? <img src={block.customTexture} alt="custom" className="rounded border border-green-500" style={{width:36,height:36,imageRendering:"pixelated"}} /> : <TexturePreview itemType="block" subType="" material={block.material} style={block.style} size={36} />}
                 <div>
                   <p className="text-sm font-medium text-white">{block.name}</p>
                   <p className="text-xs text-gray-400">
@@ -111,9 +116,11 @@ export default function BlockBuilder({ blocks, setBlocks, accentColor }: Props) 
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">Material</label>
-            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="block" />
+            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="block" style={draft.style} onStyleChange={(s) => setDraft({...draft, style: s})} />
           </div>
         </div>
+
+        <TextureUpload value={draft.customTexture} onChange={(t) => setDraft({...draft, customTexture: t})} currentPreview={null} />
 
         <div className="grid grid-cols-3 gap-3">
           <div>

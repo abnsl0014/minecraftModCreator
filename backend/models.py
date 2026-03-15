@@ -3,11 +3,18 @@ from typing import Optional, List
 from pydantic import BaseModel, field_validator
 
 
+class CustomTextureItem(BaseModel):
+    """Carries custom texture data for a specific item."""
+    registry_name: str
+    custom_texture: str  # base64 data URL
+
+
 class GenerateRequest(BaseModel):
     description: str
     mod_name: Optional[str] = None
     author_name: str = "ModCreator User"
     edition: str = "java"  # "java" or "bedrock"
+    custom_textures: Optional[List[CustomTextureItem]] = None  # uploaded textures
 
 
 class EditRequest(BaseModel):
@@ -52,6 +59,7 @@ class ItemSpec(BaseModel):
     properties: Optional[dict] = {}
     color: str = "#888888"  # kept for backward compat
     material: Optional[str] = "iron"  # diamond, iron, gold, netherite, emerald, ruby, etc.
+    custom_texture: Optional[str] = None  # base64 data URL for user-uploaded texture
     recipe: Optional[RecipeSpec] = None
 
     @field_validator("*", mode="before")
@@ -66,7 +74,7 @@ class ItemSpec(BaseModel):
                 "knockback_resistance": 0, "armor_effects": [],
                 "nutrition": 0, "saturation": 0.6, "food_effects": [],
                 "always_edible": False, "fast_eat": False, "stack_size": 64,
-                "properties": {}, "material": "iron",
+                "properties": {}, "material": "iron", "custom_texture": None,
             }
             return defaults.get(info.field_name, v)
         return v

@@ -330,9 +330,24 @@ This is a mod pack icon — it should be eye-catching and recognizable at small 
         return False
 
 
+def _save_custom_texture(data_url: str, output_path: str):
+    """Save a base64 data URL as a 16x16 PNG file."""
+    import base64 as b64mod
+    from PIL import Image as PILImage
+
+    # Strip data URL prefix
+    if "," in data_url:
+        data_url = data_url.split(",", 1)[1]
+    img_data = b64mod.b64decode(data_url)
+    img = PILImage.open(io.BytesIO(img_data))
+    # Resize to 16x16 with nearest neighbor (pixel art)
+    img = img.resize((16, 16), PILImage.NEAREST).convert("RGBA")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    img.save(output_path)
+
+
 async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
-    """Generate proper pixel art textures using procedural generation.
-    Creates recognizable Minecraft-style item/block shapes with correct proportions."""
+    """Generate textures — uses custom uploaded texture if provided, otherwise procedural."""
     from services.procedural_textures import (
         generate_procedural_texture, generate_pack_icon_procedural
     )
@@ -340,21 +355,21 @@ async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
     if edition == "bedrock":
         rp_dir = os.path.join(build_dir, "resource_pack")
 
-        # Item textures
         for item in spec.items:
             tex_path = os.path.join(rp_dir, "textures", "items", "%s.png" % item.registry_name)
-            sub = item.weapon_type or item.tool_type or item.armor_slot or ""
-            mat = item.material or "iron"
-            generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
-            logger.info("Generated texture for %s (%s/%s/%s)" % (item.display_name, item.item_type, sub, mat))
+            if item.custom_texture:
+                _save_custom_texture(item.custom_texture, tex_path)
+                logger.info("Using custom texture for %s" % item.display_name)
+            else:
+                sub = item.weapon_type or item.tool_type or item.armor_slot or ""
+                mat = item.material or "iron"
+                generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
+                logger.info("Generated texture for %s" % item.display_name)
 
-        # Block textures
         for block in spec.blocks:
             tex_path = os.path.join(rp_dir, "textures", "blocks", "%s.png" % block.registry_name)
             generate_procedural_texture("block", "", "ore", tex_path)
-            logger.info("Generated block texture for %s" % block.display_name)
 
-        # Pack icon
         primary_mat = spec.items[0].material if spec.items else "diamond"
         rp_icon = os.path.join(rp_dir, "pack_icon.png")
         bp_icon = os.path.join(build_dir, "behavior_pack", "pack_icon.png")
@@ -367,9 +382,12 @@ async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
 
         for item in spec.items:
             tex_path = os.path.join(assets_base, "textures", "item", "%s.png" % item.registry_name)
-            sub = item.weapon_type or item.tool_type or item.armor_slot or ""
-            mat = item.material or "iron"
-            generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
+            if item.custom_texture:
+                _save_custom_texture(item.custom_texture, tex_path)
+            else:
+                sub = item.weapon_type or item.tool_type or item.armor_slot or ""
+                mat = item.material or "iron"
+                generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
 
         for block in spec.blocks:
             tex_path = os.path.join(assets_base, "textures", "block", "%s.png" % block.registry_name)

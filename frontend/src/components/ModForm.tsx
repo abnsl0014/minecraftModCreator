@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { generateMod } from "@/lib/api";
+import { generateMod, CustomTexture } from "@/lib/api";
 import WeaponBuilder, { WeaponEntry } from "./builder/WeaponBuilder";
 import ToolBuilder, { ToolEntry } from "./builder/ToolBuilder";
 import ArmorBuilder, { ArmorEntry } from "./builder/ArmorBuilder";
@@ -91,7 +91,22 @@ export default function ModForm() {
     setLoading(true);
     setError("");
     try {
-      const { job_id } = await generateMod(finalDescription, modName, authorName, edition);
+      // Collect custom textures from builder entries
+      const customTextures: CustomTexture[] = [];
+      if (mode === "builder") {
+        const allItems = [
+          ...weapons.map(w => ({ name: w.name.toLowerCase().replace(/\s+/g, "_"), tex: w.customTexture })),
+          ...tools.map(t => ({ name: t.name.toLowerCase().replace(/\s+/g, "_"), tex: t.customTexture })),
+          ...armor.map(a => ({ name: a.name.toLowerCase().replace(/\s+/g, "_"), tex: a.customTexture })),
+          ...food.map(f => ({ name: f.name.toLowerCase().replace(/\s+/g, "_"), tex: f.customTexture })),
+        ];
+        for (const item of allItems) {
+          if (item.tex) {
+            customTextures.push({ registry_name: item.name, custom_texture: item.tex });
+          }
+        }
+      }
+      const { job_id } = await generateMod(finalDescription, modName, authorName, edition, customTextures);
       router.push(`/status/${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

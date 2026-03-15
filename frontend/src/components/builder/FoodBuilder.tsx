@@ -3,6 +3,7 @@
 import { useState } from "react";
 import RecipeGrid from "./RecipeGrid";
 import MaterialSelect, { TexturePreview } from "./MaterialSelect";
+import TextureUpload from "./TextureUpload";
 
 export interface FoodEntry {
   name: string;
@@ -13,6 +14,8 @@ export interface FoodEntry {
   fastEat: boolean;
   stackSize: number;
   material: string;
+  style: string;
+  customTexture: string | null;
   description: string;
   recipe: string[];
 }
@@ -25,7 +28,9 @@ const EMPTY: FoodEntry = {
   alwaysEdible: false,
   fastEat: false,
   stackSize: 64,
+  customTexture: null,
   material: "golden",
+  style: "classic",
   description: "",
   recipe: Array(9).fill(""),
 };
@@ -87,7 +92,7 @@ export default function FoodBuilder({ items, setItems, accentColor }: Props) {
           {items.map((item, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-gray-800/40 border border-gray-700/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <TexturePreview itemType="food" subType="" material={item.material} size={36} />
+                {item.customTexture ? <img src={item.customTexture} alt="custom" className="rounded border border-green-500" style={{width:36,height:36,imageRendering:"pixelated"}} /> : <TexturePreview itemType="food" subType="" material={item.material} style={item.style} size={36} />}
                 <div>
                   <p className="text-sm font-medium text-white">{item.name}</p>
                   <p className="text-xs text-gray-400">
@@ -117,9 +122,11 @@ export default function FoodBuilder({ items, setItems, accentColor }: Props) {
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">Material</label>
-            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="food" />
+            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="food" style={draft.style} onStyleChange={(s) => setDraft({...draft, style: s})} />
           </div>
         </div>
+
+        <TextureUpload value={draft.customTexture} onChange={(t) => setDraft({...draft, customTexture: t})} currentPreview={null} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>

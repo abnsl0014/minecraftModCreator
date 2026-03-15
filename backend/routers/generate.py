@@ -97,11 +97,12 @@ async def preview_texture(
     item_type: str = Query("weapon"),
     sub_type: str = Query("sword"),
     material: str = Query("diamond"),
+    style: str = Query("classic"),
 ):
     """Generate a texture preview PNG (128x128 scaled up from 16x16)."""
     from services.procedural_textures import generate_preview_base64
     try:
-        data_url = generate_preview_base64(item_type, sub_type, material)
+        data_url = generate_preview_base64(item_type, sub_type, material, style)
         return {"preview": data_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

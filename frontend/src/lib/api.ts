@@ -14,11 +14,17 @@ export interface JobStatus {
   mod_id: string | null;
 }
 
+export interface CustomTexture {
+  registry_name: string;
+  custom_texture: string;
+}
+
 export async function generateMod(
   description: string,
   modName?: string,
   authorName?: string,
-  edition: string = "java"
+  edition: string = "java",
+  customTextures?: CustomTexture[],
 ): Promise<{ job_id: string }> {
   const res = await fetch(`${API_BASE}/api/generate`, {
     method: "POST",
@@ -28,6 +34,7 @@ export async function generateMod(
       mod_name: modName || null,
       author_name: authorName || "ModCreator User",
       edition,
+      custom_textures: customTextures?.length ? customTextures : null,
     }),
   });
 

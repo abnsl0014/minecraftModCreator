@@ -3,6 +3,7 @@
 import { useState } from "react";
 import RecipeGrid from "./RecipeGrid";
 import MaterialSelect, { TexturePreview } from "./MaterialSelect";
+import TextureUpload from "./TextureUpload";
 
 export interface ToolEntry {
   name: string;
@@ -11,6 +12,8 @@ export interface ToolEntry {
   miningSpeed: number;
   durability: number;
   material: string;
+  style: string;
+  customTexture: string | null;
   description: string;
   recipe: string[];
 }
@@ -21,7 +24,9 @@ const EMPTY: ToolEntry = {
   damage: 2,
   miningSpeed: 6,
   durability: 500,
+  customTexture: null,
   material: "iron",
+  style: "classic",
   description: "",
   recipe: Array(9).fill(""),
 };
@@ -68,7 +73,7 @@ export default function ToolBuilder({ items, setItems, accentColor }: Props) {
           {items.map((item, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-gray-800/40 border border-gray-700/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <TexturePreview itemType="tool" subType={item.toolType} material={item.material} size={36} />
+                {item.customTexture ? <img src={item.customTexture} alt="custom" className="rounded border border-green-500" style={{width:36,height:36,imageRendering:"pixelated"}} /> : <TexturePreview itemType="tool" subType={item.toolType} material={item.material} style={item.style} size={36} />}
                 <div>
                   <p className="text-sm font-medium text-white">{item.name}</p>
                   <p className="text-xs text-gray-400 capitalize">{item.toolType} &middot; Speed {item.miningSpeed} &middot; {item.durability} durability</p>
@@ -124,8 +129,9 @@ export default function ToolBuilder({ items, setItems, accentColor }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-400 mb-1">Material</label>
-            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="tool" subType={draft.toolType} />
+            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="tool" subType={draft.toolType} style={draft.style} onStyleChange={(s) => setDraft({...draft, style: s})} />
           </div>
+          <TextureUpload value={draft.customTexture} onChange={(t) => setDraft({...draft, customTexture: t})} currentPreview={null} />
           <div>
             <label className="block text-xs text-gray-400 mb-1">Description (optional)</label>
             <input type="text" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}

@@ -17,15 +17,24 @@ def generate_texture(color_hex: str, output_path: str, size: int = 16):
 
 
 def generate_pack_icon(output_path: str, color_hex: str = "#4CAF50"):
-    """Generate a 64x64 pack_icon.png with a simple bordered design."""
+    """Generate a 128x128 pack_icon.png — Minecraft needs 128x128 minimum."""
     color = hex_to_rgb(color_hex)
-    img = Image.new('RGB', (64, 64), color)
+    img = Image.new('RGBA', (128, 128), (*color, 255))
     pixels = img.load()
-    # Draw a darker border for visual distinction
     dark = tuple(max(0, c - 80) for c in color)
-    for x in range(64):
-        for y in range(64):
-            if x < 2 or x >= 62 or y < 2 or y >= 62:
-                pixels[x, y] = dark
+    light = tuple(min(255, c + 40) for c in color)
+    for x in range(128):
+        for y in range(128):
+            if x < 4 or x >= 124 or y < 4 or y >= 124:
+                pixels[x, y] = (*dark, 255)
+            elif x < 8 or x >= 120 or y < 8 or y >= 120:
+                pixels[x, y] = (*light, 255)
+    # Center diamond shape
+    c = 64
+    for y in range(30, 98):
+        d = abs(y - c)
+        w = max(0, 34 - d)
+        for x in range(c - w, c + w):
+            pixels[x, y] = (*light, 255)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path)

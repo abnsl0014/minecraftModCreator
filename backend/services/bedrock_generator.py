@@ -412,6 +412,16 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
                 lines.append('      target.addEffect("minecraft:wither", 100, { amplifier: 1 });')
             elif effect == "slowness":
                 lines.append('      target.addEffect("minecraft:slowness", 100, { amplifier: 2 });')
+            elif effect == "freeze":
+                lines.append('      // Freeze target — extreme slowness + mining fatigue + ice particles')
+                lines.append('      target.addEffect("minecraft:slowness", 200, { amplifier: 4 });')
+                lines.append('      target.addEffect("minecraft:mining_fatigue", 200, { amplifier: 3 });')
+                lines.append('      target.addEffect("minecraft:weakness", 200, { amplifier: 1 });')
+                lines.append('      // Spawn snow particles around target')
+                lines.append('      const fl = target.location;')
+                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x, y:fl.y+1, z:fl.z});')
+                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x+0.5, y:fl.y+0.5, z:fl.z+0.5});')
+                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x-0.5, y:fl.y+1.5, z:fl.z-0.5});')
             elif effect == "lifesteal":
                 lines.append('      // Heal attacker (lifesteal)')
                 lines.append('      const health = attacker.getComponent("minecraft:health");')
