@@ -55,11 +55,16 @@ class ItemSpec(BaseModel):
     always_edible: Optional[bool] = False
     fast_eat: Optional[bool] = False
     stack_size: Optional[int] = 64
+    # Visual / exterior
+    glowing: Optional[bool] = False  # enchanted glint shimmer
+    rarity: Optional[str] = ""  # common, uncommon, rare, epic
+    fire_resistant: Optional[bool] = False  # survives lava/fire when dropped
+    hover_text_color: Optional[str] = ""  # custom name color: red, blue, green, yellow, etc.
     # Common
     properties: Optional[dict] = {}
-    color: str = "#888888"  # kept for backward compat
-    material: Optional[str] = "iron"  # diamond, iron, gold, netherite, emerald, ruby, etc.
-    custom_texture: Optional[str] = None  # base64 data URL for user-uploaded texture
+    color: str = "#888888"
+    material: Optional[str] = "iron"
+    custom_texture: Optional[str] = None
     recipe: Optional[RecipeSpec] = None
 
     @field_validator("*", mode="before")
@@ -75,6 +80,7 @@ class ItemSpec(BaseModel):
                 "nutrition": 0, "saturation": 0.6, "food_effects": [],
                 "always_edible": False, "fast_eat": False, "stack_size": 64,
                 "properties": {}, "material": "iron", "custom_texture": None,
+                "glowing": False, "rarity": "", "fire_resistant": False, "hover_text_color": "",
             }
             return defaults.get(info.field_name, v)
         return v

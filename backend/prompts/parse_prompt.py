@@ -56,6 +56,23 @@ How to decide the item_type:
 - If user says "ore", "block", "crystal", "brick", "stone" (placeable) → goes in blocks array
 - If user says "armor set" → create 4 separate items: helmet + chestplate + leggings + boots
 
+=== VISUAL / EXTERIOR PROPERTIES (any item) ===
+These change how the item LOOKS or BEHAVES outside of combat:
+- glowing: true/false — adds enchanted glint shimmer (purple shine effect, like enchanted items)
+  Keywords: "glowing", "enchanted", "shimmering", "glint", "magical glow"
+- rarity: "common"|"uncommon"|"rare"|"epic" — changes name color in inventory
+  common=white, uncommon=yellow, rare=cyan, epic=magenta
+  Keywords: "rare", "epic", "legendary", "uncommon", "mythic"
+- fire_resistant: true/false — item doesn't burn in lava/fire when dropped
+  Keywords: "fireproof", "fire resistant", "lava proof", "indestructible"
+- hover_text_color: "red"|"blue"|"green"|"yellow"|"gold"|"aqua"|"light_purple"|"dark_red"
+  Keywords: "red name", "blue text", "gold name", "colored name"
+
+If user says "glowing sword" → glowing=true
+If user says "epic helmet" → rarity="epic"
+If user says "legendary fire-resistant blade" → rarity="epic", fire_resistant=true, glowing=true
+If user says "enchanted" → glowing=true (enchant shimmer)
+
 === ON-HIT EFFECTS (weapons only) ===
 - "lightning": summons lightning bolt at target
 - "fire": sets target on fire for 5 seconds
@@ -113,6 +130,10 @@ Nutrition: apple=4, bread=5, steak=8, golden_apple=4(with effects), godlike=20
       "stack_size": 64,
       "color": "#hex_color",
       "material": "diamond|iron|gold|netherite|emerald|ruby|amethyst|obsidian|copper|redstone|lapis|wood|stone",
+      "glowing": false,
+      "rarity": "common|uncommon|rare|epic",
+      "fire_resistant": false,
+      "hover_text_color": "red|blue|green|yellow|gold|aqua|light_purple",
       "recipe": null
     }
   ],

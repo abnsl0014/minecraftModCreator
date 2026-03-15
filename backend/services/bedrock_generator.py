@@ -329,6 +329,41 @@ def fix_bedrock_item_json(data: dict, namespace: str) -> dict:
     return data
 
 
+def inject_visual_properties(item_json: dict, spec_item) -> dict:
+    """Add glint, rarity, fire_resistant, hover_text_color to item JSON."""
+    mi = item_json.get("minecraft:item", {})
+    if not isinstance(mi, dict):
+        return item_json
+    comps = mi.get("components", {})
+
+    # Enchanted glint shimmer
+    if spec_item.glowing:
+        comps["minecraft:glint"] = True
+
+    # Rarity (changes name color)
+    if spec_item.rarity:
+        rarity_map = {"common": "common", "uncommon": "uncommon", "rare": "rare",
+                      "epic": "epic", "legendary": "epic", "mythic": "epic"}
+        mapped = rarity_map.get(spec_item.rarity.lower())
+        if mapped:
+            comps["minecraft:rarity"] = mapped
+
+    # Fire resistant (survives lava)
+    if spec_item.fire_resistant:
+        comps["minecraft:fire_resistant"] = True
+
+    # Custom name hover color
+    color_map = {
+        "red": "red", "blue": "blue", "green": "green", "yellow": "yellow",
+        "gold": "gold", "aqua": "aqua", "light_purple": "light_purple",
+        "dark_red": "dark_red", "dark_blue": "dark_blue", "white": "white",
+    }
+    if spec_item.hover_text_color and spec_item.hover_text_color.lower() in color_map:
+        comps["minecraft:hover_text_color"] = color_map[spec_item.hover_text_color.lower()]
+
+    return item_json
+
+
 def inject_food_effects(item_json: dict, food_effects: list) -> dict:
     """Add potion effects to food items based on spec."""
     if not food_effects:
@@ -484,11 +519,13 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
             try:
                 data = json.loads(content)
                 data = fix_bedrock_item_json(data, spec.mod_id)
-                # Find matching spec item to inject food effects
+                # Find matching spec item to inject effects + visual properties
                 item_name = path.split("/")[-1].replace(".json", "")
                 for s_item in spec.items:
-                    if s_item.registry_name == item_name and s_item.food_effects:
-                        data = inject_food_effects(data, s_item.food_effects)
+                    if s_item.registry_name == item_name:
+                        if s_item.food_effects:
+                            data = inject_food_effects(data, s_item.food_effects)
+                        data = inject_visual_properties(data, s_item)
                 item_files[path] = json.dumps(data, indent=2)
             except json.JSONDecodeError:
                 pass
