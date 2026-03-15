@@ -331,6 +331,99 @@ def fix_bedrock_item_json(data: dict, namespace: str) -> dict:
     return data
 
 
+def inject_weapon_mechanics(item_json: dict, spec_item) -> dict:
+    """Auto-add shooter/throwable/projectile components based on weapon_type."""
+    if spec_item.item_type != "weapon":
+        return item_json
+    mi = item_json.get("minecraft:item", {})
+    if not isinstance(mi, dict):
+        return item_json
+    comps = mi.get("components", {})
+    wtype = (spec_item.weapon_type or "").lower()
+
+    # Guns — rapid fire shooter (uses arrows as ammo)
+    if wtype == "gun" and "minecraft:shooter" not in comps:
+        comps["minecraft:shooter"] = {
+            "max_draw_duration": 0.1,
+            "charge_on_draw": True,
+            "scale_power_by_draw_duration": False,
+            "ammunition": [
+                {"item": "minecraft:arrow", "use_offhand": False, "use_in_creative": True}
+            ]
+        }
+        comps["minecraft:use_modifiers"] = {"use_duration": 0.1}
+        comps["minecraft:use_animation"] = "bow"
+
+    # Crossbow — slower shooter
+    elif wtype == "crossbow" and "minecraft:shooter" not in comps:
+        comps["minecraft:shooter"] = {
+            "max_draw_duration": 1.0,
+            "charge_on_draw": True,
+            "scale_power_by_draw_duration": True,
+            "ammunition": [
+                {"item": "minecraft:arrow", "use_offhand": False, "use_in_creative": True}
+            ]
+        }
+        comps["minecraft:use_animation"] = "bow"
+
+    # RPG — shoots fireballs
+    elif wtype == "rpg":
+        if "minecraft:throwable" not in comps:
+            comps["minecraft:throwable"] = {
+                "do_swing_animation": True,
+                "max_draw_duration": 0,
+                "scale_power_by_draw_duration": False
+            }
+        if "minecraft:projectile" not in comps:
+            comps["minecraft:projectile"] = {
+                "projectile_entity": "minecraft:fireball",
+                "minimum_critical_power": 0
+            }
+        comps["minecraft:use_animation"] = "bow"
+
+    # Throwable — thrown like snowball
+    elif wtype == "throwable":
+        if "minecraft:throwable" not in comps:
+            comps["minecraft:throwable"] = {
+                "do_swing_animation": True,
+                "max_draw_duration": 0,
+                "scale_power_by_draw_duration": False
+            }
+        if "minecraft:projectile" not in comps:
+            comps["minecraft:projectile"] = {
+                "projectile_entity": "minecraft:snowball",
+                "minimum_critical_power": 0
+            }
+
+    # Nuke — throwable that creates explosion
+    elif wtype == "nuke":
+        if "minecraft:throwable" not in comps:
+            comps["minecraft:throwable"] = {
+                "do_swing_animation": True,
+                "max_draw_duration": 0,
+                "scale_power_by_draw_duration": False
+            }
+        if "minecraft:projectile" not in comps:
+            comps["minecraft:projectile"] = {
+                "projectile_entity": "minecraft:fireball",
+                "minimum_critical_power": 0
+            }
+
+    # Bow — standard bow behavior
+    elif wtype == "bow" and "minecraft:shooter" not in comps:
+        comps["minecraft:shooter"] = {
+            "max_draw_duration": 1.0,
+            "charge_on_draw": True,
+            "scale_power_by_draw_duration": True,
+            "ammunition": [
+                {"item": "minecraft:arrow", "use_offhand": True, "use_in_creative": True}
+            ]
+        }
+        comps["minecraft:use_animation"] = "bow"
+
+    return item_json
+
+
 def inject_visual_properties(item_json: dict, spec_item) -> dict:
     """Add glint, rarity, fire_resistant, hover_text_color to item JSON."""
     mi = item_json.get("minecraft:item", {})
@@ -578,6 +671,7 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
                     if s_item.registry_name == item_name:
                         if s_item.food_effects:
                             data = inject_food_effects(data, s_item.food_effects)
+                        data = inject_weapon_mechanics(data, s_item)
                         data = inject_visual_properties(data, s_item)
                 item_files[path] = json.dumps(data, indent=2)
             except json.JSONDecodeError:
