@@ -202,6 +202,24 @@ If user says "enchanted" → glowing=true (enchant shimmer)
 - "levitation": launches target into the air
 - "teleport": teleports attacker to target location
 
+=== SPECIAL ABILITIES (right-click activated, weapons only) ===
+Set special_ability to a description. The system auto-maps these:
+- "shoots a fireball" / "fire blast" → launches fireball projectile
+- "summons lightning" / "thunder strike" → lightning 8 blocks forward
+- "teleport" / "dash" / "blink" → teleports 10 blocks forward
+- "heal" / "restore health" → gives regeneration + absorption
+- "explosion" / "nuke blast" → creates explosion 5 blocks forward
+- "speed burst" / "charge" → gives Speed IV for 5 seconds
+- "shield" / "barrier" → gives Resistance III for 5 seconds
+- "freeze aura" / "ice storm" → freezes all nearby enemies
+- Any other description → gives Strength + Speed buff
+
+Examples:
+- special_ability: "Shoots a fireball on right-click"
+- special_ability: "Teleports forward 10 blocks"
+- special_ability: "Freezes all nearby enemies"
+- special_ability: "Creates a massive explosion"
+
 === ARMOR EFFECTS (armor only, passive while worn) ===
 - "speed", "regeneration", "strength", "night_vision", "fire_resistance"
 - "water_breathing", "jump_boost", "resistance", "haste"

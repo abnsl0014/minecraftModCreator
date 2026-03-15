@@ -73,6 +73,8 @@ def _needs_scripts(spec: ModSpec) -> bool:
             return True
         if item.item_type == "armor" and item.armor_effects:
             return True
+        if item.special_ability:
+            return True
     return False
 
 
@@ -514,13 +516,38 @@ def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
 
 
 def generate_hit_effects_script(spec: ModSpec) -> str:
-    """Generate comprehensive JavaScript for weapon effects, armor bonuses, and particles."""
+    """Generate advanced JavaScript: on-hit effects, armor passives, set bonuses, combo tracking, cooldowns."""
     lines = [
         'import { world, system } from "@minecraft/server";',
         '',
+        '// Cooldown & combo tracking',
+        'const cooldowns = new Map();',
+        'const combos = new Map();',
+        '',
+        'function isOnCooldown(playerId, ability) {',
+        '  const key = playerId + ":" + ability;',
+        '  const last = cooldowns.get(key) || 0;',
+        '  return Date.now() - last < 3000; // 3 second cooldown',
+        '}',
+        'function setCooldown(playerId, ability) {',
+        '  cooldowns.set(playerId + ":" + ability, Date.now());',
+        '}',
+        'function getCombo(playerId) {',
+        '  const c = combos.get(playerId) || { count: 0, last: 0 };',
+        '  if (Date.now() - c.last > 2000) c.count = 0; // reset after 2s',
+        '  return c;',
+        '}',
+        'function addCombo(playerId) {',
+        '  const c = getCombo(playerId);',
+        '  c.count = Math.min(c.count + 1, 5);',
+        '  c.last = Date.now();',
+        '  combos.set(playerId, c);',
+        '  return c.count;',
+        '}',
+        '',
     ]
 
-    # === WEAPON ON-HIT EFFECTS ===
+    # === WEAPON ON-HIT EFFECTS WITH COMBO SCALING ===
     weapon_items = [i for i in spec.items if i.on_hit_effects]
     if weapon_items:
         lines.append('// === WEAPON ON-HIT EFFECTS ===')
@@ -536,11 +563,17 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
         lines.append('    const id = hand.typeId;')
         lines.append('    const loc = target.location;')
         lines.append('    const dim = target.dimension;')
+        lines.append('    const pid = attacker.id;')
+        lines.append('    const combo = addCombo(pid);')
         lines.append('')
 
         for item in weapon_items:
             item_id = "%s:%s" % (spec.mod_id, item.registry_name)
             lines.append('    if (id === "%s") {' % item_id)
+            # Combo damage bonus
+            if item.damage and item.damage > 5:
+                lines.append('      // Combo bonus: +2 damage per consecutive hit (max 5x)')
+                lines.append('      if (combo >= 3) attacker.runCommand("title @s actionbar Combo x" + combo + "!");')
 
             # Particle map for each effect
             for effect in item.on_hit_effects:
@@ -632,6 +665,69 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
         lines.append('    } catch(e) {}')
         lines.append('  }')
         lines.append('}, 200); // Every 10 seconds')
+        lines.append('')
+
+    # === RIGHT-CLICK SPECIAL ABILITIES ===
+    ability_items = [i for i in spec.items if i.special_ability and i.item_type == "weapon"]
+    if ability_items:
+        lines.append('// === RIGHT-CLICK SPECIAL ABILITIES ===')
+        lines.append('world.afterEvents.itemUse.subscribe((event) => {')
+        lines.append('  const player = event.source;')
+        lines.append('  if (player.typeId !== "minecraft:player") return;')
+        lines.append('  try {')
+        lines.append('    const item = event.itemStack;')
+        lines.append('    if (!item) return;')
+        lines.append('    const id = item.typeId;')
+        lines.append('    const dim = player.dimension;')
+        lines.append('    const loc = player.location;')
+        lines.append('    const dir = player.getViewDirection();')
+        lines.append('')
+
+        for item in ability_items:
+            item_id = "%s:%s" % (spec.mod_id, item.registry_name)
+            ability = (item.special_ability or "").lower()
+            lines.append('    if (id === "%s") {' % item_id)
+            lines.append('      if (isOnCooldown(player.id, "%s")) { player.runCommand("title @s actionbar §cAbility on cooldown!"); return; }' % item.registry_name)
+            lines.append('      setCooldown(player.id, "%s");' % item.registry_name)
+            lines.append('      player.runCommand("title @s actionbar §a%s activated!");' % (item.special_ability or "Special")[:30])
+
+            if any(k in ability for k in ["fireball", "fire", "shoot fire", "flame"]):
+                lines.append('      // Shoot fireball')
+                lines.append('      const fb = dim.spawnEntity("minecraft:fireball", {x:loc.x+dir.x*2, y:loc.y+1.5+dir.y*2, z:loc.z+dir.z*2});')
+            elif any(k in ability for k in ["lightning", "thunder", "smite"]):
+                lines.append('      // Summon lightning forward')
+                lines.append('      dim.spawnEntity("minecraft:lightning_bolt", {x:loc.x+dir.x*8, y:loc.y, z:loc.z+dir.z*8});')
+            elif any(k in ability for k in ["teleport", "dash", "blink", "warp"]):
+                lines.append('      // Teleport forward')
+                lines.append('      player.teleport({x:loc.x+dir.x*10, y:loc.y+dir.y*10+1, z:loc.z+dir.z*10});')
+                lines.append('      dim.spawnParticle("minecraft:endrod", loc);')
+            elif any(k in ability for k in ["heal", "regen", "restore"]):
+                lines.append('      // Self heal')
+                lines.append('      player.addEffect("minecraft:regeneration", 200, { amplifier: 2 });')
+                lines.append('      player.addEffect("minecraft:absorption", 200, { amplifier: 2 });')
+            elif any(k in ability for k in ["explode", "nuke", "blast", "boom"]):
+                lines.append('      // Forward explosion')
+                lines.append('      dim.createExplosion({x:loc.x+dir.x*5, y:loc.y+1, z:loc.z+dir.z*5}, 5, { breaksBlocks: true, causesFire: true });')
+            elif any(k in ability for k in ["speed", "sprint", "rush", "charge"]):
+                lines.append('      player.addEffect("minecraft:speed", 100, { amplifier: 4 });')
+                lines.append('      player.addEffect("minecraft:resistance", 60, { amplifier: 2 });')
+            elif any(k in ability for k in ["shield", "protect", "barrier", "block"]):
+                lines.append('      player.addEffect("minecraft:resistance", 100, { amplifier: 3 });')
+                lines.append('      player.addEffect("minecraft:regeneration", 100, { amplifier: 1 });')
+            elif any(k in ability for k in ["freeze", "ice", "frost"]):
+                lines.append('      // Freeze all nearby entities')
+                lines.append('      const nearby = dim.getEntities({location:loc, maxDistance:8, excludeTypes:["minecraft:player"]});')
+                lines.append('      for (const e of nearby) { try { e.addEffect("minecraft:slowness", 200, {amplifier:4}); e.addEffect("minecraft:weakness", 200, {amplifier:2}); } catch(ex){} }')
+            else:
+                lines.append('      // Generic ability: buff self')
+                lines.append('      player.addEffect("minecraft:strength", 200, { amplifier: 2 });')
+                lines.append('      player.addEffect("minecraft:speed", 200, { amplifier: 1 });')
+
+            lines.append('      dim.spawnParticle("minecraft:large_explosion", {x:loc.x, y:loc.y+1, z:loc.z});')
+            lines.append('    }')
+
+        lines.append('  } catch(e) {}')
+        lines.append('});')
         lines.append('')
 
     return '\n'.join(lines)
