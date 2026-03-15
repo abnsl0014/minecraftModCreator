@@ -168,55 +168,52 @@ async def generate_bedrock_items(spec: ModSpec) -> Dict[str, str]:
                 parts.append("can_always_eat=true")
         return ", ".join(parts)
 
-    items_desc = "\n".join(describe_item(item) for item in spec.items)
-
-    response = await groq_client.chat(
-        messages=[
-            {"role": "system", "content": BEDROCK_ITEM_SYSTEM_PROMPT},
-            {"role": "user", "content": "Generate Bedrock item JSONs for namespace \"%s\":\n%s\n\nOutput a JSON array." % (spec.mod_id, items_desc)},
-        ],
-        json_mode=True,
-        temperature=0.3,
-        max_tokens=4096,
-    )
+    # Split into batches of 8 to avoid LLM truncation
+    BATCH_SIZE = 8
+    all_items_desc = [describe_item(item) for item in spec.items]
 
     files = {}
-    try:
-        data = json.loads(response)
-        # Handle various LLM output formats
-        if isinstance(data, list):
-            items_list = data
-        elif isinstance(data, dict) and "items" in data:
-            items_list = data["items"]
-        elif isinstance(data, dict) and "minecraft:item" in data:
-            # Single item or array inside minecraft:item
-            mi = data["minecraft:item"]
-            if isinstance(mi, list):
-                # LLM put all items as array inside one minecraft:item — split them
-                items_list = []
-                for item_def in mi:
-                    items_list.append({
-                        "format_version": data.get("format_version", "1.21.40"),
-                        "minecraft:item": item_def
-                    })
+    for batch_start in range(0, len(spec.items), BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, len(spec.items))
+        batch_desc = "\n".join(all_items_desc[batch_start:batch_end])
+        batch_items = spec.items[batch_start:batch_end]
+
+        response = await groq_client.chat(
+            messages=[
+                {"role": "system", "content": BEDROCK_ITEM_SYSTEM_PROMPT},
+                {"role": "user", "content": "Generate Bedrock item JSONs for namespace \"%s\":\n%s\n\nOutput a JSON array with exactly %d items." % (spec.mod_id, batch_desc, len(batch_items))},
+            ],
+            json_mode=True,
+            temperature=0.3,
+            max_tokens=8192,
+        )
+
+        try:
+            data = json.loads(response)
+            if isinstance(data, list):
+                items_list = data
+            elif isinstance(data, dict) and "items" in data:
+                items_list = data["items"]
+            elif isinstance(data, dict) and "minecraft:item" in data:
+                mi = data["minecraft:item"]
+                if isinstance(mi, list):
+                    items_list = [{"format_version": data.get("format_version", "1.20.80"), "minecraft:item": d} for d in mi]
+                else:
+                    items_list = [data]
             else:
                 items_list = [data]
-        else:
-            items_list = [data]
 
-        for i, item_json in enumerate(items_list):
-            name = spec.items[i].registry_name if i < len(spec.items) else "item_%d" % i
-            # Ensure each item has the proper wrapper structure
-            if "minecraft:item" not in item_json and "description" in item_json:
-                item_json = {
-                    "format_version": "1.21.40",
-                    "minecraft:item": item_json
-                }
-            files["behavior_pack/items/%s.json" % name] = json.dumps(item_json, indent=2)
-    except json.JSONDecodeError:
-        text = strip_code_fences(response)
-        for i, item in enumerate(spec.items):
-            files["behavior_pack/items/%s.json" % item.registry_name] = text
+            for i, item_json in enumerate(items_list):
+                if i >= len(batch_items):
+                    break
+                name = batch_items[i].registry_name
+                if "minecraft:item" not in item_json and "description" in item_json:
+                    item_json = {"format_version": "1.20.80", "minecraft:item": item_json}
+                files["behavior_pack/items/%s.json" % name] = json.dumps(item_json, indent=2)
+        except json.JSONDecodeError:
+            text = strip_code_fences(response)
+            for item in batch_items:
+                files["behavior_pack/items/%s.json" % item.registry_name] = text
 
     return files
 
