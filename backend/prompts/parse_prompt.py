@@ -91,6 +91,14 @@ If user says "enchanted" → glowing=true (enchant shimmer)
 - "regeneration", "absorption", "resistance", "fire_resistance", "speed"
 - "strength", "night_vision", "instant_health", "water_breathing", "jump_boost"
 
+=== ARMOR SET BONUSES ===
+If a mod has 2+ armor pieces, wearing ALL of them gives automatic Resistance + Regeneration bonus.
+The agent adds this automatically — no need to specify.
+
+=== SPECIAL PROPERTIES ===
+- durability=9999 or "unbreakable"/"infinite durability" → sets durability to 9999
+- "converts to bowl" / "gives back bowl" for soup → using_converts_to in food component
+
 === REFERENCE VALUES ===
 Damage: iron_sword=6, diamond_sword=7, modded_strong=10-18, overpowered=20-30
 Durability: stone=130, iron=250, diamond=1560, netherite=2031, godlike=5000-9999

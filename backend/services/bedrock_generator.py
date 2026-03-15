@@ -66,17 +66,19 @@ def build_detailed_description(spec: ModSpec) -> str:
     return "".join(parts)
 
 
-def _has_on_hit_effects(spec: ModSpec) -> bool:
-    """Check if any weapon has on_hit_effects that need scripting."""
+def _needs_scripts(spec: ModSpec) -> bool:
+    """Check if any item needs the Script API."""
     for item in spec.items:
         if item.on_hit_effects:
+            return True
+        if item.item_type == "armor" and item.armor_effects:
             return True
     return False
 
 
 def generate_manifest_bp(spec: ModSpec, bp_uuid: str, bp_module_uuid: str, rp_uuid: str) -> dict:
     desc = build_detailed_description(spec)
-    needs_scripts = _has_on_hit_effects(spec)
+    needs_scripts = _needs_scripts(spec)
     script_uuid = generate_deterministic_uuid(spec.mod_id, "bp_script")
 
     modules = [
@@ -422,74 +424,112 @@ def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
 
 
 def generate_hit_effects_script(spec: ModSpec) -> str:
-    """Generate JavaScript for on-hit weapon effects using @minecraft/server API."""
+    """Generate comprehensive JavaScript for weapon effects, armor bonuses, and particles."""
     lines = [
         'import { world, system } from "@minecraft/server";',
         '',
-        '// On-hit effects for custom weapons',
-        'world.afterEvents.entityHitEntity.subscribe((event) => {',
-        '  const attacker = event.damagingEntity;',
-        '  const target = event.hitEntity;',
-        '  if (!attacker?.typeId === "minecraft:player") return;',
-        '',
-        '  try {',
-        '    const equipment = attacker.getComponent("minecraft:equippable");',
-        '    if (!equipment) return;',
-        '    const mainhand = equipment.getEquipment("Mainhand");',
-        '    if (!mainhand) return;',
-        '    const itemId = mainhand.typeId;',
-        '',
     ]
 
-    for item in spec.items:
-        if not item.on_hit_effects:
-            continue
-        item_id = "%s:%s" % (spec.mod_id, item.registry_name)
-        lines.append('    if (itemId === "%s") {' % item_id)
-
-        for effect in item.on_hit_effects:
-            if effect == "lightning":
-                lines.append('      // Summon lightning at target')
-                lines.append('      const loc = target.location;')
-                lines.append('      target.dimension.spawnEntity("minecraft:lightning_bolt", loc);')
-            elif effect == "fire":
-                lines.append('      // Set target on fire')
-                lines.append('      target.setOnFire(5, true);')
-            elif effect == "poison":
-                lines.append('      // Apply poison effect')
-                lines.append('      target.addEffect("minecraft:poison", 100, { amplifier: 1 });')
-            elif effect == "wither":
-                lines.append('      target.addEffect("minecraft:wither", 100, { amplifier: 1 });')
-            elif effect == "slowness":
-                lines.append('      target.addEffect("minecraft:slowness", 100, { amplifier: 2 });')
-            elif effect == "freeze":
-                lines.append('      // Freeze target — extreme slowness + mining fatigue + ice particles')
-                lines.append('      target.addEffect("minecraft:slowness", 200, { amplifier: 4 });')
-                lines.append('      target.addEffect("minecraft:mining_fatigue", 200, { amplifier: 3 });')
-                lines.append('      target.addEffect("minecraft:weakness", 200, { amplifier: 1 });')
-                lines.append('      // Spawn snow particles around target')
-                lines.append('      const fl = target.location;')
-                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x, y:fl.y+1, z:fl.z});')
-                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x+0.5, y:fl.y+0.5, z:fl.z+0.5});')
-                lines.append('      target.dimension.spawnParticle("minecraft:basic_smoke_particle", {x:fl.x-0.5, y:fl.y+1.5, z:fl.z-0.5});')
-            elif effect == "lifesteal":
-                lines.append('      // Heal attacker (lifesteal)')
-                lines.append('      const health = attacker.getComponent("minecraft:health");')
-                lines.append('      if (health) { health.setCurrentValue(Math.min(health.currentValue + 4, health.effectiveMax)); }')
-            elif effect == "knockback":
-                lines.append('      // Extra knockback')
-                lines.append('      const dir = target.location;')
-                lines.append('      const aLoc = attacker.location;')
-                lines.append('      const dx = dir.x - aLoc.x; const dz = dir.z - aLoc.z;')
-                lines.append('      const len = Math.sqrt(dx*dx + dz*dz) || 1;')
-                lines.append('      target.applyKnockback(dx/len, dz/len, 3, 0.4);')
-
-        lines.append('    }')
+    # === WEAPON ON-HIT EFFECTS ===
+    weapon_items = [i for i in spec.items if i.on_hit_effects]
+    if weapon_items:
+        lines.append('// === WEAPON ON-HIT EFFECTS ===')
+        lines.append('world.afterEvents.entityHitEntity.subscribe((event) => {')
+        lines.append('  const attacker = event.damagingEntity;')
+        lines.append('  const target = event.hitEntity;')
+        lines.append('  if (!attacker || attacker.typeId !== "minecraft:player") return;')
+        lines.append('  try {')
+        lines.append('    const eq = attacker.getComponent("minecraft:equippable");')
+        lines.append('    if (!eq) return;')
+        lines.append('    const hand = eq.getEquipment("Mainhand");')
+        lines.append('    if (!hand) return;')
+        lines.append('    const id = hand.typeId;')
+        lines.append('    const loc = target.location;')
+        lines.append('    const dim = target.dimension;')
         lines.append('')
 
-    lines.append('  } catch (e) {}')
-    lines.append('});')
-    lines.append('')
+        for item in weapon_items:
+            item_id = "%s:%s" % (spec.mod_id, item.registry_name)
+            lines.append('    if (id === "%s") {' % item_id)
+
+            # Particle map for each effect
+            for effect in item.on_hit_effects:
+                if effect == "lightning":
+                    lines.append('      dim.spawnEntity("minecraft:lightning_bolt", loc);')
+                    lines.append('      dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
+                elif effect == "fire":
+                    lines.append('      target.setOnFire(5, true);')
+                    lines.append('      dim.spawnParticle("minecraft:large_explosion", {x:loc.x, y:loc.y+1, z:loc.z});')
+                elif effect == "freeze":
+                    lines.append('      target.addEffect("minecraft:slowness", 200, { amplifier: 4 });')
+                    lines.append('      target.addEffect("minecraft:mining_fatigue", 200, { amplifier: 3 });')
+                    lines.append('      target.addEffect("minecraft:weakness", 200, { amplifier: 1 });')
+                    lines.append('      for (let i=0;i<5;i++) dim.spawnParticle("minecraft:basic_smoke_particle", {x:loc.x+(Math.random()-0.5)*2, y:loc.y+Math.random()*2, z:loc.z+(Math.random()-0.5)*2});')
+                elif effect == "poison":
+                    lines.append('      target.addEffect("minecraft:poison", 200, { amplifier: 1 });')
+                    lines.append('      dim.spawnParticle("minecraft:villager_angry", loc);')
+                elif effect == "wither":
+                    lines.append('      target.addEffect("minecraft:wither", 200, { amplifier: 1 });')
+                    lines.append('      dim.spawnParticle("minecraft:large_explosion", loc);')
+                elif effect == "slowness":
+                    lines.append('      target.addEffect("minecraft:slowness", 200, { amplifier: 2 });')
+                    lines.append('      dim.spawnParticle("minecraft:basic_smoke_particle", loc);')
+                elif effect == "lifesteal":
+                    lines.append('      const hp = attacker.getComponent("minecraft:health");')
+                    lines.append('      if (hp) hp.setCurrentValue(Math.min(hp.currentValue+4, hp.effectiveMax));')
+                    lines.append('      dim.spawnParticle("minecraft:heart_particle", {x:loc.x, y:loc.y+1.5, z:loc.z});')
+                elif effect == "knockback":
+                    lines.append('      const aL = attacker.location;')
+                    lines.append('      const dx = loc.x-aL.x, dz = loc.z-aL.z;')
+                    lines.append('      const len = Math.sqrt(dx*dx+dz*dz)||1;')
+                    lines.append('      target.applyKnockback(dx/len, dz/len, 4, 0.5);')
+                    lines.append('      dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
+
+            lines.append('    }')
+
+        lines.append('  } catch(e) {}')
+        lines.append('});')
+        lines.append('')
+
+    # === ARMOR SET BONUSES (if 2+ armor pieces) ===
+    armor_items = [i for i in spec.items if i.item_type == "armor" and i.armor_effects]
+    if armor_items:
+        lines.append('// === ARMOR PASSIVE EFFECTS ===')
+        lines.append('system.runInterval(() => {')
+        lines.append('  for (const player of world.getAllPlayers()) {')
+        lines.append('    try {')
+        lines.append('      const eq = player.getComponent("minecraft:equippable");')
+        lines.append('      if (!eq) continue;')
+        lines.append('      const head = eq.getEquipment("Head");')
+        lines.append('      const chest = eq.getEquipment("Chest");')
+        lines.append('      const legs = eq.getEquipment("Legs");')
+        lines.append('      const feet = eq.getEquipment("Feet");')
+        lines.append('      const worn = [head?.typeId, chest?.typeId, legs?.typeId, feet?.typeId];')
+        lines.append('')
+
+        for item in armor_items:
+            item_id = "%s:%s" % (spec.mod_id, item.registry_name)
+            lines.append('      if (worn.includes("%s")) {' % item_id)
+            for eff in item.armor_effects:
+                effect_name = "minecraft:%s" % eff
+                lines.append('        player.addEffect("%s", 260, { amplifier: 0, showParticles: false });' % effect_name)
+            lines.append('      }')
+
+        # Set bonus — if ALL armor pieces from this mod are worn
+        mod_armor_ids = ['"%s:%s"' % (spec.mod_id, i.registry_name) for i in spec.items if i.item_type == "armor"]
+        if len(mod_armor_ids) >= 2:
+            lines.append('')
+            lines.append('      // Set bonus: wearing %d+ pieces from this mod' % len(mod_armor_ids))
+            lines.append('      const modPieces = worn.filter(w => [%s].includes(w)).length;' % ','.join(mod_armor_ids))
+            lines.append('      if (modPieces >= %d) {' % len(mod_armor_ids))
+            lines.append('        player.addEffect("minecraft:resistance", 260, { amplifier: 1, showParticles: false });')
+            lines.append('        player.addEffect("minecraft:regeneration", 260, { amplifier: 0, showParticles: false });')
+            lines.append('      }')
+
+        lines.append('    } catch(e) {}')
+        lines.append('  }')
+        lines.append('}, 200); // Every 10 seconds')
+        lines.append('')
 
     return '\n'.join(lines)
 
@@ -546,7 +586,7 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
         all_files.update(block_files)
 
     # Scripts for on-hit effects (lightning, fire, poison, etc.)
-    if _has_on_hit_effects(spec):
+    if _needs_scripts(spec):
         script = generate_hit_effects_script(spec)
         all_files["behavior_pack/scripts/main.js"] = script
 
