@@ -91,7 +91,20 @@ def analyze_and_enrich(spec) -> str:
                 item.glowing = True
                 analysis_lines.append("%s: auto-glow for staff" % item.display_name)
 
-            # 7. Mark weapon type for ranged mechanics
+            # 7. If weapon_type is unknown, map to closest known type
+            if wtype not in WEAPON_DEFAULTS:
+                name_l = item.display_name.lower()
+                if any(k in name_l for k in ["gun", "rifle", "pistol", "cannon", "laser", "blaster"]): item.weapon_type = "gun"
+                elif any(k in name_l for k in ["rocket", "rpg", "launcher", "bazooka"]): item.weapon_type = "rpg"
+                elif any(k in name_l for k in ["bow", "crossbow"]): item.weapon_type = "bow"
+                elif any(k in name_l for k in ["bomb", "grenade", "mine", "shuriken", "ball"]): item.weapon_type = "throwable"
+                elif any(k in name_l for k in ["hammer", "mace", "club"]): item.weapon_type = "hammer"
+                elif any(k in name_l for k in ["staff", "wand", "rod", "orb"]): item.weapon_type = "staff"
+                elif any(k in name_l for k in ["fist", "gauntlet", "claw", "knuckle"]): item.weapon_type = "gauntlet"
+                else: item.weapon_type = "sword"  # default fallback
+                analysis_lines.append("%s: unknown type '%s' → mapped to %s" % (item.display_name, wtype, item.weapon_type))
+                wtype = item.weapon_type
+
             defaults = WEAPON_DEFAULTS.get(wtype, {})
             if "ranged" in defaults:
                 analysis_lines.append("%s: ranged weapon (%s) → will add %s component" % (item.display_name, wtype, defaults["ranged"]))
