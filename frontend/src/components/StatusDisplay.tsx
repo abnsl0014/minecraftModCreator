@@ -3,10 +3,10 @@
 import { JobStatus } from "@/lib/api";
 
 const STEPS = [
-  { key: "parsing", label: "Analyzing" },
-  { key: "generating", label: "Generating" },
-  { key: "compiling", label: "Building" },
-  { key: "complete", label: "Done" },
+  { key: "parsing", label: "Processing Prompt" },
+  { key: "generating", label: "Generating Code" },
+  { key: "compiling", label: "Packaging Files" },
+  { key: "complete", label: "Ready" },
 ] as const;
 
 function getStepIndex(status: string): number {
