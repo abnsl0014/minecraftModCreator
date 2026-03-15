@@ -30,16 +30,16 @@ class GroqClient:
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
-        for attempt in range(4):
+        for attempt in range(6):
             try:
                 response = await self.client.chat.completions.create(**kwargs)
                 return response.choices[0].message.content
             except RateLimitError as e:
-                wait = 2 ** (attempt + 1)
-                logger.warning(f"Rate limited, retrying in {wait}s (attempt {attempt + 1}/4)")
+                wait = min(2 ** (attempt + 1), 60)
+                logger.warning(f"Rate limited, retrying in {wait}s (attempt {attempt + 1}/6)")
                 await asyncio.sleep(wait)
 
-        raise Exception("Groq rate limit exceeded after 4 retries")
+        raise Exception("Groq rate limit exceeded after 6 retries")
 
 
 groq_client = GroqClient()
