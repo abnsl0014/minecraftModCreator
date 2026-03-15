@@ -14,6 +14,16 @@ type BuilderTab = "weapons" | "tools" | "armor" | "food" | "blocks";
 
 function PromptGuide() {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("weapons");
+  const tabs = [
+    { key: "weapons", label: "Weapons" },
+    { key: "tools", label: "Tools" },
+    { key: "armor", label: "Armor" },
+    { key: "food", label: "Food" },
+    { key: "blocks", label: "Blocks" },
+    { key: "visual", label: "Visual" },
+    { key: "examples", label: "Examples" },
+  ];
   return (
     <div>
       <button type="button" onClick={() => setOpen(!open)}
@@ -21,67 +31,161 @@ function PromptGuide() {
         <svg className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        Prompt Guide — how to describe each item type
+        What can I create? (tap to see all item types)
       </button>
       {open && (
-        <div className="mt-3 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg text-xs text-gray-300 space-y-4">
-
-          <div>
-            <h4 className="font-semibold text-white mb-1">Weapons (sword, katana, bow, axe, staff, hammer, spear)</h4>
-            <p className="text-gray-400 mb-1">Mention: type, material, damage, durability, on-hit effects</p>
-            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
-              <p>A diamond sword called &quot;Thunder Blade&quot; with 18 damage, 1000 durability, that summons lightning on every hit</p>
-              <p>A netherite katana called &quot;Darkness Scythe&quot; with 25 damage that applies wither and freezes enemies</p>
-              <p>An emerald hammer called &quot;Smash Core&quot; with 30 damage, freeze + knockback + lightning on hit</p>
-              <p>A ruby bow called &quot;Flame Bow&quot; with 10 damage that sets targets on fire</p>
-            </div>
-            <p className="text-gray-500 mt-1">Effects: lightning, fire, freeze, poison, wither, slowness, knockback, lifesteal</p>
+        <div className="mt-3 bg-gray-800/40 border border-gray-700/50 rounded-lg text-xs text-gray-300 overflow-hidden">
+          {/* Tabs */}
+          <div className="flex overflow-x-auto border-b border-gray-700/50 bg-gray-800/30">
+            {tabs.map(t => (
+              <button key={t.key} type="button" onClick={() => setTab(t.key)}
+                className={`px-3 py-2 text-xs whitespace-nowrap transition-all ${tab === t.key ? "text-white bg-gray-700/50 border-b-2 border-green-500" : "text-gray-400 hover:text-white"}`}>
+                {t.label}
+              </button>
+            ))}
           </div>
+          <div className="p-4 space-y-2">
 
-          <div>
-            <h4 className="font-semibold text-white mb-1">Tools (pickaxe, axe, shovel, hoe)</h4>
-            <p className="text-gray-400 mb-1">Mention: tool type, material, durability</p>
-            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
-              <p>An emerald pickaxe with 2000 durability</p>
-              <p>A diamond axe called &quot;Tree Feller&quot; with 1500 durability</p>
+          {tab === "weapons" && <>
+            <p className="text-gray-400 mb-2">7 weapon types — each has a unique shape and crafting recipe</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { type: "Sword", desc: "Standard blade, balanced speed and damage", ex: "A diamond sword called \"Excalibur\" with 18 damage and lightning on hit", dmg: "6-20" },
+                { type: "Katana", desc: "Thin curved blade, fast and elegant", ex: "A netherite katana called \"Shadow Blade\" with 22 damage, wither + freeze on hit", dmg: "8-25" },
+                { type: "Hammer", desc: "Heavy blunt weapon, slow but devastating", ex: "An obsidian war hammer called \"Mjolnir\" with 30 damage, lightning + knockback", dmg: "12-30" },
+                { type: "Axe", desc: "Chopping weapon, high damage", ex: "A ruby battle axe with 20 damage and fire on hit", dmg: "9-25" },
+                { type: "Staff", desc: "Magic weapon with gem, for casters", ex: "An amethyst staff called \"Frost Wand\" with 15 damage and freeze effect", dmg: "5-18" },
+                { type: "Spear", desc: "Long pointy weapon, good reach", ex: "An emerald spear with 12 damage and poison on hit", dmg: "6-15" },
+                { type: "Bow", desc: "Ranged weapon, shoots arrows", ex: "A ruby bow called \"Flame Bow\" with 10 damage and fire effect", dmg: "5-12" },
+              ].map(w => (
+                <div key={w.type} className="bg-gray-900/40 p-2 rounded">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-white">{w.type}</span>
+                    <span className="text-gray-500">({w.dmg} damage)</span>
+                  </div>
+                  <p className="text-gray-400 text-[10px] mb-1">{w.desc}</p>
+                  <p className="text-green-300/80 font-mono text-[10px]">{w.ex}</p>
+                </div>
+              ))}
             </div>
-          </div>
+            <p className="text-gray-500 mt-2">On-hit effects: <span className="text-gray-300">lightning, fire, freeze, poison, wither, slowness, knockback, lifesteal</span></p>
+          </>}
 
-          <div>
-            <h4 className="font-semibold text-white mb-1">Armor (helmet, chestplate, leggings, boots)</h4>
-            <p className="text-gray-400 mb-1">Mention: slot, material, defense, toughness, durability, passive effects</p>
-            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
-              <p>A netherite helmet called &quot;Void Helm&quot; with 10 defense, 5 toughness, 9999 durability that gives speed, night vision, and fire resistance</p>
-              <p>Diamond chestplate with 8 defense and regeneration effect</p>
-              <p>Obsidian boots with 6 defense that give speed and jump boost</p>
+          {tab === "tools" && <>
+            <p className="text-gray-400 mb-2">4 tool types — for mining and harvesting, NOT combat</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { type: "Pickaxe", desc: "Mines stone, ore, and minerals", ex: "A diamond pickaxe called \"Ore Finder\" with 2000 durability" },
+                { type: "Axe (tool)", desc: "Chops wood and logs faster", ex: "An emerald axe called \"Tree Feller\" with 1500 durability" },
+                { type: "Shovel", desc: "Digs dirt, sand, gravel, snow", ex: "An iron shovel with 500 durability" },
+                { type: "Hoe", desc: "Tills farmland for crops", ex: "A gold hoe with 300 durability" },
+              ].map(t => (
+                <div key={t.type} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white">{t.type}</span>
+                  <span className="text-gray-400 text-[10px] ml-2">— {t.desc}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1">{t.ex}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-gray-500 mt-1">Armor effects: speed, regeneration, strength, night_vision, fire_resistance, water_breathing, jump_boost, resistance, haste</p>
-          </div>
+            <p className="text-gray-500 mt-2">Materials: <span className="text-gray-300">wood, stone, iron, gold, diamond, netherite, emerald, ruby, amethyst, obsidian, copper</span></p>
+          </>}
 
-          <div>
-            <h4 className="font-semibold text-white mb-1">Food</h4>
-            <p className="text-gray-400 mb-1">Mention: name, hunger restored (1-20), effects when eaten, always edible</p>
-            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
-              <p>A golden apple called &quot;Divine Apple&quot; that restores 20 hunger and gives regeneration, absorption, resistance, fire resistance, speed, and strength</p>
-              <p>A magical berry that restores 4 hunger, gives speed and jump boost, can be eaten when full</p>
+          {tab === "armor" && <>
+            <p className="text-gray-400 mb-2">4 armor slots — worn on body, gives passive effects while equipped</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { slot: "Helmet", desc: "Head protection (def: 3-10)", ex: "A netherite helmet called \"Void Crown\" with 10 defense, night vision + strength", also: "Also: crown, mask, hood" },
+                { slot: "Chestplate", desc: "Torso, highest defense (def: 6-15)", ex: "A diamond chestplate with 12 defense and regeneration + resistance", also: "Also: body armor, tunic, vest" },
+                { slot: "Leggings", desc: "Leg protection (def: 5-10)", ex: "Obsidian leggings with 8 defense and speed effect", also: "Also: pants, greaves" },
+                { slot: "Boots", desc: "Foot protection (def: 3-6)", ex: "Emerald boots with 5 defense, speed + jump boost", also: "Also: shoes, sandals" },
+              ].map(a => (
+                <div key={a.slot} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white">{a.slot}</span>
+                  <span className="text-gray-400 text-[10px] ml-2">— {a.desc}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1">{a.ex}</p>
+                  <p className="text-gray-500 text-[10px]">{a.also}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-gray-500 mt-1">Food effects: regeneration, absorption, resistance, fire_resistance, speed, strength, night_vision, instant_health, water_breathing, jump_boost</p>
-          </div>
+            <p className="text-gray-500 mt-2">Passive effects: <span className="text-gray-300">speed, regeneration, strength, night_vision, fire_resistance, water_breathing, jump_boost, resistance, haste</span></p>
+            <p className="text-gray-500">Say &quot;armor set&quot; to auto-create all 4 pieces! Set bonus: wearing full set gives extra Resistance + Regen.</p>
+          </>}
 
-          <div>
-            <h4 className="font-semibold text-white mb-1">Blocks</h4>
-            <p className="text-gray-400 mb-1">Mention: name, hardness, light level (0-15)</p>
-            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
-              <p>A glowing crystal block with light level 15</p>
-              <p>A ruby ore block with stone hardness</p>
+          {tab === "food" && <>
+            <p className="text-gray-400 mb-2">Edible items that restore hunger and give potion effects</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { name: "Basic Food", ex: "A cooked steak that restores 8 hunger" },
+                { name: "Effect Food", ex: "A golden apple called \"Divine Apple\" that restores 20 hunger and gives regeneration, absorption, resistance, fire resistance, speed" },
+                { name: "Always Edible", ex: "A magical berry that restores 4 hunger, gives speed, can be eaten when full" },
+              ].map(f => (
+                <div key={f.name} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white">{f.name}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1">{f.ex}</p>
+                </div>
+              ))}
             </div>
-          </div>
+            <p className="text-gray-500 mt-2">Effects: <span className="text-gray-300">regeneration, absorption, resistance, fire_resistance, speed, strength, night_vision, instant_health, water_breathing, jump_boost</span></p>
+            <p className="text-gray-500">Hunger range: 1 (snack) to 20 (full restore)</p>
+          </>}
 
-          <div className="border-t border-gray-700/50 pt-3">
-            <h4 className="font-semibold text-white mb-1">Full Example Prompt</h4>
-            <div className="bg-gray-900/50 p-2 rounded text-green-300 font-mono text-[11px]">
-              Create a mod called &quot;Void Arsenal&quot; with: a netherite sword called &quot;Void Blade&quot; with 20 damage and lightning + wither on hit, an obsidian helmet called &quot;Shadow Crown&quot; with 8 defense and night vision + speed, a golden apple called &quot;God Apple&quot; that restores 20 hunger and gives all effects, and a glowing void block with light level 15
+          {tab === "blocks" && <>
+            <p className="text-gray-400 mb-2">Placeable blocks for the world</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { name: "Ore Block", ex: "A ruby ore block with stone hardness" },
+                { name: "Glowing Block", ex: "A glowing crystal block with light level 15" },
+                { name: "Decorative", ex: "A nether brick block with obsidian hardness" },
+              ].map(b => (
+                <div key={b.name} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white">{b.name}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1">{b.ex}</p>
+                </div>
+              ))}
             </div>
+            <p className="text-gray-500 mt-2">Light level: 0 (dark) to 15 (brightest). Hardness: instant, dirt, stone, iron, obsidian</p>
+          </>}
+
+          {tab === "visual" && <>
+            <p className="text-gray-400 mb-2">Visual keywords that change how items look in-game</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { keyword: "Glowing / Enchanted", effect: "Purple shimmer effect (like enchanted items)", ex: "A glowing diamond sword..." },
+                { keyword: "Epic / Legendary / Rare", effect: "Colored item name (cyan for rare, magenta for epic)", ex: "An epic netherite katana..." },
+                { keyword: "Fireproof / Fire-resistant", effect: "Item survives lava and fire when dropped", ex: "A legendary fireproof ruby hammer..." },
+                { keyword: "Gold/Red/Blue name", effect: "Custom hover text color", ex: "A sword with gold colored name..." },
+                { keyword: "Unbreakable / Infinite", effect: "Sets durability to 9999", ex: "An unbreakable diamond pickaxe..." },
+              ].map(v => (
+                <div key={v.keyword} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white">{v.keyword}</span>
+                  <span className="text-gray-400 text-[10px] ml-2">→ {v.effect}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1">{v.ex}</p>
+                </div>
+              ))}
+            </div>
+          </>}
+
+          {tab === "examples" && <>
+            <p className="text-gray-400 mb-2">Copy-paste ready prompts</p>
+            <div className="space-y-3">
+              {[
+                { title: "Combat Pack", prompt: "Create a mod with a legendary glowing diamond sword called \"Excalibur\" with 25 damage and lightning on hit, and a netherite war hammer called \"Mjolnir\" with 30 damage, knockback and fire on hit" },
+                { title: "Full Armor Set", prompt: "Create a netherite armor set called \"Void Armor\": helmet with night vision, chestplate with regeneration + resistance, leggings with speed, boots with jump boost. All epic rarity and glowing" },
+                { title: "Survival Starter", prompt: "Create a mod with an emerald pickaxe with 2000 durability, iron boots with speed boost, and a golden apple that gives regeneration and absorption" },
+                { title: "OP God Kit", prompt: "Create a mod with an unbreakable obsidian katana with 30 damage and lightning + wither + freeze on hit, a full obsidian armor set with all effects, and a divine apple that restores 20 hunger with all potion effects" },
+              ].map(e => (
+                <div key={e.title} className="bg-gray-900/40 p-2 rounded">
+                  <span className="font-semibold text-white text-[11px]">{e.title}</span>
+                  <p className="text-green-300/80 font-mono text-[10px] mt-1 cursor-pointer hover:text-green-200" onClick={() => {
+                    const textarea = document.getElementById("description") as HTMLTextAreaElement;
+                    if (textarea) { textarea.value = e.prompt; textarea.dispatchEvent(new Event("input", { bubbles: true })); }
+                  }}>{e.prompt}</p>
+                  <p className="text-gray-500 text-[9px] mt-0.5">Click to use this prompt</p>
+                </div>
+              ))}
+            </div>
+          </>}
+
           </div>
         </div>
       )}
