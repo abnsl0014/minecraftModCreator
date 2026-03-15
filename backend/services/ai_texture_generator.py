@@ -333,13 +333,14 @@ This is a mod pack icon — it should be eye-catching and recognizable at small 
 def _save_custom_texture(data_url: str, output_path: str):
     """Save a base64 data URL as a 16x16 PNG file."""
     import base64 as b64mod
+    import io as iomod
     from PIL import Image as PILImage
 
     # Strip data URL prefix
     if "," in data_url:
         data_url = data_url.split(",", 1)[1]
     img_data = b64mod.b64decode(data_url)
-    img = PILImage.open(io.BytesIO(img_data))
+    img = PILImage.open(iomod.BytesIO(img_data))
     # Resize to 16x16 with nearest neighbor (pixel art)
     img = img.resize((16, 16), PILImage.NEAREST).convert("RGBA")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

@@ -241,9 +241,22 @@ async def generate_bedrock_blocks(spec: ModSpec) -> Dict[str, str]:
     files = {}
     try:
         data = json.loads(response)
-        blocks_list = data if isinstance(data, list) else data.get("blocks", [data])
+        if isinstance(data, list):
+            blocks_list = data
+        elif isinstance(data, dict) and "blocks" in data:
+            blocks_list = data["blocks"]
+        elif isinstance(data, dict) and "minecraft:block" in data:
+            mb = data["minecraft:block"]
+            if isinstance(mb, list):
+                blocks_list = [{"format_version": data.get("format_version", "1.20.80"), "minecraft:block": b} for b in mb]
+            else:
+                blocks_list = [data]
+        else:
+            blocks_list = [data]
         for i, block_json in enumerate(blocks_list):
             name = spec.blocks[i].registry_name if i < len(spec.blocks) else "block_%d" % i
+            if "minecraft:block" not in block_json and "description" in block_json:
+                block_json = {"format_version": "1.20.80", "minecraft:block": block_json}
             files["behavior_pack/blocks/%s.json" % name] = json.dumps(block_json, indent=2)
     except json.JSONDecodeError:
         text = strip_code_fences(response)
@@ -352,6 +365,8 @@ def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
         return data
     data["format_version"] = "1.20.80"
     block = data["minecraft:block"]
+    if not isinstance(block, dict):
+        return data
     desc = block.get("description", {})
     components = block.get("components", {})
 
