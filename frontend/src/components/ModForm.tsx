@@ -12,6 +12,83 @@ import BlockBuilder, { BlockEntry } from "./builder/BlockBuilder";
 type CreationMode = "quick" | "builder";
 type BuilderTab = "weapons" | "tools" | "armor" | "food" | "blocks";
 
+function PromptGuide() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+        <svg className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        Prompt Guide — how to describe each item type
+      </button>
+      {open && (
+        <div className="mt-3 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg text-xs text-gray-300 space-y-4">
+
+          <div>
+            <h4 className="font-semibold text-white mb-1">Weapons (sword, katana, bow, axe, staff, hammer, spear)</h4>
+            <p className="text-gray-400 mb-1">Mention: type, material, damage, durability, on-hit effects</p>
+            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
+              <p>A diamond sword called &quot;Thunder Blade&quot; with 18 damage, 1000 durability, that summons lightning on every hit</p>
+              <p>A netherite katana called &quot;Darkness Scythe&quot; with 25 damage that applies wither and freezes enemies</p>
+              <p>An emerald hammer called &quot;Smash Core&quot; with 30 damage, freeze + knockback + lightning on hit</p>
+              <p>A ruby bow called &quot;Flame Bow&quot; with 10 damage that sets targets on fire</p>
+            </div>
+            <p className="text-gray-500 mt-1">Effects: lightning, fire, freeze, poison, wither, slowness, knockback, lifesteal</p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-1">Tools (pickaxe, axe, shovel, hoe)</h4>
+            <p className="text-gray-400 mb-1">Mention: tool type, material, durability</p>
+            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
+              <p>An emerald pickaxe with 2000 durability</p>
+              <p>A diamond axe called &quot;Tree Feller&quot; with 1500 durability</p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-1">Armor (helmet, chestplate, leggings, boots)</h4>
+            <p className="text-gray-400 mb-1">Mention: slot, material, defense, toughness, durability, passive effects</p>
+            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
+              <p>A netherite helmet called &quot;Void Helm&quot; with 10 defense, 5 toughness, 9999 durability that gives speed, night vision, and fire resistance</p>
+              <p>Diamond chestplate with 8 defense and regeneration effect</p>
+              <p>Obsidian boots with 6 defense that give speed and jump boost</p>
+            </div>
+            <p className="text-gray-500 mt-1">Armor effects: speed, regeneration, strength, night_vision, fire_resistance, water_breathing, jump_boost, resistance, haste</p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-1">Food</h4>
+            <p className="text-gray-400 mb-1">Mention: name, hunger restored (1-20), effects when eaten, always edible</p>
+            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
+              <p>A golden apple called &quot;Divine Apple&quot; that restores 20 hunger and gives regeneration, absorption, resistance, fire resistance, speed, and strength</p>
+              <p>A magical berry that restores 4 hunger, gives speed and jump boost, can be eaten when full</p>
+            </div>
+            <p className="text-gray-500 mt-1">Food effects: regeneration, absorption, resistance, fire_resistance, speed, strength, night_vision, instant_health, water_breathing, jump_boost</p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-1">Blocks</h4>
+            <p className="text-gray-400 mb-1">Mention: name, hardness, light level (0-15)</p>
+            <div className="bg-gray-900/50 p-2 rounded text-gray-300 font-mono text-[11px] space-y-1">
+              <p>A glowing crystal block with light level 15</p>
+              <p>A ruby ore block with stone hardness</p>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-700/50 pt-3">
+            <h4 className="font-semibold text-white mb-1">Full Example Prompt</h4>
+            <div className="bg-gray-900/50 p-2 rounded text-green-300 font-mono text-[11px]">
+              Create a mod called &quot;Void Arsenal&quot; with: a netherite sword called &quot;Void Blade&quot; with 20 damage and lightning + wither on hit, an obsidian helmet called &quot;Shadow Crown&quot; with 8 defense and night vision + speed, a golden apple called &quot;God Apple&quot; that restores 20 hunger and gives all effects, and a glowing void block with light level 15
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ModForm() {
   const router = useRouter();
   const [mode, setMode] = useState<CreationMode>("quick");
@@ -160,16 +237,13 @@ export default function ModForm() {
       </div>
 
       {mode === "quick" ? (
-        <div>
+        <div className="space-y-3">
           <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">Describe your mod</label>
           <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)}
-            placeholder={edition === "java"
-              ? "Example: Create a mod with a fire sword that does 12 damage and sets enemies ablaze, diamond armor with speed boost, and a healing apple..."
-              : "Example: Create an add-on with a lightning staff, emerald armor set with jump boost, and golden bread that gives regeneration..."
-            }
+            placeholder={"Example: Create a diamond sword called Thunder Blade with 18 damage that summons lightning on hit, a netherite helmet with 8 defense that gives speed and night vision, and a golden apple that gives regeneration, absorption and fire resistance"}
             rows={6} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             required={mode === "quick"} />
-          <p className="mt-1.5 text-xs text-gray-500">Supports: weapons, tools, armor, food, and blocks</p>
+          <PromptGuide />
         </div>
       ) : (
         <div className="space-y-4">
