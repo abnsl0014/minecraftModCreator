@@ -484,6 +484,102 @@ def generate_pack_icon_procedural(material, output_path, item_type="weapon", sub
     _save(img, output_path)
 
 
+# ======= EXTRA MELEE WEAPONS =======
+
+def generate_gauntlet_texture(material, output_path, style="classic"):
+    """Gauntlet — fist weapon, worn on hand."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Fist shape
+    for y in range(4, 10):
+        for x in range(5, 12): px[x,y] = (*p["main"], 255)
+    # Knuckle spikes
+    for x in range(5, 12, 2): px[x,3] = (*p["light"], 255)
+    # Shading
+    for x in range(5, 12): px[x,4] = (*p["light"], 255)
+    for x in range(5, 12): px[x,9] = (*p["dark"], 255)
+    # Wrist
+    for y in range(10, 13):
+        for x in range(6, 11): px[x,y] = (*p["handle"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_whip_texture(material, output_path, style="classic"):
+    """Whip — curved flexible weapon."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Handle
+    _draw(px, [(3,12),(3,11),(4,10),(4,9)], p["handle"])
+    _draw(px, [(2,13),(2,12)], p["handle_dark"])
+    # Whip cord (curved path)
+    cord = [(5,8),(6,7),(7,6),(8,5),(9,5),(10,4),(11,3),(12,3),(13,2),(14,2),(15,1)]
+    _draw(px, cord, p["main"])
+    _draw(px, [(x,y+1) for x,y in cord if y+1<16], p["dark"])
+    # Tip
+    px[15,0] = (*p["light"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_shield_texture(material, output_path, style="classic"):
+    """Shield — front-facing defensive item."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Shield shape (rounded rectangle)
+    rows = [(5,10),(4,11),(3,12),(3,12),(3,12),(3,12),(3,12),(3,12),(4,11),(5,10),(6,9)]
+    for i, (xs, xe) in enumerate(rows):
+        y = 2 + i
+        for x in range(xs, xe+1): px[x,y] = (*p["main"], 255)
+        px[xs,y] = (*p["dark"], 255); px[xe,y] = (*p["dark"], 255)
+    for x in range(5, 11): px[x,2] = (*p["light"], 255)
+    # Center emblem
+    px[7,6] = (*p["guard"], 255); px[8,6] = (*p["guard"], 255)
+    px[7,7] = (*p["guard"], 255); px[8,7] = (*p["guard"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_throwable_texture(material, output_path, style="classic"):
+    """Throwable — small round projectile (shuriken/grenade)."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Small star/circle shape
+    _draw(px, [(7,4),(8,4)], p["light"])
+    _draw(px, [(6,5),(7,5),(8,5),(9,5)], p["main"])
+    _draw(px, [(5,6),(6,6),(7,6),(8,6),(9,6),(10,6)], p["main"])
+    _draw(px, [(5,7),(6,7),(7,7),(8,7),(9,7),(10,7)], p["main"])
+    _draw(px, [(6,8),(7,8),(8,8),(9,8)], p["dark"])
+    _draw(px, [(7,9),(8,9)], p["dark"])
+    # Spikes for shuriken
+    px[7,3] = (*p["light"], 255); px[11,6] = (*p["light"], 255)
+    px[4,7] = (*p["light"], 255); px[8,10] = (*p["light"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
+def generate_nuke_texture(material, output_path, style="classic"):
+    """Nuke — explosive bomb shape."""
+    p = get_palette(material)
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    # Bomb body (oval)
+    rows = [(6,9),(5,10),(4,11),(4,11),(4,11),(4,11),(5,10),(6,9)]
+    for i, (xs, xe) in enumerate(rows):
+        y = 4 + i
+        for x in range(xs, xe+1): px[x,y] = (*p["main"], 255)
+    for x in range(6, 10): px[x,4] = (*p["light"], 255)
+    for x in range(4, 12): px[x,9] = (*p["dark"], 255)
+    # Fuse
+    _draw(px, [(8,3),(9,2),(10,1)], p["handle"])
+    # Spark
+    px[11,0] = (255, 200, 50, 255); px[10,0] = (255, 150, 0, 255)
+    # Warning stripes
+    px[6,6] = (*p["guard"], 255); px[7,6] = (*p["guard"], 255)
+    px[8,6] = (*p["guard"], 255); px[9,6] = (*p["guard"], 255)
+    _save(_apply_style(img, style), output_path)
+
+
 # ======= RANGED WEAPONS =======
 
 def generate_gun_texture(material, output_path, style="classic"):
@@ -581,13 +677,22 @@ def _generate_preview_image(item_type, sub_type, material, style="classic"):
 # ======= DISPATCH =======
 
 TEXTURE_GENERATORS = {
+    # Melee
     "sword": generate_sword_texture, "katana": generate_katana_texture,
     "spear": generate_spear_texture, "staff": generate_staff_texture,
-    "hammer": generate_hammer_texture, "bow": generate_bow_texture,
-    "gun": generate_gun_texture, "rpg": generate_rpg_texture,
-    "crossbow": generate_crossbow_texture,
+    "hammer": generate_hammer_texture,
+    "gauntlet": generate_gauntlet_texture, "whip": generate_whip_texture,
+    "shield": generate_shield_texture,
+    # Ranged
+    "bow": generate_bow_texture, "gun": generate_gun_texture,
+    "rpg": generate_rpg_texture, "crossbow": generate_crossbow_texture,
+    # Throwable / Explosive
+    "throwable": generate_throwable_texture, "nuke": generate_nuke_texture,
+    # Tools
     "pickaxe": generate_pickaxe_texture, "axe": generate_axe_texture,
     "shovel": generate_shovel_texture, "hoe": generate_hoe_texture,
+    "wrench": generate_pickaxe_texture, "scanner": generate_staff_texture,
+    # Armor
     "helmet": generate_helmet_texture, "chestplate": generate_chestplate_texture,
     "leggings": generate_leggings_texture, "boots": generate_boots_texture,
 }

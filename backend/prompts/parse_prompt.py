@@ -4,26 +4,37 @@ The mod can contain 5 categories. All weapons/tools/armor/food go into the "item
 
 === CATEGORY DEFINITIONS ===
 
-WEAPONS (item_type="weapon") — held items that deal damage when attacking
+WEAPONS (item_type="weapon") — held items that deal damage or shoot projectiles
   weapon_type values:
-  - "sword": standard blade, diagonal in inventory, balanced speed/damage (vanilla: diamond=7 dmg)
-  - "katana": thin curved blade, longer than sword, elegant (typically 8-15 dmg)
-  - "axe": heavy chopping weapon, slow but high damage (typically 9-20 dmg)
-  - "hammer": massive blunt weapon, very slow, very high damage (typically 12-30 dmg)
-  - "spear": long pointy weapon, good reach (typically 6-12 dmg)
-  - "staff": magic weapon with gem on top, for casters (typically 5-15 dmg)
-  - "bow": ranged weapon with string, shoots arrows (typically 5-10 dmg)
-  - "gun": ranged projectile weapon, shoots fast projectiles (typically 8-20 dmg)
-  - "rpg": explosive launcher, shoots explosive projectiles (typically 15-40 dmg)
-  - "crossbow": slower ranged weapon, high damage per shot (typically 10-15 dmg)
+  MELEE:
+  - "sword": standard blade, balanced speed/damage (6-20 dmg)
+  - "katana": thin curved blade, fast and elegant (8-25 dmg). Also: scythe, dagger, saber, rapier
+  - "axe": heavy chopping weapon, slow but high damage (9-25 dmg). Also: battle axe, war axe, cleaver
+  - "hammer": massive blunt weapon, very slow, devastating (12-30 dmg). Also: mace, warhammer, club, maul
+  - "spear": long pointy weapon, good reach (6-15 dmg). Also: lance, javelin, trident, halberd
+  - "staff": magic weapon with gem, for casters (5-18 dmg). Also: wand, scepter, rod, orb
+  - "gauntlet": fist weapon, worn on hand (8-20 dmg). Also: knuckles, claws, fist weapon
+  - "whip": flexible long-range melee (5-12 dmg). Also: chain, flail
+  - "shield": defensive weapon, blocks + bashes (3-8 dmg). Also: buckler, barrier
+  RANGED:
+  - "bow": shoots arrows, hold to charge (5-12 dmg). Also: longbow, shortbow
+  - "crossbow": slower but stronger bow (10-15 dmg)
+  - "gun": rapid-fire projectiles (8-20 dmg). Also: pistol, rifle, ak47, glock, shotgun, sniper, smg, minigun
+  - "rpg": explosive launcher, shoots fireballs (15-40 dmg). Also: rocket launcher, bazooka, grenade launcher
+  THROWABLE:
+  - "throwable": thrown like snowball/trident (5-15 dmg). Also: shuriken, throwing knife, grenade, bomb, dynamite
+  SPECIAL:
+  - "nuke": massive explosion weapon (100+ dmg). Also: tnt cannon, orbital strike
   Fields: weapon_type, damage, attack_speed, durability, on_hit_effects, special_ability, cooldown
 
-TOOLS (item_type="tool") — held items for mining/harvesting, NOT for combat
+TOOLS (item_type="tool") — held items for mining/harvesting/utility, NOT for combat
   tool_type values:
-  - "pickaxe": T-shaped head, mines stone/ore (vanilla diamond: mining_speed=8)
-  - "shovel": rounded scoop head, digs dirt/sand/gravel
-  - "axe": wedge head, chops wood (different from weapon axe — this is a TOOL)
-  - "hoe": flat blade, tills farmland
+  - "pickaxe": T-shaped head, mines stone/ore. Also: drill, excavator
+  - "shovel": rounded scoop, digs dirt/sand. Also: spade
+  - "axe": wedge head, chops wood (different from WEAPON axe)
+  - "hoe": flat blade, tills farmland. Also: sickle, scythe (farming)
+  - "wrench": utility tool for machines. Also: screwdriver, multitool
+  - "scanner": x-ray / ore finder device. Also: detector, radar, compass
   Fields: tool_type, mining_speed, durability, damage (low, 1-3)
 
 ARMOR (item_type="armor") — worn on body for protection, NOT held
@@ -34,8 +45,9 @@ ARMOR (item_type="armor") — worn on body for protection, NOT held
   - "boots": worn on feet (vanilla diamond: defense=3)
   Fields: armor_slot, defense, toughness, durability, knockback_resistance, armor_effects
 
-FOOD (item_type="food") — eaten to restore hunger, gives potion effects
+FOOD (item_type="food") — eaten/consumed to restore hunger or give effects
   NOT a weapon, NOT wearable. Consumed by the player.
+  Includes: apple, pie, bread, steak, potion, elixir, berry, soup, cake, candy, cookie, drink, beverage, medicine, pill, serum, injection
   Fields: nutrition (1-20), saturation, food_effects, always_edible, fast_eat, stack_size
 
 BLOCKS — placeable cube in the world
@@ -46,10 +58,20 @@ BLOCKS — placeable cube in the world
 How to decide the item_type:
 - If user says "sword", "blade", "katana", "scythe", "dagger" → item_type="weapon"
 - If user says "hammer", "mace", "club", "warhammer" → item_type="weapon", weapon_type="hammer"
-- If user says "bow", "longbow" → item_type="weapon", weapon_type="bow"
+- If user says "bow", "longbow", "shortbow" → item_type="weapon", weapon_type="bow"
 - If user says "crossbow" → item_type="weapon", weapon_type="crossbow"
-- If user says "gun", "pistol", "rifle", "ak47", "glock", "shotgun", "sniper" → item_type="weapon", weapon_type="gun"
+- If user says "gun", "pistol", "rifle", "ak47", "glock", "shotgun", "sniper", "smg", "minigun" → item_type="weapon", weapon_type="gun"
 - If user says "rpg", "rocket launcher", "bazooka", "grenade launcher" → item_type="weapon", weapon_type="rpg"
+- If user says "gauntlet", "knuckles", "claws", "fist" → item_type="weapon", weapon_type="gauntlet"
+- If user says "whip", "chain", "flail" → item_type="weapon", weapon_type="whip"
+- If user says "shield", "buckler", "barrier" → item_type="weapon", weapon_type="shield"
+- If user says "shuriken", "throwing knife", "grenade", "bomb", "dynamite" → item_type="weapon", weapon_type="throwable"
+- If user says "nuke", "tnt cannon", "orbital strike", "worldshatter" → item_type="weapon", weapon_type="nuke"
+- If user says "drill", "excavator" → item_type="tool", tool_type="pickaxe"
+- If user says "scanner", "x-ray", "detector", "radar" → item_type="tool", tool_type="scanner"
+- If user says "wrench", "multitool", "screwdriver" → item_type="tool", tool_type="wrench"
+- If user says "potion", "elixir", "serum", "drink", "medicine" → item_type="food" (consumed)
+- If user says "phone", "smartphone", "device", "gadget" → item_type="tool", tool_type="scanner"
 - If user says "staff", "wand", "scepter", "rod" (magic) → item_type="weapon", weapon_type="staff"
 - If user says "pickaxe", "shovel", "hoe" → item_type="tool"
 - If user says "axe" for chopping wood → item_type="tool", tool_type="axe"
@@ -88,6 +110,10 @@ If user says "enchanted" → glowing=true (enchant shimmer)
 - "slowness": applies Slowness II
 - "knockback": extra knockback force
 - "lifesteal": heals attacker when hitting
+- "explosion": creates small explosion at target (for nukes/rpg)
+- "blindness": applies Blindness effect (can't see)
+- "levitation": launches target into the air
+- "teleport": teleports attacker to target location
 
 === ARMOR EFFECTS (armor only, passive while worn) ===
 - "speed", "regeneration", "strength", "night_vision", "fire_resistance"

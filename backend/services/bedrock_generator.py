@@ -484,6 +484,19 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
                     lines.append('      const len = Math.sqrt(dx*dx+dz*dz)||1;')
                     lines.append('      target.applyKnockback(dx/len, dz/len, 4, 0.5);')
                     lines.append('      dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
+                elif effect == "explosion":
+                    lines.append('      dim.createExplosion(loc, 3, { breaksBlocks: true, causesFire: false });')
+                    lines.append('      dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
+                elif effect == "blindness":
+                    lines.append('      target.addEffect("minecraft:blindness", 100, { amplifier: 0 });')
+                    lines.append('      dim.spawnParticle("minecraft:large_explosion", loc);')
+                elif effect == "levitation":
+                    lines.append('      target.addEffect("minecraft:levitation", 60, { amplifier: 5 });')
+                    lines.append('      dim.spawnParticle("minecraft:endrod", {x:loc.x, y:loc.y+1, z:loc.z});')
+                elif effect == "teleport":
+                    lines.append('      attacker.teleport(loc);')
+                    lines.append('      dim.spawnParticle("minecraft:endrod", loc);')
+                    lines.append('      dim.spawnParticle("minecraft:endrod", attacker.location);')
 
             lines.append('    }')
 

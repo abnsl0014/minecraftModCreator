@@ -37,17 +37,21 @@ const EMPTY: WeaponEntry = {
   recipe: Array(9).fill(""),
 };
 
-const WEAPON_TYPES = ["sword", "katana", "bow", "axe", "staff", "hammer", "spear", "gun", "rpg", "crossbow"];
+const WEAPON_TYPES = ["sword", "katana", "hammer", "axe", "spear", "staff", "gauntlet", "whip", "shield", "bow", "crossbow", "gun", "rpg", "throwable", "nuke"];
 const ATTACK_SPEEDS = ["fast", "normal", "slow"];
 const HIT_EFFECTS = [
-  { id: "fire", label: "Fire Damage" },
+  { id: "lightning", label: "Lightning" },
+  { id: "fire", label: "Fire" },
   { id: "freeze", label: "Freeze" },
+  { id: "explosion", label: "Explosion" },
   { id: "poison", label: "Poison" },
   { id: "wither", label: "Wither" },
-  { id: "lifesteal", label: "Lifesteal" },
+  { id: "blindness", label: "Blindness" },
+  { id: "levitation", label: "Levitation" },
   { id: "knockback", label: "Knockback" },
   { id: "slowness", label: "Slowness" },
-  { id: "lightning", label: "Lightning" },
+  { id: "lifesteal", label: "Lifesteal" },
+  { id: "teleport", label: "Teleport" },
 ];
 
 interface Props {
