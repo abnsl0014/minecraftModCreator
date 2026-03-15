@@ -119,6 +119,9 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
             with open(recipe_path, 'w') as f:
                 json.dump(recipe, f, indent=2)
 
+    # Generate armor attachables + textures so armor shows on player model
+    _generate_armor_attachables(spec, rp_dir)
+
     # Create .mcaddon — two folders directly in the zip
     mcaddon_path = os.path.join(build_dir, "%s.mcaddon" % spec.mod_id)
     with zipfile.ZipFile(mcaddon_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -131,3 +134,115 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
                     zf.write(fp, arcname)
 
     return mcaddon_path
+
+
+# Armor slot → geometry, script, enchantable slot mappings
+_ARMOR_SLOTS = {
+    "helmet": {
+        "geometry": "geometry.player.armor.helmet",
+        "script": "v.helmet_layer_visible = 0.0;",
+    },
+    "chestplate": {
+        "geometry": "geometry.player.armor.chestplate",
+        "script": "v.chest_layer_visible = 0.0;",
+    },
+    "leggings": {
+        "geometry": "geometry.player.armor.leggings",
+        "script": "v.leg_layer_visible = 0.0;",
+    },
+    "boots": {
+        "geometry": "geometry.player.armor.boots",
+        "script": "v.boot_layer_visible = 0.0;",
+    },
+}
+
+# Material palette for armor textures
+_ARMOR_COLORS = {
+    "diamond": (74, 237, 217), "iron": (216, 216, 216), "gold": (252, 219, 92),
+    "netherite": (68, 51, 51), "emerald": (23, 221, 98), "ruby": (200, 30, 30),
+    "amethyst": (160, 80, 200), "obsidian": (20, 18, 30), "copper": (196, 116, 72),
+    "redstone": (180, 20, 20), "lapis": (30, 50, 180),
+}
+
+
+def _generate_armor_attachables(spec, rp_dir):
+    """Generate attachable JSON + armor texture for each armor item so it renders on player."""
+    from PIL import Image as PILImage
+
+    for item in spec.items:
+        if item.item_type != "armor" or not item.armor_slot:
+            continue
+
+        slot = item.armor_slot
+        if slot not in _ARMOR_SLOTS:
+            continue
+
+        slot_info = _ARMOR_SLOTS[slot]
+        identifier = "%s:%s" % (spec.mod_id, item.registry_name)
+        tex_name = "%s_%s_armor" % (spec.mod_id, item.registry_name)
+
+        # 1. Attachable JSON
+        attachable = {
+            "format_version": "1.10.0",
+            "minecraft:attachable": {
+                "description": {
+                    "identifier": identifier,
+                    "materials": {
+                        "default": "armor",
+                        "enchanted": "armor_enchanted"
+                    },
+                    "textures": {
+                        "default": "textures/models/armor/%s" % tex_name,
+                        "enchanted": "textures/misc/enchanted_actor_glint"
+                    },
+                    "geometry": {
+                        "default": slot_info["geometry"]
+                    },
+                    "scripts": {
+                        "parent_setup": slot_info["script"]
+                    },
+                    "render_controllers": ["controller.render.armor"]
+                }
+            }
+        }
+
+        attach_dir = os.path.join(rp_dir, "attachables")
+        os.makedirs(attach_dir, exist_ok=True)
+        with open(os.path.join(attach_dir, "%s.json" % item.registry_name), 'w') as f:
+            json.dump(attachable, f, indent=2)
+
+        # 2. Armor texture (64x32 UV map — standard Minecraft armor layout)
+        mat = (item.material or "iron").lower()
+        base_color = _ARMOR_COLORS.get(mat, (180, 180, 180))
+        light = tuple(min(255, int(c * 1.3)) for c in base_color)
+        dark = tuple(max(0, int(c * 0.6)) for c in base_color)
+
+        # Create 64x32 armor texture with colored regions
+        armor_tex = PILImage.new('RGBA', (64, 32), (0, 0, 0, 0))
+        px = armor_tex.load()
+
+        # Fill armor regions based on standard UV layout
+        # Helmet: (0,0)-(32,16) area
+        # Chestplate: body (16,16)-(40,32), arms (40,16)-(56,32)
+        # Leggings: (0,16)-(16,32) and (16,16)-(32,32)
+        # Boots: (0,16)-(16,32)
+        # For simplicity, fill all regions with the armor color + shading
+        for y in range(32):
+            for x in range(64):
+                # Create a pattern: base color with lighter top, darker bottom
+                if y < 8:
+                    px[x, y] = (*light, 255)
+                elif y < 24:
+                    px[x, y] = (*base_color, 255)
+                else:
+                    px[x, y] = (*dark, 255)
+
+        # Add some detail lines
+        for x in range(64):
+            px[x, 8] = (*dark, 255)
+            px[x, 16] = (*light, 255)
+            px[x, 24] = (*dark, 255)
+
+        tex_dir = os.path.join(rp_dir, "textures", "models", "armor")
+        os.makedirs(tex_dir, exist_ok=True)
+        armor_tex.save(os.path.join(tex_dir, "%s.png" % tex_name))
