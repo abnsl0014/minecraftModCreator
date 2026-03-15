@@ -21,31 +21,33 @@ logger = logging.getLogger(__name__)
 async def run_agent_loop(job_id: str, request: GenerateRequest):
     edition = request.edition
     try:
-        # Step 1: Parse the user request
-        await update_job(job_id, status="parsing", progress_message="Analyzing your mod description...")
+        # Step 1: Processing user prompt
+        await update_job(job_id, status="parsing", progress_message="Processing user prompt...")
         spec = await parse_mod_request(request.description, request.mod_name)
         spec.author_name = request.author_name
 
-        # Inject custom textures from the request into spec items
+        # Inject custom textures
         if request.custom_textures:
-            # Match by registry_name OR by index (fallback)
             tex_map = {t.registry_name: t.custom_texture for t in request.custom_textures}
             for item in spec.items:
                 if item.registry_name in tex_map:
                     item.custom_texture = tex_map[item.registry_name]
-            # If no match by name, try matching by index order
             if not any(item.custom_texture for item in spec.items):
                 for i, ct in enumerate(request.custom_textures):
                     if i < len(spec.items) and ct.custom_texture:
                         spec.items[i].custom_texture = ct.custom_texture
 
+        items_summary = []
+        for i in spec.items:
+            items_summary.append(i.display_name)
+        for b in spec.blocks:
+            items_summary.append(b.display_name)
+
         await update_job(
             job_id,
             mod_id=spec.mod_id,
             mod_spec=spec.model_dump(),
-            progress_message="Found %d items, %d blocks to create" % (
-                len(spec.items), len(spec.blocks)
-            ),
+            progress_message="Processing user prompt... Done\nGenerating mod details: %s" % ", ".join(items_summary),
         )
 
         if edition == "bedrock":
@@ -65,29 +67,27 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
 
 async def _run_bedrock_loop(job_id: str, spec):
     """Bedrock: generate JSON files, zip into .mcaddon. No compilation needed."""
-    # Step 2: Generate code
-    await update_job(job_id, status="generating", progress_message="Generating Bedrock add-on files...")
+    # Step 2: Generating code
+    await update_job(job_id, status="generating", progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code...")
     generated_files = await generate_all_bedrock_code(spec)
     logger.info("Generated %d Bedrock files" % len(generated_files))
-
-    # Store generated files for editing
     await update_job(job_id, generated_files=generated_files)
 
-    # Step 2.5: Generate AI textures
-    await update_job(job_id, progress_message="Creating pixel art textures...")
+    # Step 3: Crafting textures
+    await update_job(job_id, progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures...")
     build_dir = create_build_dir(job_id)
     await generate_all_textures(spec, build_dir, edition="bedrock")
 
-    # Step 3: Assemble .mcaddon (uses solid color fallback for missing textures)
-    await update_job(job_id, status="compiling", iteration=1, progress_message="Packaging .mcaddon file...")
+    # Step 4: Packaging files
+    await update_job(job_id, status="compiling", iteration=1, progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files...")
     mcaddon_path = assemble_bedrock_addon(job_id, spec, generated_files)
 
-    # Step 4: Upload to Supabase Storage
+    # Step 5: Upload
     addon_url = await upload_file(job_id, mcaddon_path, "%s.mcaddon" % spec.mod_id)
     await update_job(
         job_id,
         status="complete",
-        progress_message="Bedrock add-on ready!",
+        progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files... Done",
         jar_file_url=addon_url,
         jar_file_path=mcaddon_path,
     )
