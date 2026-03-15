@@ -86,10 +86,44 @@ def analyze_and_enrich(spec) -> str:
                 item.damage = max(item.damage, 50)
                 analysis_lines.append("%s: boosted nuke damage to %d" % (item.display_name, item.damage))
 
-            # 6. Auto glowing for magical weapons
+            # 6. Auto glowing for magical/legendary weapons
             if wtype in ("staff",) and not item.glowing:
                 item.glowing = True
                 analysis_lines.append("%s: auto-glow for staff" % item.display_name)
+
+            # 6b. Auto-infer special_ability from name if not set
+            if not item.special_ability:
+                nl = item.display_name.lower()
+                if any(k in nl for k in ["fire", "flame", "blaze", "inferno"]):
+                    item.special_ability = "Shoots a fireball"
+                    analysis_lines.append("%s: inferred ability=fireball from name" % item.display_name)
+                elif any(k in nl for k in ["frost", "ice", "freeze", "cryo", "blizzard"]):
+                    item.special_ability = "Freezes all nearby enemies"
+                    analysis_lines.append("%s: inferred ability=freeze_aura from name" % item.display_name)
+                elif any(k in nl for k in ["lightning", "thunder", "storm", "zeus"]):
+                    item.special_ability = "Summons lightning forward"
+                    analysis_lines.append("%s: inferred ability=lightning from name" % item.display_name)
+                elif any(k in nl for k in ["shadow", "void", "dark", "phantom", "blink"]):
+                    item.special_ability = "Teleports forward"
+                    analysis_lines.append("%s: inferred ability=teleport from name" % item.display_name)
+                elif any(k in nl for k in ["explosive", "nuke", "bomb", "cannon"]):
+                    item.special_ability = "Creates a massive explosion"
+                    analysis_lines.append("%s: inferred ability=explosion from name" % item.display_name)
+                elif any(k in nl for k in ["heal", "life", "holy", "divine", "angel"]):
+                    item.special_ability = "Heals the wielder"
+                    analysis_lines.append("%s: inferred ability=heal from name" % item.display_name)
+
+            # 6c. Auto-set visual properties from keywords
+            nl = item.display_name.lower()
+            if any(k in nl for k in ["legendary", "mythic", "divine", "god", "ultimate", "supreme"]) and not item.rarity:
+                item.rarity = "epic"
+                item.glowing = True
+                item.fire_resistant = True
+                analysis_lines.append("%s: auto legendary → epic+glow+fireproof" % item.display_name)
+            elif any(k in nl for k in ["epic", "rare", "enchanted", "magic"]) and not item.rarity:
+                item.rarity = "rare"
+                item.glowing = True
+                analysis_lines.append("%s: auto rare → rare+glow" % item.display_name)
 
             # 7. If weapon_type is unknown, map to closest known type
             if wtype not in WEAPON_DEFAULTS:
@@ -159,6 +193,27 @@ def analyze_and_enrich(spec) -> str:
             if not item.durability or item.durability <= 0:
                 item.durability = 1000
                 analysis_lines.append("%s: set default durability 1000" % item.display_name)
+
+    # Handle passive/charm items — if user asks for amulet/charm/ring/totem
+    # These work as armor helmet slot (easiest way to make passive items in Bedrock)
+    for item in spec.items:
+        nl = item.display_name.lower()
+        if item.item_type not in ("armor", "food") and any(k in nl for k in ["charm", "amulet", "ring", "totem", "pendant", "necklace", "talisman", "relic"]):
+            # Convert to food (always edible = use to activate) with effects
+            item.item_type = "food"
+            item.always_edible = True
+            item.nutrition = 1
+            if not item.food_effects:
+                inferred = []
+                if any(k in nl for k in ["speed", "swift"]): inferred.append("speed")
+                if any(k in nl for k in ["luck", "fortune"]): inferred.extend(["speed", "haste"])
+                if any(k in nl for k in ["strength", "power"]): inferred.append("strength")
+                if any(k in nl for k in ["protection", "shield"]): inferred.append("resistance")
+                if any(k in nl for k in ["heal", "life", "vitality"]): inferred.append("regeneration")
+                if not inferred: inferred = ["speed", "strength"]
+                item.food_effects = inferred
+            item.glowing = True
+            analysis_lines.append("%s: charm/amulet → converted to consumable with effects %s" % (item.display_name, item.food_effects))
 
     # Also infer material from name if not set properly
     for item in spec.items:

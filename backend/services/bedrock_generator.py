@@ -547,6 +547,23 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
         '',
     ]
 
+    # === KILL TRACKER ===
+    lines.append('// Kill counter')
+    lines.append('const kills = new Map();')
+    lines.append('world.afterEvents.entityDie.subscribe((event) => {')
+    lines.append('  const killer = event.damageSource?.damagingEntity;')
+    lines.append('  if (!killer || killer.typeId !== "minecraft:player") return;')
+    lines.append('  const k = (kills.get(killer.id) || 0) + 1;')
+    lines.append('  kills.set(killer.id, k);')
+    lines.append('  if (k % 5 === 0) killer.runCommand("title @s actionbar §6" + k + " kills! §eKillstreak!");')
+    lines.append('  if (k % 10 === 0) {')
+    lines.append('    killer.addEffect("minecraft:strength", 200, { amplifier: 1 });')
+    lines.append('    killer.addEffect("minecraft:speed", 200, { amplifier: 1 });')
+    lines.append('    killer.runCommand("title @s title §c§lRAMPAGE!");')
+    lines.append('  }')
+    lines.append('});')
+    lines.append('')
+
     # === WEAPON ON-HIT EFFECTS WITH COMBO SCALING ===
     weapon_items = [i for i in spec.items if i.on_hit_effects]
     if weapon_items:
@@ -681,6 +698,7 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
         lines.append('    const dim = player.dimension;')
         lines.append('    const loc = player.location;')
         lines.append('    const dir = player.getViewDirection();')
+        lines.append('    const sneaking = player.isSneaking;')
         lines.append('')
 
         for item in ability_items:
@@ -724,6 +742,25 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
                 lines.append('      player.addEffect("minecraft:speed", 200, { amplifier: 1 });')
 
             lines.append('      dim.spawnParticle("minecraft:large_explosion", {x:loc.x, y:loc.y+1, z:loc.z});')
+            # Sneak alt-ability: AoE version
+            lines.append('      if (sneaking) {')
+            lines.append('        player.runCommand("title @s actionbar §d%s ULTIMATE!");' % item.display_name[:20])
+            lines.append('        // AoE blast around player')
+            lines.append('        const entities = dim.getEntities({location:loc, maxDistance:10, excludeTypes:["minecraft:player"]});')
+            lines.append('        for (const e of entities) { try {')
+            if "fire" in (item.on_hit_effects or []):
+                lines.append('          e.setOnFire(8, true);')
+            if "freeze" in (item.on_hit_effects or []):
+                lines.append('          e.addEffect("minecraft:slowness", 300, {amplifier:4});')
+            if "lightning" in (item.on_hit_effects or []):
+                lines.append('          dim.spawnEntity("minecraft:lightning_bolt", e.location);')
+            if "wither" in (item.on_hit_effects or []):
+                lines.append('          e.addEffect("minecraft:wither", 200, {amplifier:2});')
+            if not any(x in (item.on_hit_effects or []) for x in ["fire","freeze","lightning","wither"]):
+                lines.append('          e.addEffect("minecraft:slowness", 200, {amplifier:3});')
+            lines.append('        } catch(ex){} }')
+            lines.append('        dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
+            lines.append('      }')
             lines.append('    }')
 
         lines.append('  } catch(e) {}')
