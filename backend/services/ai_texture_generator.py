@@ -370,10 +370,14 @@ async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
             tex_path = os.path.join(rp_dir, "textures", "blocks", "%s.png" % block.registry_name)
             generate_procedural_texture("block", "", "ore", tex_path)
 
-        primary_mat = spec.items[0].material if spec.items else "diamond"
+        # Pack icon — uses the first item's actual shape
+        first_item = spec.items[0] if spec.items else None
+        primary_mat = first_item.material if first_item else "diamond"
+        icon_item_type = first_item.item_type if first_item else "weapon"
+        icon_sub_type = (first_item.weapon_type or first_item.tool_type or first_item.armor_slot or "") if first_item else "sword"
         rp_icon = os.path.join(rp_dir, "pack_icon.png")
         bp_icon = os.path.join(build_dir, "behavior_pack", "pack_icon.png")
-        generate_pack_icon_procedural(primary_mat, rp_icon)
+        generate_pack_icon_procedural(primary_mat, rp_icon, icon_item_type, icon_sub_type)
         os.makedirs(os.path.dirname(bp_icon), exist_ok=True)
         shutil.copy2(rp_icon, bp_icon)
 

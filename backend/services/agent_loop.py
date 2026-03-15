@@ -28,10 +28,16 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
 
         # Inject custom textures from the request into spec items
         if request.custom_textures:
+            # Match by registry_name OR by index (fallback)
             tex_map = {t.registry_name: t.custom_texture for t in request.custom_textures}
             for item in spec.items:
                 if item.registry_name in tex_map:
                     item.custom_texture = tex_map[item.registry_name]
+            # If no match by name, try matching by index order
+            if not any(item.custom_texture for item in spec.items):
+                for i, ct in enumerate(request.custom_textures):
+                    if i < len(spec.items) and ct.custom_texture:
+                        spec.items[i].custom_texture = ct.custom_texture
 
         await update_job(
             job_id,

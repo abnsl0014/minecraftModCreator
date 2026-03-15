@@ -445,21 +445,23 @@ def generate_block_texture(block_type, output_path, style="classic"):
 
 # ======= PACK ICON =======
 
-def generate_pack_icon_procedural(material, output_path):
-    """Generate a 128x128 pack icon — Minecraft needs at least 128x128 to display."""
+def generate_pack_icon_procedural(material, output_path, item_type="weapon", sub_type="sword"):
+    """Generate a 128x128 pack icon using the actual item shape."""
+    import tempfile
+
     p = get_palette(material) if material in MATERIAL_PALETTES else get_palette("diamond")
 
-    # Generate a 16x16 sword icon first, then scale up
-    sword_img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
-    spx = sword_img.load()
-    # Draw sword silhouette
-    _draw(spx, [(14,0),(13,1),(12,2),(11,3),(10,4),(9,5),(8,6),(7,7),(6,8)], p["light"])
-    _draw(spx, [(13,0),(12,1),(11,2),(10,3),(9,4),(8,5),(7,6),(6,7),(5,8)], p["main"])
-    _draw(spx, [(12,0),(11,1),(10,2),(9,3),(8,4),(7,5),(6,6),(5,7)], p["dark"])
-    _draw(spx, [(4,9),(5,9),(6,9),(7,9),(8,9),(4,10),(5,10)], p["guard"])
-    _draw(spx, [(3,10),(3,11),(2,12)], p["handle"])
-    _draw(spx, [(2,11),(2,13),(1,13)], p["handle_dark"])
-    spx[1,14] = (*p["guard"], 255)
+    # Generate the actual item texture at 16x16
+    tmp = tempfile.mktemp(suffix=".png")
+    try:
+        generate_procedural_texture(item_type, sub_type, material, tmp)
+        item_img = Image.open(tmp).convert("RGBA")
+    except Exception:
+        # Fallback to sword
+        item_img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
 
     # Create 128x128 icon with colored background
     bg = shade(p["main"], 0.25)
@@ -467,7 +469,7 @@ def generate_pack_icon_procedural(material, output_path):
     img = Image.new('RGBA', (128, 128), (*bg, 255))
     px = img.load()
 
-    # Border (4px)
+    # Border
     for x in range(128):
         for y in range(128):
             if x < 4 or x >= 124 or y < 4 or y >= 124:
@@ -475,19 +477,9 @@ def generate_pack_icon_procedural(material, output_path):
             elif x < 8 or x >= 120 or y < 8 or y >= 120:
                 px[x, y] = (*shade(bg, 1.3), 255)
 
-    # Paste scaled sword in center
-    sword_big = sword_img.resize((80, 80), Image.NEAREST)
-    img.paste(sword_big, (24, 24), sword_big)
-
-    # Add subtle glow behind the sword
-    for y in range(20, 108):
-        for x in range(20, 108):
-            r, g, b, a = px[x, y]
-            if a < 200:  # transparent area near sword
-                dist = ((x - 64) ** 2 + (y - 64) ** 2) ** 0.5
-                if dist < 50:
-                    glow = max(0, int(30 * (1 - dist / 50)))
-                    px[x, y] = (min(255, bg[0] + glow), min(255, bg[1] + glow), min(255, bg[2] + glow), 255)
+    # Paste scaled item in center
+    item_big = item_img.resize((80, 80), Image.NEAREST)
+    img.paste(item_big, (24, 24), item_big)
 
     _save(img, output_path)
 
