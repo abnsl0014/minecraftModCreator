@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Press_Start_2P } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const pixelFont = Press_Start_2P({
+  weight: "400",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-pixel",
 });
 
 export const metadata: Metadata = {
-  title: "Minecraft Mod Creator",
-  description: "Create Minecraft mods with AI - describe your mod and download the .jar",
+  title: "ModCrafter — Create Minecraft Mods with AI",
+  description: "Create Minecraft mods with AI. Describe your mod and download a working .jar or .mcaddon instantly.",
 };
 
 export default function RootLayout({
@@ -24,9 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-white min-h-screen`}
-      >
+      <body className={`${pixelFont.variable} bg-[#0a0a0a] text-[#c0c0c0] min-h-screen`}>
         {children}
       </body>
     </html>
