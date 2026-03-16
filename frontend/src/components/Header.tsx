@@ -32,6 +32,11 @@ export default function Header() {
             style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
             Gallery
           </Link>
+          <Link href="/create"
+            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
+            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+            Create
+          </Link>
           <Link href="/builder"
             className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
             style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
@@ -60,6 +65,11 @@ export default function Header() {
             className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             Gallery
+          </Link>
+          <Link href="/create" onClick={() => setMenuOpen(false)}
+            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            Create
           </Link>
           <Link href="/builder" onClick={() => setMenuOpen(false)}
             className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"

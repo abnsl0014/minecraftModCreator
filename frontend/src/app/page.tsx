@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { generateMod } from "@/lib/api";
+import { Steve, Creeper, Enderman, Chicken } from "@/components/PixelCharacters";
+import { FloatingParticles, HeroBackground, XPOrbs } from "@/components/FloatingParticles";
+import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene } from "@/components/PixelScenes";
 
 const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
@@ -36,8 +39,19 @@ export default function Home() {
       <Header />
       <main className="min-h-screen">
         {/* === HERO === */}
-        <section className="flex flex-col items-center justify-center px-4 pt-20"
+        <section className="flex flex-col items-center justify-center px-4 pt-20 relative overflow-hidden"
           style={{ minHeight: "calc(100vh - 56px)" }}>
+          <HeroBackground />
+          <FloatingParticles />
+
+          {/* Pixel characters flanking the form */}
+          <div className="absolute left-[5%] lg:left-[15%] top-1/2 -translate-y-1/2">
+            <Steve />
+          </div>
+          <div className="absolute right-[5%] lg:right-[15%] top-1/2 -translate-y-1/2">
+            <Creeper />
+          </div>
+
           <h1 className="text-[20px] sm:text-[24px] md:text-[28px] text-[#d4a017] text-center mb-4 leading-relaxed"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             Create Minecraft Mods
@@ -47,7 +61,8 @@ export default function Home() {
           <p className="text-[10px] text-[#808080] text-center mb-8 max-w-xl leading-relaxed"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             Describe what you want. Download a working mod.{" "}
-            <span className="text-[#55ff55]">Java</span> &amp;{" "}
+            <span className="text-[#55ff55]">Java</span>
+            <span className="text-[#555555] text-[8px]"> (soon)</span> &amp;{" "}
             <span className="text-[#5555ff]">Bedrock</span> supported.
           </p>
 
@@ -95,7 +110,7 @@ export default function Home() {
           )}
 
           {/* Example prompts */}
-          <div className="flex flex-wrap gap-2 justify-center max-w-[600px] mb-12">
+          <div className="flex flex-wrap gap-2 justify-center max-w-[600px] mb-4">
             {EXAMPLE_PROMPTS.map((ex) => (
               <button
                 key={ex}
@@ -108,6 +123,14 @@ export default function Home() {
               </button>
             ))}
           </div>
+
+          <p className="text-[8px] text-[#555] mb-12"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            or{" "}
+            <a href="/create" className="text-[#d4a017] hover:text-[#f0c040]" style={{ transition: "none" }}>
+              try conversational mode →
+            </a>
+          </p>
 
           {/* Demo showcase */}
           <DemoShowcase />
@@ -125,45 +148,12 @@ export default function Home() {
 
 /* ========== DEMO SHOWCASE ========== */
 function DemoShowcase() {
-  const [active, setActive] = useState(0);
-  const touchStart = useRef(0);
-  const demos = [
-    { src: "/demos/demo1.svg", alt: "Custom weapons demo" },
-    { src: "/demos/demo2.svg", alt: "Armor sets demo" },
-    { src: "/demos/demo3.svg", alt: "Custom blocks demo" },
-    { src: "/demos/demo4.svg", alt: "Food items demo" },
-  ];
-
-  const go = useCallback((dir: number) => {
-    setActive(prev => (prev + dir + demos.length) % demos.length);
-  }, [demos.length]);
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowLeft") go(-1);
-    if (e.key === "ArrowRight") go(1);
-  }
-
   return (
-    <div className="w-full max-w-[700px]" tabIndex={0} onKeyDown={handleKeyDown}
-      onTouchStart={(e) => { touchStart.current = e.touches[0].clientX; }}
-      onTouchEnd={(e) => {
-        const diff = e.changedTouches[0].clientX - touchStart.current;
-        if (Math.abs(diff) > 50) go(diff < 0 ? 1 : -1);
-      }}>
-      <div className="mc-panel aspect-video flex items-center justify-center overflow-hidden">
-        <img src={demos[active].src} alt={demos[active].alt} className="w-full h-full object-cover" />
-      </div>
-      <div className="flex justify-center gap-2 mt-4">
-        {demos.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={`w-3 h-3 ${i === active ? "bg-[#d4a017]" : "bg-[#3d3d3d]"}`}
-            style={{ border: "2px solid #3d3d3d", transition: "none" }}
-            aria-label={`Show demo ${i + 1}`}
-          />
-        ))}
-      </div>
+    <div className="w-full max-w-[800px] grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+      <ThunderBladeScene />
+      <CrystalArmorScene />
+      <MysticFoodsScene />
+      <NeonBlocksScene />
     </div>
   );
 }
@@ -171,7 +161,7 @@ function DemoShowcase() {
 /* ========== SHOWCASE SECTION ========== */
 function ShowcaseSection() {
   return (
-    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a" }}>
+    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a", animation: "torch-flicker 3s ease-in-out infinite" }}>
       <div className="max-w-6xl mx-auto">
         <h2 className="text-[18px] text-[#d4a017] text-center mb-2"
           style={{ fontFamily: "var(--font-pixel), monospace" }}>
@@ -183,6 +173,9 @@ function ShowcaseSection() {
         </p>
 
         <ShowcaseCards />
+      </div>
+      <div className="relative h-6 mt-8 overflow-hidden">
+        <Chicken />
       </div>
     </section>
   );
@@ -290,13 +283,19 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a" }}>
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-[18px] text-[#d4a017] text-center mb-10"
-          style={{ fontFamily: "var(--font-pixel), monospace" }}>
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a", animation: "torch-flicker 3s ease-in-out infinite" }}>
+      <div className="max-w-4xl mx-auto flex flex-col items-center">
+        <div className="relative inline-block">
+          <h2 className="text-[18px] text-[#d4a017] text-center mb-10"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            How It Works
+          </h2>
+          <div className="absolute -right-10 top-0 opacity-50 scale-50 hidden md:block"
+            style={{ animation: "idle-bob 2s ease-in-out infinite" }}>
+            <Creeper />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
           {steps.map(s => (
             <div key={s.num} className="mc-panel p-6 border-t-[2px] border-t-[#d4a017]">
               <div className="text-[24px] text-[#d4a017] mb-3"
@@ -320,6 +319,41 @@ function HowItWorksSection() {
   );
 }
 
+/* ========== CAPABILITY CARD ========== */
+function CapabilityCard({ title, desc, color }: { title: string; desc: string; color: string }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div className="mc-panel p-4 relative overflow-hidden"
+      style={{ borderLeftColor: color, borderLeftWidth: "3px" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+      <h3 className="text-[10px] mb-2"
+        style={{ fontFamily: "var(--font-pixel), monospace", color }}>
+        {title}
+      </h3>
+      <p className="text-[8px] text-[#808080] leading-relaxed"
+        style={{ fontFamily: "var(--font-pixel), monospace" }}>
+        {desc}
+      </p>
+      {hovered && (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          {[...Array(5)].map((_, i) => (
+            <span key={i} className="absolute w-1 h-1"
+              style={{
+                background: color,
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animation: `block-break 0.6s ease-out ${i * 0.05}s forwards`,
+                ["--bx" as string]: `${(Math.random() - 0.5) * 40}px`,
+                ["--by" as string]: `${(Math.random() - 0.5) * 40}px`,
+              }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ========== CAPABILITIES GRID ========== */
 function CapabilitiesSection() {
   const capabilities = [
@@ -332,24 +366,18 @@ function CapabilitiesSection() {
   ];
 
   return (
-    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a" }}>
-      <div className="max-w-4xl mx-auto">
+    <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a", animation: "torch-flicker 3s ease-in-out infinite" }}>
+      <div className="max-w-4xl mx-auto relative">
+        <div className="absolute right-0 top-20 opacity-40 hidden lg:block">
+          <Enderman />
+        </div>
         <h2 className="text-[18px] text-[#d4a017] text-center mb-10"
           style={{ fontFamily: "var(--font-pixel), monospace" }}>
           What You Can Create
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {capabilities.map(c => (
-            <div key={c.title} className="mc-panel p-4" style={{ borderLeftColor: c.color, borderLeftWidth: "3px" }}>
-              <h3 className="text-[10px] mb-2"
-                style={{ fontFamily: "var(--font-pixel), monospace", color: c.color }}>
-                {c.title}
-              </h3>
-              <p className="text-[8px] text-[#808080] leading-relaxed"
-                style={{ fontFamily: "var(--font-pixel), monospace" }}>
-                {c.desc}
-              </p>
-            </div>
+            <CapabilityCard key={c.title} title={c.title} desc={c.desc} color={c.color} />
           ))}
         </div>
       </div>
@@ -361,9 +389,10 @@ function CapabilitiesSection() {
 function FooterCTA() {
   return (
     <>
-      <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a" }}>
+      <section className="py-20 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a", animation: "torch-flicker 3s ease-in-out infinite" }}>
         <div className="max-w-2xl mx-auto text-center">
-          <div className="mc-panel p-10">
+          <div className="mc-panel p-10 relative overflow-hidden">
+            <XPOrbs />
             <h2 className="text-[18px] text-[#d4a017] mb-4"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
               Build Your First Mod
@@ -389,6 +418,10 @@ function FooterCTA() {
             <a href="/gallery" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
               Gallery
+            </a>
+            <a href="/create" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              Create
             </a>
             <a href="/builder" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>

@@ -207,6 +207,8 @@ export default function ModForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quickTextures, setQuickTextures] = useState<{name: string; dataUrl: string}[]>([]);
+  const [javaShake, setJavaShake] = useState(false);
+  const [javaTooltip, setJavaTooltip] = useState(false);
 
   // Builder state
   const [activeTab, setActiveTab] = useState<BuilderTab>("weapons");
@@ -319,9 +321,28 @@ export default function ModForm() {
     <form onSubmit={handleSubmit} className="w-full max-w-3xl space-y-6">
       {/* Edition selector */}
       <div className="flex justify-center gap-2">
-        <button type="button" onClick={() => setEdition("java")}
-          className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "java" ? "bg-green-600 text-white shadow-lg shadow-green-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
-          Java Edition<span className="block text-xs opacity-70">.jar (Desktop)</span>
+        <button type="button" onClick={() => {
+            setJavaShake(true);
+            setJavaTooltip(true);
+            setTimeout(() => setJavaShake(false), 300);
+            setTimeout(() => setJavaTooltip(false), 3000);
+          }}
+          className={`relative px-5 py-2.5 rounded-lg font-medium text-sm bg-gray-800/30 text-gray-500 border border-gray-700/50 cursor-not-allowed ${javaShake ? "mc-shake" : ""}`}>
+          <span className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Java Edition
+          </span>
+          <span className="block text-xs opacity-50">.jar (Desktop)</span>
+          <span className="absolute -top-2 -right-2 bg-yellow-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">
+            SOON
+          </span>
+          {javaTooltip && (
+            <span className="mc-tooltip-smooth">
+              Java Edition is coming soon! Bedrock is fully supported.
+            </span>
+          )}
         </button>
         <button type="button" onClick={() => setEdition("bedrock")}
           className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "bedrock" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
