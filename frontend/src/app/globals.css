@@ -1,19 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #0a0a0a;
+  --foreground: #c0c0c0;
+  --mc-bg-panel: #1a1a1a;
+  --mc-border-light: #3d3d3d;
+  --mc-border-dark: #0d0d0d;
+  --mc-accent: #d4a017;
+  --mc-accent-hover: #f0c040;
+  --mc-text-secondary: #808080;
+  --mc-success: #55ff55;
+  --mc-danger: #ff5555;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-pixel: var(--font-pixel);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-pixel), monospace;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(255,255,255,0.03) 15px, rgba(255,255,255,0.03) 16px),
+    repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(255,255,255,0.03) 15px, rgba(255,255,255,0.03) 16px);
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+*, *::before, *::after {
+  border-radius: 0 !important;
+}
+
+.mc-panel {
+  background: var(--mc-bg-panel);
+  border: 3px solid;
+  border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light);
+}
+
+.mc-panel-inset {
+  background: #111111;
+  border: 3px solid;
+  border-color: var(--mc-border-dark) var(--mc-border-light) var(--mc-border-light) var(--mc-border-dark);
+}
+
+.mc-btn {
+  background: var(--mc-bg-panel);
+  border: 3px solid;
+  border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light);
+  color: var(--mc-accent);
+  font-family: var(--font-pixel), monospace;
+  cursor: pointer;
+  transition: none;
+  padding: 8px 16px;
+  font-size: 10px;
+}
+
+.mc-btn:hover {
+  background: #222222;
+  color: var(--mc-accent-hover);
+}
+
+.mc-btn:active {
+  border-color: var(--mc-border-dark) var(--mc-border-light) var(--mc-border-light) var(--mc-border-dark);
+}
+
+.mc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes mc-pulse {
+  0%, 100% { border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light); }
+  50% { border-color: var(--mc-accent) var(--mc-border-dark) var(--mc-border-dark) var(--mc-accent); }
+}
+
+.mc-panel-loading {
+  background: var(--mc-bg-panel);
+  border: 3px solid;
+  border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light);
+  animation: mc-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.mc-blink {
+  animation: blink 1s step-end infinite;
 }
