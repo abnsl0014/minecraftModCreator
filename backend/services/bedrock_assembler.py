@@ -125,6 +125,23 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
         with open(recipe_path, 'w') as f:
             json.dump(recipe, f, indent=2)
 
+    # Generate loot tables for blocks (drop themselves when mined)
+    for block in spec.blocks:
+        loot = {
+            "pools": [{
+                "rolls": 1,
+                "entries": [{
+                    "type": "item",
+                    "name": "%s:%s" % (spec.mod_id, block.registry_name),
+                    "weight": 1
+                }]
+            }]
+        }
+        loot_path = os.path.join(bp_dir, "loot_tables", "blocks", "%s.json" % block.registry_name)
+        os.makedirs(os.path.dirname(loot_path), exist_ok=True)
+        with open(loot_path, 'w') as f:
+            json.dump(loot, f, indent=2)
+
     # Generate armor attachables + textures so armor shows on player model
     _generate_armor_attachables(spec, rp_dir)
 

@@ -325,6 +325,66 @@ def fix_bedrock_item_json(data: dict, namespace: str) -> dict:
         has_food = "minecraft:food" in components
         components["minecraft:max_stack_size"] = 64 if has_food else 1
 
+    # Add digger component for tools — they actually mine faster
+    identifier = desc.get("identifier", "")
+    item_name_lower = identifier.split(":")[-1] if ":" in identifier else ""
+
+    # Check if this looks like a tool — add mining speed
+    tool_tags = {
+        "pickaxe": {"speed": 8, "blocks": ["stone", "iron_ore", "gold_ore", "diamond_ore", "coal_ore", "copper_ore", "cobblestone", "deepslate"]},
+        "axe": {"speed": 7, "blocks": ["oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log", "dark_oak_log", "planks", "oak_planks"]},
+        "shovel": {"speed": 8, "blocks": ["dirt", "grass_block", "sand", "gravel", "clay", "soul_sand", "snow"]},
+        "hoe": {"speed": 6, "blocks": ["hay_block", "sponge", "leaves", "oak_leaves"]},
+    }
+
+    for tool_key, tool_data in tool_tags.items():
+        if tool_key in item_name_lower and "minecraft:digger" not in components:
+            destroy_speeds = []
+            for block in tool_data["blocks"]:
+                destroy_speeds.append({
+                    "block": "minecraft:%s" % block,
+                    "speed": tool_data["speed"]
+                })
+            components["minecraft:digger"] = {
+                "use_efficiency": True,
+                "destroy_speeds": destroy_speeds
+            }
+            break
+
+    # Swing duration based on weapon speed
+    speed = None
+    for s_item in []:  # will be filled by inject_weapon_mechanics
+        pass  # placeholder
+    # Fast weapons swing faster, slow weapons swing slower
+    if "minecraft:damage" in components and "minecraft:swing_duration" not in components:
+        if "katana" in item_name_lower or "gauntlet" in item_name_lower or "whip" in item_name_lower:
+            components["minecraft:swing_duration"] = 0.3  # fast
+        elif "hammer" in item_name_lower or "axe" in item_name_lower:
+            components["minecraft:swing_duration"] = 0.6  # slow
+
+    # Weapons can destroy blocks in creative
+    if "minecraft:damage" in components and "minecraft:can_destroy_in_creative" not in components:
+        components["minecraft:can_destroy_in_creative"] = True
+
+    # Shields can go in off-hand
+    if "shield" in item_name_lower and "minecraft:allow_off_hand" not in components:
+        components["minecraft:allow_off_hand"] = True
+
+    # Fire resistant items don't burn in lava
+    # (already handled by inject_visual_properties, but ensure for tools too)
+
+    # Add enchantable for weapons/tools/armor
+    if "minecraft:enchantable" not in components:
+        if "minecraft:damage" in components:
+            components["minecraft:enchantable"] = {"value": 14, "slot": "sword"}
+        elif "minecraft:digger" in components:
+            components["minecraft:enchantable"] = {"value": 14, "slot": "pickaxe"}
+        elif "minecraft:wearable" in components:
+            slot = components["minecraft:wearable"].get("slot", "")
+            ench_map = {"slot.armor.head": "armor_head", "slot.armor.chest": "armor_torso",
+                       "slot.armor.legs": "armor_legs", "slot.armor.feet": "armor_feet"}
+            components["minecraft:enchantable"] = {"value": 10, "slot": ench_map.get(slot, "armor_torso")}
+
     item["description"] = desc
     item["components"] = components
     return data
@@ -509,6 +569,10 @@ def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
         components["minecraft:material_instances"] = {
             "*": {"texture": tex_key, "render_method": "opaque"}
         }
+
+    # Add loot table reference so blocks drop themselves
+    if "minecraft:loot" not in components:
+        components["minecraft:loot"] = "loot_tables/blocks/%s.json" % block_name
 
     block["description"] = desc
     block["components"] = components
