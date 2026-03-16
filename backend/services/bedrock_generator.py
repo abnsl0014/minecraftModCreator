@@ -67,13 +67,18 @@ def build_detailed_description(spec: ModSpec) -> str:
 
 
 def _needs_scripts(spec: ModSpec) -> bool:
-    """Check if any item needs the Script API."""
+    """Check if any item/block needs the Script API."""
     for item in spec.items:
         if item.on_hit_effects:
             return True
         if item.item_type == "armor" and item.armor_effects:
             return True
         if item.special_ability:
+            return True
+    # Interactive blocks
+    interactive_kw = ["cannon", "turret", "launcher", "machine", "trap", "landmine", "dispenser"]
+    for block in spec.blocks:
+        if any(k in block.display_name.lower() for k in interactive_kw):
             return True
     return False
 
@@ -860,6 +865,65 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
             lines.append('        } catch(ex){} }')
             lines.append('        dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
             lines.append('      }')
+            lines.append('    }')
+
+        lines.append('  } catch(e) {}')
+        lines.append('});')
+        lines.append('')
+
+    # === INTERACTIVE BLOCKS (cannons, turrets, traps) ===
+    interactive_keywords = ["cannon", "turret", "launcher", "machine", "trap", "landmine", "dispenser"]
+    interactive_blocks = [b for b in spec.blocks if any(k in b.display_name.lower() for k in interactive_keywords)]
+
+    if interactive_blocks:
+        lines.append('// === INTERACTIVE BLOCKS ===')
+        lines.append('world.beforeEvents.playerInteractWithBlock.subscribe((event) => {')
+        lines.append('  const player = event.player;')
+        lines.append('  const block = event.block;')
+        lines.append('  const blockId = block.typeId;')
+        lines.append('  try {')
+
+        for block in interactive_blocks:
+            block_id = "%s:%s" % (spec.mod_id, block.registry_name)
+            bl = block.display_name.lower()
+            lines.append('    if (blockId === "%s") {' % block_id)
+            lines.append('      event.cancel = true;')
+            lines.append('      system.run(() => {')
+            lines.append('        const dim = player.dimension;')
+            lines.append('        const loc = block.location;')
+            lines.append('        const dir = player.getViewDirection();')
+
+            if any(k in bl for k in ["cannon", "launcher"]):
+                lines.append('        // Fire cannon — shoots 3 fireballs')
+                lines.append('        for (let i = 0; i < 3; i++) {')
+                lines.append('          system.runTimeout(() => {')
+                lines.append('            dim.spawnEntity("minecraft:fireball", {x:loc.x+dir.x*(2+i*2), y:loc.y+1.5+dir.y*(2+i*2), z:loc.z+dir.z*(2+i*2)});')
+                lines.append('            dim.spawnParticle("minecraft:large_explosion", {x:loc.x, y:loc.y+1, z:loc.z});')
+                lines.append('          }, i * 5);')
+                lines.append('        }')
+                lines.append('        player.runCommand("title @s actionbar §c§lCANNON FIRED!");')
+
+            elif any(k in bl for k in ["turret", "machine"]):
+                lines.append('        // Turret — rapid fire arrows at nearest enemy')
+                lines.append('        const enemies = dim.getEntities({location:loc, maxDistance:20, excludeTypes:["minecraft:player"]});')
+                lines.append('        for (let i = 0; i < Math.min(5, enemies.length); i++) {')
+                lines.append('          system.runTimeout(() => {')
+                lines.append('            try { dim.spawnEntity("minecraft:arrow", {x:loc.x, y:loc.y+1, z:loc.z}); } catch(ex){}')
+                lines.append('          }, i * 3);')
+                lines.append('        }')
+                lines.append('        player.runCommand("title @s actionbar §e§lTURRET ACTIVE!");')
+
+            elif any(k in bl for k in ["trap", "landmine"]):
+                lines.append('        // Trap — explodes when activated')
+                lines.append('        dim.createExplosion(loc, 4, { breaksBlocks: true, causesFire: true });')
+                lines.append('        player.runCommand("title @s actionbar §4§lTRAP ACTIVATED!");')
+
+            else:
+                lines.append('        // Generic interact — spawn particles')
+                lines.append('        dim.spawnParticle("minecraft:huge_explosion_emitter", {x:loc.x, y:loc.y+1, z:loc.z});')
+                lines.append('        player.runCommand("title @s actionbar §a§lACTIVATED!");')
+
+            lines.append('      });')
             lines.append('    }')
 
         lines.append('  } catch(e) {}')

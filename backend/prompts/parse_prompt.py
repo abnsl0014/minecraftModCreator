@@ -138,6 +138,10 @@ FOOD (item_type="food") — eaten/consumed to restore hunger or give effects
   Fields: nutrition (1-20), saturation, food_effects, always_edible, fast_eat, stack_size
 
 BLOCKS — placeable cube in the world
+  Regular blocks: ore, stone, crystal, brick, glowing
+  INTERACTIVE BLOCKS: machines, cannons, turrets, traps, launchers
+  - If user says "cannon", "turret", "launcher", "machine", "trap", "landmine", "dispenser" → create a block with luminance=5
+  - These get scripted interaction: right-click to activate (shoot, explode, etc.)
   Fields: hardness_level, hardness, resistance, luminance (0-15), tool_requirement, transparent, drops
 
 === CLASSIFICATION RULES ===
@@ -169,7 +173,9 @@ How to decide the item_type:
 - If user says "boots", "shoes", "sandals", "foot armor" → item_type="armor", armor_slot="boots"
 - If user says "apple", "pie", "bread", "steak", "food", "berry", "potion" (edible) → item_type="food"
 - If user says "ore", "block", "crystal", "brick", "stone" (placeable) → goes in blocks array
+- If user says "cannon", "turret", "launcher", "machine gun turret", "trap", "landmine" → goes in blocks array (interactive block)
 - If user says "armor set" → create 4 separate items: helmet + chestplate + leggings + boots
+- If user says "big weapon" or "placeable weapon" → make it a block (placed in world) + a handheld version as weapon
 
 === VISUAL / EXTERIOR PROPERTIES (any item) ===
 These change how the item LOOKS or BEHAVES outside of combat:
