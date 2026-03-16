@@ -201,6 +201,10 @@ If user says "enchanted" → glowing=true (enchant shimmer)
 - "blindness": applies Blindness effect (can't see)
 - "levitation": launches target into the air
 - "teleport": teleports attacker to target location
+- "chain_lightning": lightning bounces to 3 nearby enemies
+- "black_hole": pulls all nearby enemies toward target
+- "heal_aura": heals attacker AND all nearby allies
+- "meteor": drops a fireball from the sky on target
 
 === SPECIAL ABILITIES (right-click activated, weapons only) ===
 Set special_ability to a description. The system auto-maps these:

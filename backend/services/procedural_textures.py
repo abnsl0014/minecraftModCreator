@@ -47,7 +47,7 @@ BLOCK_PALETTES = {
     "nether":  {"base": (80, 20, 20),    "spot": (120, 40, 40),   "spot_light": (60, 10, 10)},
 }
 
-TEXTURE_STYLES = ["classic", "enchanted", "battle_worn"]
+TEXTURE_STYLES = ["classic", "enchanted", "battle_worn", "celestial", "void", "neon"]
 
 def shade(c, f):
     return tuple(max(0, min(255, int(v * f))) for v in c)
@@ -121,11 +121,82 @@ def _apply_battle_worn(img):
     return img
 
 
+def _apply_celestial(img):
+    """Golden divine glow — bright gold highlights + star sparkles."""
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > 100:
+                # Gold tint
+                r = min(255, r + 30)
+                g = min(255, g + 20)
+                b = max(0, b - 20)
+                if (x + y) % 3 == 0:
+                    r = min(255, r + 40)
+                    g = min(255, g + 30)
+                px[x, y] = (r, g, b, a)
+    # Gold sparkles
+    for sx, sy in [(1,1),(3,4),(14,2),(12,11),(5,14),(10,6),(2,9)]:
+        if 0 <= sx < w and 0 <= sy < h:
+            px[sx, sy] = (255, 255, 150, 220)
+    return img
+
+
+def _apply_void(img):
+    """Dark void energy — deep purple/black with glowing cracks."""
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > 100:
+                # Darken to near-black with purple tint
+                r = max(0, int(r * 0.3))
+                g = max(0, int(g * 0.2))
+                b = min(255, int(b * 0.4) + 30)
+                # Glowing cracks
+                if (x * 7 + y * 13) % 11 == 0:
+                    r = min(255, r + 120)
+                    g = 0
+                    b = min(255, b + 150)
+                px[x, y] = (r, g, b, a)
+    return img
+
+
+def _apply_neon(img):
+    """Cyberpunk neon glow — bright saturated edges."""
+    px = img.load()
+    w, h = img.size
+    # Find edges and make them glow
+    for y in range(1, h-1):
+        for x in range(1, w-1):
+            r, g, b, a = px[x, y]
+            if a > 100:
+                # Check if edge pixel (neighbor is transparent)
+                neighbors = [px[x-1,y], px[x+1,y], px[x,y-1], px[x,y+1]]
+                is_edge = any(n[3] < 50 for n in neighbors)
+                if is_edge:
+                    # Bright neon edge
+                    px[x, y] = (min(255, r + 100), min(255, g + 200), min(255, b + 255), 255)
+                else:
+                    # Darken interior
+                    px[x, y] = (int(r * 0.7), int(g * 0.7), int(b * 0.7), a)
+    return img
+
+
 def _apply_style(img, style):
     if style == "enchanted":
         return _apply_enchanted(img)
     elif style == "battle_worn":
         return _apply_battle_worn(img)
+    elif style == "celestial":
+        return _apply_celestial(img)
+    elif style == "void":
+        return _apply_void(img)
+    elif style == "neon":
+        return _apply_neon(img)
     return img  # classic — no modification
 
 
@@ -135,22 +206,29 @@ def generate_sword_texture(material, output_path, style="classic"):
     p = get_palette(material)
     img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
     px = img.load()
-    # Blade - 3 pixel wide diagonal with proper shading
+    # Blade tip (pointed)
+    px[15, 0] = (*shade(p["light"], 1.3), 255)
+    # Blade edge (bright highlight)
     _draw(px, [(14,0),(13,1),(12,2),(11,3),(10,4),(9,5),(8,6),(7,7),(6,8)], p["light"])
-    _draw(px, [(13,0),(12,1),(11,2),(10,3),(9,4),(8,5),(7,6),(6,7),(5,8)], p["main"])
+    # Blade body
+    _draw(px, [(14,1),(13,0),(12,1),(11,2),(10,3),(9,4),(8,5),(7,6),(6,7),(5,8)], p["main"])
+    # Blade back edge (shadow)
     _draw(px, [(12,0),(11,1),(10,2),(9,3),(8,4),(7,5),(6,6),(5,7)], p["dark"])
-    # Blade edge highlight
-    px[15, 0] = (*shade(p["light"], 1.2), 255)
-    px[14, 1] = (*shade(p["light"], 1.1), 255)
-    # Crossguard with detail
-    _draw(px, [(4,9),(5,9),(6,9),(7,9),(8,9)], p["guard"])
+    # Fuller (center groove on blade — darker line)
+    _draw(px, [(13,1),(12,2),(11,3),(10,4),(9,5),(8,6)], shade(p["main"], 0.85))
+    # Tip extra highlight
+    px[14, 0] = (*shade(p["light"], 1.2), 255)
+    # Crossguard (wider, with center gem)
+    _draw(px, [(3,9),(4,9),(5,9),(6,9),(7,9),(8,9)], p["guard"])
+    px[6, 9] = (*shade(p["guard"], 1.3), 255)  # gem on guard
     _draw(px, [(4,10),(5,10)], shade(p["guard"], 0.7))
-    # Handle with wrapping detail
-    _draw(px, [(3,10),(3,11)], p["handle"])
-    _draw(px, [(2,12),(2,11)], p["handle_dark"])
-    _draw(px, [(3,12)], p["handle"])
+    # Handle with leather wrapping pattern
+    px[3,10] = (*p["handle"], 255); px[3,11] = (*p["handle_dark"], 255)
+    px[2,11] = (*p["handle"], 255); px[2,12] = (*p["handle_dark"], 255)
+    px[3,12] = (*p["handle"], 255)
     px[1,13] = (*p["handle_dark"], 255)
-    px[1,14] = (*p["guard"], 255)
+    # Pommel
+    px[1,14] = (*p["guard"], 255); px[0,14] = (*shade(p["guard"], 0.8), 255)
     _save(_apply_style(img, style), output_path)
 
 

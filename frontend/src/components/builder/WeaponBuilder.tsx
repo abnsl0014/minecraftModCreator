@@ -41,9 +41,12 @@ const WEAPON_TYPES = ["sword", "katana", "hammer", "axe", "spear", "staff", "gau
 const ATTACK_SPEEDS = ["fast", "normal", "slow"];
 const HIT_EFFECTS = [
   { id: "lightning", label: "Lightning" },
+  { id: "chain_lightning", label: "Chain Lightning" },
   { id: "fire", label: "Fire" },
   { id: "freeze", label: "Freeze" },
   { id: "explosion", label: "Explosion" },
+  { id: "meteor", label: "Meteor" },
+  { id: "black_hole", label: "Black Hole" },
   { id: "poison", label: "Poison" },
   { id: "wither", label: "Wither" },
   { id: "blindness", label: "Blindness" },
@@ -51,6 +54,7 @@ const HIT_EFFECTS = [
   { id: "knockback", label: "Knockback" },
   { id: "slowness", label: "Slowness" },
   { id: "lifesteal", label: "Lifesteal" },
+  { id: "heal_aura", label: "Heal Aura" },
   { id: "teleport", label: "Teleport" },
 ];
 

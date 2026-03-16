@@ -637,6 +637,32 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
                     lines.append('      attacker.teleport(loc);')
                     lines.append('      dim.spawnParticle("minecraft:endrod", loc);')
                     lines.append('      dim.spawnParticle("minecraft:endrod", attacker.location);')
+                elif effect == "chain_lightning":
+                    lines.append('      // Chain lightning — hits target + 3 nearby')
+                    lines.append('      dim.spawnEntity("minecraft:lightning_bolt", loc);')
+                    lines.append('      const chain = dim.getEntities({location:loc, maxDistance:6, excludeTypes:["minecraft:player"]});')
+                    lines.append('      let chained = 0;')
+                    lines.append('      for (const e of chain) { if (chained >= 3) break; try { dim.spawnEntity("minecraft:lightning_bolt", e.location); chained++; } catch(ex){} }')
+                elif effect == "black_hole":
+                    lines.append('      // Black hole — pull enemies toward target')
+                    lines.append('      const pulled = dim.getEntities({location:loc, maxDistance:10, excludeTypes:["minecraft:player"]});')
+                    lines.append('      for (const e of pulled) { try {')
+                    lines.append('        const el = e.location; const dx = loc.x-el.x, dz = loc.z-el.z;')
+                    lines.append('        const len = Math.sqrt(dx*dx+dz*dz)||1;')
+                    lines.append('        e.applyKnockback(dx/len, dz/len, 2, 0.3);')
+                    lines.append('        e.addEffect("minecraft:slowness", 100, {amplifier:3});')
+                    lines.append('      } catch(ex){} }')
+                    lines.append('      dim.spawnParticle("minecraft:endrod", loc);')
+                elif effect == "heal_aura":
+                    lines.append('      // Heal aura — heal self + nearby players')
+                    lines.append('      attacker.addEffect("minecraft:regeneration", 100, {amplifier:2});')
+                    lines.append('      attacker.addEffect("minecraft:absorption", 100, {amplifier:1});')
+                    lines.append('      dim.spawnParticle("minecraft:heart_particle", {x:loc.x, y:loc.y+2, z:loc.z});')
+                elif effect == "meteor":
+                    lines.append('      // Meteor — drop fireball from sky')
+                    lines.append('      dim.spawnEntity("minecraft:fireball", {x:loc.x, y:loc.y+20, z:loc.z});')
+                    lines.append('      dim.createExplosion(loc, 4, {breaksBlocks:true, causesFire:true});')
+                    lines.append('      dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
 
             lines.append('    }')
 

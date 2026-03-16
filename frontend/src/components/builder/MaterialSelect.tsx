@@ -43,9 +43,12 @@ const BLOCK_MATERIALS = [
 ];
 
 const STYLES = [
-  { value: "classic", label: "Classic", desc: "Clean vanilla Minecraft" },
-  { value: "enchanted", label: "Enchanted", desc: "Magical shimmer & sparkles" },
+  { value: "classic", label: "Classic", desc: "Clean vanilla" },
+  { value: "enchanted", label: "Enchanted", desc: "Purple shimmer" },
   { value: "battle_worn", label: "Battle-worn", desc: "Dark & scratched" },
+  { value: "celestial", label: "Celestial", desc: "Golden divine glow" },
+  { value: "void", label: "Void", desc: "Dark purple cracks" },
+  { value: "neon", label: "Neon", desc: "Cyberpunk glow edges" },
 ];
 
 export function getMaterialOptions(itemType: string) {
