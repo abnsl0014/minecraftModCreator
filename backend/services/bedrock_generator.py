@@ -732,6 +732,15 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
             elif any(k in ability for k in ["shield", "protect", "barrier", "block"]):
                 lines.append('      player.addEffect("minecraft:resistance", 100, { amplifier: 3 });')
                 lines.append('      player.addEffect("minecraft:regeneration", 100, { amplifier: 1 });')
+            elif any(k in ability for k in ["summon", "spawn", "army", "allies", "wolves", "minions"]):
+                lines.append('      // Summon wolf army')
+                lines.append('      for (let i=0; i<5; i++) {')
+                lines.append('        const angle = (i/5)*Math.PI*2;')
+                lines.append('        const sx = loc.x + Math.cos(angle)*3;')
+                lines.append('        const sz = loc.z + Math.sin(angle)*3;')
+                lines.append('        const wolf = dim.spawnEntity("minecraft:wolf", {x:sx, y:loc.y, z:sz});')
+                lines.append('        try { wolf.getComponent("minecraft:tameable")?.tame(player); } catch(ex){}')
+                lines.append('      }')
             elif any(k in ability for k in ["freeze", "ice", "frost"]):
                 lines.append('      // Freeze all nearby entities')
                 lines.append('      const nearby = dim.getEntities({location:loc, maxDistance:8, excludeTypes:["minecraft:player"]});')

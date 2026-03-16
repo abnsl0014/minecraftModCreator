@@ -194,6 +194,62 @@ def analyze_and_enrich(spec) -> str:
                 item.durability = 1000
                 analysis_lines.append("%s: set default durability 1000" % item.display_name)
 
+    # Handle special gadgets/devices — map to closest working Minecraft item
+    for item in spec.items:
+        nl = item.display_name.lower()
+
+        # Jetpack → armor chestplate with jump_boost + slow_falling
+        if any(k in nl for k in ["jetpack", "jet pack", "wings", "elytra"]) and item.item_type != "armor":
+            item.item_type = "armor"
+            item.armor_slot = "chestplate"
+            item.defense = 4
+            item.durability = item.durability or 1000
+            item.armor_effects = list(set((item.armor_effects or []) + ["jump_boost", "slow_falling"]))
+            analysis_lines.append("%s: jetpack → chestplate with jump_boost+slow_falling" % item.display_name)
+
+        # Grappling hook → throwable with teleport effect
+        elif any(k in nl for k in ["grappling", "grapple", "hook"]) and item.item_type == "weapon":
+            item.weapon_type = "throwable"
+            item.on_hit_effects = list(set((item.on_hit_effects or []) + ["teleport"]))
+            item.special_ability = item.special_ability or "Teleports to target location"
+            analysis_lines.append("%s: grapple → throwable with teleport" % item.display_name)
+
+        # Time stopper → staff with freeze AoE
+        elif any(k in nl for k in ["time stop", "time freeze", "chronos", "time"]) and item.item_type == "weapon":
+            item.weapon_type = "staff"
+            item.special_ability = item.special_ability or "Freezes all nearby enemies"
+            item.on_hit_effects = list(set((item.on_hit_effects or []) + ["freeze"]))
+            item.glowing = True
+            analysis_lines.append("%s: time stopper → staff with freeze AoE" % item.display_name)
+
+        # Gravity gun → staff with levitation
+        elif any(k in nl for k in ["gravity", "levitation gun", "tractor"]) and item.item_type == "weapon":
+            item.weapon_type = "staff"
+            item.on_hit_effects = list(set((item.on_hit_effects or []) + ["levitation", "knockback"]))
+            item.special_ability = item.special_ability or "Launches enemies into the air"
+            analysis_lines.append("%s: gravity gun → staff with levitation" % item.display_name)
+
+        # Shrink ray → gun with weakness + slowness
+        elif any(k in nl for k in ["shrink", "ray gun", "laser"]) and item.item_type == "weapon":
+            item.weapon_type = "gun"
+            item.on_hit_effects = list(set((item.on_hit_effects or []) + ["slowness", "blindness"]))
+            analysis_lines.append("%s: shrink/ray → gun with slowness+blindness" % item.display_name)
+
+        # Pet summoner → staff that spawns entities (special ability)
+        elif any(k in nl for k in ["summon", "spawn", "pet"]) and item.item_type == "weapon":
+            item.weapon_type = "staff"
+            item.special_ability = item.special_ability or "Summons allies to fight for you"
+            item.glowing = True
+            analysis_lines.append("%s: summoner → staff with summon ability" % item.display_name)
+
+        # Lucky block → convert to block with luminance
+        elif any(k in nl for k in ["lucky", "fortune block", "mystery"]):
+            # Keep as whatever type the LLM assigned
+            if item.item_type != "food":
+                item.glowing = True
+                item.rarity = "rare"
+            analysis_lines.append("%s: lucky/mystery item → added glow+rare" % item.display_name)
+
     # Handle passive/charm items — if user asks for amulet/charm/ring/totem
     # These work as armor helmet slot (easiest way to make passive items in Bedrock)
     for item in spec.items:
