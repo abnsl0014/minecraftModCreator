@@ -7,6 +7,7 @@ import { getStatus, JobStatus } from "@/lib/api";
 import StatusDisplay from "@/components/StatusDisplay";
 import DownloadButton from "@/components/DownloadButton";
 import EditForm from "@/components/EditForm";
+import Header from "@/components/Header";
 
 export default function StatusPage() {
   const params = useParams();
@@ -62,10 +63,15 @@ export default function StatusPage() {
   const isWorking = status && !isComplete && !isFailed;
 
   return (
-    <main className="min-h-screen flex flex-col items-center px-4 py-12">
+    <main className="min-h-screen flex flex-col items-center px-4 py-12 pt-20">
+      <Header />
+
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+        <h1
+          className="text-3xl font-bold mb-2 text-[#d4a017]"
+          style={{ fontFamily: "var(--font-pixel), monospace" }}
+        >
           {isComplete
             ? "Your Mod is Ready!"
             : isFailed
@@ -76,22 +82,23 @@ export default function StatusPage() {
         </h1>
         <div className="flex items-center justify-center gap-3 mt-2">
           <span
-            className={`text-xs font-medium px-2 py-0.5 rounded ${
+            className={`text-xs font-medium px-2 py-0.5 ${
               status?.edition === "bedrock"
                 ? "bg-blue-900/50 text-blue-300 border border-blue-800"
-                : "bg-green-900/50 text-green-300 border border-green-800"
+                : "bg-[#1a1a1a] text-[#d4a017] border border-[#d4a017]"
             }`}
+            style={{ fontFamily: "var(--font-pixel), monospace" }}
           >
             {status?.edition === "bedrock" ? "Bedrock" : "Java"} Edition
           </span>
           {status?.mod_id && (
-            <span className="text-gray-500 text-xs font-mono">{status.mod_id}</span>
+            <span className="text-[#808080] text-xs font-mono">{status.mod_id}</span>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-300 mb-6 max-w-2xl">
+        <div className="p-4 bg-red-900/20 border border-red-800 text-red-300 mb-6 max-w-2xl">
           {error}
         </div>
       )}
@@ -114,15 +121,18 @@ export default function StatusPage() {
       {/* Give commands hint */}
       {isComplete && status?.mod_id && (
         <div className="mt-6 w-full max-w-2xl">
-          <details className="bg-gray-800/30 border border-gray-700/50 rounded-lg">
-            <summary className="px-4 py-2 text-xs text-gray-400 cursor-pointer hover:text-white">
+          <details className="mc-panel border border-gray-700/50">
+            <summary
+              className="px-4 py-2 text-xs text-[#808080] cursor-pointer hover:text-white"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
               How to use in Minecraft
             </summary>
-            <div className="px-4 pb-3 text-xs text-gray-400 space-y-2">
+            <div className="px-4 pb-3 text-xs text-[#808080] space-y-2">
               <p>1. Import the .mcaddon file on your device</p>
               <p>2. Create a new world → enable both packs (Behavior + Resource)</p>
               <p>3. Enable <span className="text-yellow-300">Beta APIs</span> in Experiments (for weapon effects)</p>
-              <p>4. Give items with: <code className="text-green-300 bg-gray-900/50 px-1 rounded">/give @s {status.mod_id}:item_name</code></p>
+              <p>4. Give items with: <code className="text-[#d4a017] bg-[#1a1a1a] px-1">/give @s {status.mod_id}:item_name</code></p>
               <p>5. Or craft them at a crafting table in survival mode</p>
             </div>
           </details>
@@ -133,7 +143,8 @@ export default function StatusPage() {
       <div className="mt-8 flex gap-4">
         <Link
           href="/"
-          className="text-gray-500 hover:text-gray-300 text-sm transition-colors flex items-center gap-1"
+          className="text-[#808080] hover:text-white text-sm flex items-center gap-1"
+          style={{ transition: "none" }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -142,7 +153,8 @@ export default function StatusPage() {
         </Link>
         <Link
           href="/gallery"
-          className="text-gray-500 hover:text-gray-300 text-sm transition-colors flex items-center gap-1"
+          className="text-[#808080] hover:text-white text-sm flex items-center gap-1"
+          style={{ transition: "none" }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
