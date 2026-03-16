@@ -128,10 +128,10 @@ function DemoShowcase() {
   const [active, setActive] = useState(0);
   const touchStart = useRef(0);
   const demos = [
-    { alt: "Custom weapons demo", bg: "#1a1a1a" },
-    { alt: "Armor sets demo", bg: "#1a1a1a" },
-    { alt: "Custom blocks demo", bg: "#1a1a1a" },
-    { alt: "Food items demo", bg: "#1a1a1a" },
+    { src: "/demos/demo1.svg", alt: "Custom weapons demo" },
+    { src: "/demos/demo2.svg", alt: "Armor sets demo" },
+    { src: "/demos/demo3.svg", alt: "Custom blocks demo" },
+    { src: "/demos/demo4.svg", alt: "Food items demo" },
   ];
 
   const go = useCallback((dir: number) => {
@@ -150,11 +150,8 @@ function DemoShowcase() {
         const diff = e.changedTouches[0].clientX - touchStart.current;
         if (Math.abs(diff) > 50) go(diff < 0 ? 1 : -1);
       }}>
-      <div className="mc-panel aspect-video flex items-center justify-center">
-        <p className="text-[10px] text-[#808080]"
-          style={{ fontFamily: "var(--font-pixel), monospace" }}>
-          {demos[active].alt}
-        </p>
+      <div className="mc-panel aspect-video flex items-center justify-center overflow-hidden">
+        <img src={demos[active].src} alt={demos[active].alt} className="w-full h-full object-cover" />
       </div>
       <div className="flex justify-center gap-2 mt-4">
         {demos.map((_, i) => (
