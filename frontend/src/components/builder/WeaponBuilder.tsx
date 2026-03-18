@@ -186,12 +186,13 @@ export default function WeaponBuilder({ items, setItems, accentColor }: Props) {
           </div>
         </div>
 
-        {/* Material */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Material</label>
-            <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="weapon" subType={draft.weaponType} style={draft.style} onStyleChange={(s) => setDraft({...draft, style: s})} />
-          </div>
+        {/* Material & Texture */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Material</label>
+          <MaterialSelect value={draft.material} onChange={(m) => setDraft({ ...draft, material: m })} itemType="weapon" subType={draft.weaponType} style={draft.style} onStyleChange={(s) => setDraft({...draft, style: s})} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <TextureUpload value={draft.customTexture} onChange={(t) => setDraft({...draft, customTexture: t})} currentPreview={null} />
           <div>
             <label className="block text-xs text-gray-400 mb-1">Description (optional)</label>
@@ -229,7 +230,7 @@ export default function WeaponBuilder({ items, setItems, accentColor }: Props) {
           <svg className={`w-3.5 h-3.5 transition-transform ${showRecipe ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          Crafting Recipe (optional)
+          Crafting Recipe (survival)
         </button>
         {showRecipe && <div className="mt-2"><RecipeGrid recipe={draft.recipe} onChange={(r) => setDraft({ ...draft, recipe: r })} /></div>}
 

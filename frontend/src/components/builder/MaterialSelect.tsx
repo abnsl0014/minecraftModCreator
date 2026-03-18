@@ -59,15 +59,27 @@ export function getMaterialOptions(itemType: string) {
 
 export function useTexturePreview(itemType: string, subType: string, material: string, style: string = "classic") {
   const [preview, setPreview] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!material) return;
+    setFailed(false);
+    setPreview(null);
     const sub = subType || (itemType === "weapon" ? "sword" : itemType === "tool" ? "pickaxe" : itemType === "armor" ? "chestplate" : "");
-    fetch(`${API_BASE}/api/preview-texture?item_type=${itemType}&sub_type=${sub}&material=${material}&style=${style}`)
-      .then(r => r.json())
-      .then(d => setPreview(d.preview))
-      .catch(() => setPreview(null));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    fetch(`${API_BASE}/api/preview-texture?item_type=${itemType}&sub_type=${sub}&material=${material}&style=${style}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { setPreview(d.preview); setFailed(false); })
+      .catch(() => setFailed(true))
+      .finally(() => clearTimeout(timeout));
+    return () => { controller.abort(); clearTimeout(timeout); };
   }, [material, itemType, subType, style]);
-  return preview;
+  return { preview, failed };
+}
+
+export function getMaterialColor(itemType: string, material: string): string {
+  const options = getMaterialOptions(itemType);
+  return options.find(m => m.value === material)?.bg || "#555";
 }
 
 interface Props {
@@ -80,61 +92,59 @@ interface Props {
 }
 
 export default function MaterialSelect({ value, onChange, style, onStyleChange, itemType, subType }: Props) {
-  const preview = useTexturePreview(itemType, subType || "", value, style);
+  const { preview, failed } = useTexturePreview(itemType, subType || "", value, style);
   const options = getMaterialOptions(itemType);
+  const fallbackColor = getMaterialColor(itemType, value);
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-4 items-start">
-        {/* Preview */}
-        <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
+      {/* Texture Style */}
+      <div>
+        <label className="block text-xs text-gray-400 mb-1.5">Texture Style</label>
+        <div className="flex flex-wrap gap-1.5">
+          {STYLES.map(s => (
+            <button key={s.value} type="button" onClick={() => onStyleChange(s.value)}
+              className={`px-2.5 py-1.5 text-xs rounded-md border transition-all ${
+                style === s.value
+                  ? "border-white/60 bg-gray-700 text-white ring-1 ring-white/30"
+                  : "border-gray-600 bg-gray-800/40 text-gray-400 hover:text-white hover:border-gray-500"
+              }`}>
+              <span className="font-medium">{s.label}</span>
+              <span className="block text-[9px] opacity-60 mt-0.5">{s.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Material + Preview */}
+      <div className="flex gap-3 items-start">
+        <div className="flex-shrink-0 flex flex-col items-center gap-1">
           {preview ? (
             <img src={preview} alt="Texture preview"
-              className="w-24 h-24 rounded-lg border-2 border-gray-600 bg-gray-900"
+              className="w-20 h-20 rounded-lg border-2 border-gray-600 bg-gray-900"
               style={{ imageRendering: "pixelated" }} />
           ) : (
-            <div className="w-24 h-24 rounded-lg border-2 border-gray-700 bg-gray-900 flex items-center justify-center">
-              <span className="text-gray-600 text-xs">Loading...</span>
+            <div className="w-20 h-20 rounded-lg border-2 border-gray-700 bg-gray-900 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 border-[3px] border-gray-700 border-t-[3px] border-t-gray-400 animate-spin" style={{ borderRadius: "2px", imageRendering: "pixelated" }} />
             </div>
           )}
-          <span className="text-[10px] text-gray-500">In-game texture</span>
+          <span className="text-[9px] text-gray-500">Preview</span>
         </div>
 
-        <div className="flex-1 space-y-3">
-          {/* Style selector */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Texture Style</label>
-            <div className="flex gap-1.5">
-              {STYLES.map(s => (
-                <button key={s.value} type="button" onClick={() => onStyleChange(s.value)}
-                  className={`px-3 py-1.5 text-xs rounded-md border transition-all ${
-                    style === s.value
-                      ? "border-white/60 bg-gray-700 text-white ring-1 ring-white/30"
-                      : "border-gray-600 bg-gray-800/40 text-gray-400 hover:text-white hover:border-gray-500"
-                  }`}>
-                  <span className="font-medium">{s.label}</span>
-                  <span className="block text-[9px] opacity-60 mt-0.5">{s.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Material grid */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Material</label>
-            <div className="flex flex-wrap gap-1.5">
-              {options.map(mat => (
-                <button key={mat.value} type="button" onClick={() => onChange(mat.value)}
-                  className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md border transition-all ${
-                    value === mat.value
-                      ? "border-white/60 bg-gray-700 text-white ring-1 ring-white/30"
-                      : "border-gray-600 bg-gray-800/40 text-gray-400 hover:text-white hover:border-gray-500"
-                  }`}>
-                  <span className="w-3 h-3 rounded-sm border border-black/30" style={{ backgroundColor: mat.bg }} />
-                  {mat.label}
-                </button>
-              ))}
-            </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-400 mb-1.5">Material</label>
+          <div className="flex flex-wrap gap-1.5">
+            {options.map(mat => (
+              <button key={mat.value} type="button" onClick={() => onChange(mat.value)}
+                className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md border transition-all ${
+                  value === mat.value
+                    ? "border-white/60 bg-gray-700 text-white ring-1 ring-white/30"
+                    : "border-gray-600 bg-gray-800/40 text-gray-400 hover:text-white hover:border-gray-500"
+                }`}>
+                <span className="w-3 h-3 rounded-sm border border-black/30" style={{ backgroundColor: mat.bg }} />
+                {mat.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -145,7 +155,7 @@ export default function MaterialSelect({ value, onChange, style, onStyleChange, 
 export function TexturePreview({ itemType, subType, material, style = "classic", size = 32 }: {
   itemType: string; subType: string; material: string; style?: string; size?: number;
 }) {
-  const preview = useTexturePreview(itemType, subType, material, style);
+  const { preview } = useTexturePreview(itemType, subType, material, style);
   if (!preview) return <div className="rounded border border-gray-700 bg-gray-800" style={{ width: size, height: size }} />;
   return <img src={preview} alt="item" className="rounded border border-gray-600" style={{ width: size, height: size, imageRendering: "pixelated" }} />;
 }

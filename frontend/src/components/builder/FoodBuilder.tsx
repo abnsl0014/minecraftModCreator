@@ -190,7 +190,7 @@ export default function FoodBuilder({ items, setItems, accentColor }: Props) {
 
         <button type="button" onClick={() => setShowRecipe(!showRecipe)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
           <svg className={`w-3.5 h-3.5 transition-transform ${showRecipe ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          Crafting Recipe (optional)
+          Crafting Recipe (survival)
         </button>
         {showRecipe && <div className="mt-2"><RecipeGrid recipe={draft.recipe} onChange={(r) => setDraft({ ...draft, recipe: r })} /></div>}
 

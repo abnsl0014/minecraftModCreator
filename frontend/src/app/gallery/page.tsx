@@ -1,191 +1,265 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { getGallery, GalleryMod } from "@/lib/api";
 import Header from "@/components/Header";
+import ModCard from "@/components/explore/ModCard";
+import ModDetailModal from "@/components/explore/ModDetailModal";
+import SubmitModModal from "@/components/explore/SubmitModModal";
+import { ExploreMod, MOCK_EXPLORE_MODS, CATEGORY_CONFIG } from "@/lib/exploreData";
 
-export default function GalleryPage() {
-  const [mods, setMods] = useState<GalleryMod[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [edition, setEdition] = useState("all");
-  const [sort, setSort] = useState("recent");
+type Tab = "explore" | "featured" | "community";
+type CategoryFilter = "all" | ExploreMod["category"];
+type SortKey = "recent" | "popular" | "downloads";
 
-  useEffect(() => {
-    setLoading(true);
-    getGallery(sort, edition)
-      .then((data) => setMods(data.mods))
-      .catch(() => setMods([]))
-      .finally(() => setLoading(false));
-  }, [sort, edition]);
+export default function ExplorePage() {
+  const [tab, setTab] = useState<Tab>("explore");
+  const [category, setCategory] = useState<CategoryFilter>("all");
+  const [sort, setSort] = useState<SortKey>("popular");
+  const [search, setSearch] = useState("");
+  const [selectedMod, setSelectedMod] = useState<ExploreMod | null>(null);
+  const [showSubmit, setShowSubmit] = useState(false);
+
+  const allMods = MOCK_EXPLORE_MODS.filter(m => m.status === "approved");
+
+  const filteredMods = useMemo(() => {
+    let mods = [...allMods];
+
+    // Tab filter
+    if (tab === "featured") {
+      mods = mods.filter(m => m.featured);
+    } else if (tab === "community") {
+      mods = mods.filter(m => !m.featured);
+    }
+
+    // Category filter
+    if (category !== "all") {
+      mods = mods.filter(m => m.category === category);
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      mods = mods.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.description.toLowerCase().includes(q) ||
+        m.tags.some(t => t.includes(q)) ||
+        m.author.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (sort === "popular") {
+      mods.sort((a, b) => b.likes - a.likes);
+    } else if (sort === "downloads") {
+      mods.sort((a, b) => b.downloads - a.downloads);
+    } else {
+      mods.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return mods;
+  }, [allMods, tab, category, sort, search]);
+
+  const featuredMods = allMods.filter(m => m.featured);
 
   return (
     <main className="min-h-screen px-4 py-8 pt-20">
       <Header />
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-[#808080] hover:text-white"
-              style={{ transition: "none" }}
-            >
+            <Link href="/" className="text-[#808080] hover:text-white" style={{ transition: "none" }}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </Link>
-            <h1
-              className="text-2xl font-bold text-white"
-              style={{ fontFamily: "var(--font-pixel), monospace" }}
-            >
-              Browse Mods
-            </h1>
+            <div>
+              <h1 className="text-[16px] text-[#d4a017]"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                Explore Mods
+              </h1>
+              <p className="text-[8px] text-[#555] mt-1"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                {allMods.length} mods available
+              </p>
+            </div>
           </div>
-          <Link href="/" className="mc-btn text-sm font-medium">
-            Create Mod
-          </Link>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSubmit(true)}
+              className="mc-btn px-4 py-2 text-[9px] flex items-center gap-2">
+              + Submit Your Mod
+            </button>
+            <Link href="/gallery/admin"
+              className="mc-btn px-3 py-2 text-[9px]"
+              style={{ color: "#808080" }}>
+              Admin
+            </Link>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="flex mc-panel p-1 border border-[#3d3d3d]">
-            {["all", "java", "bedrock"].map((e) => (
-              <button
-                key={e}
-                onClick={() => setEdition(e)}
-                className={`px-3 py-1.5 text-xs font-medium capitalize ${
-                  edition === e
-                    ? "bg-[#3d3d3d] text-white"
-                    : "text-[#808080] hover:text-white"
+        {/* Tabs: Explore / Featured / Community */}
+        <div className="flex items-center gap-0 mb-6 mc-panel p-1 w-fit">
+          {([
+            { key: "explore" as Tab, label: "Explore" },
+            { key: "featured" as Tab, label: "Featured" },
+            { key: "community" as Tab, label: "Community" },
+          ]).map(t => (
+            <button key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 text-[9px] ${
+                tab === t.key
+                  ? "bg-[#3d3d3d] text-[#d4a017]"
+                  : "text-[#555] hover:text-[#808080]"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Featured banner (only on explore tab) */}
+        {tab === "explore" && featuredMods.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-[10px] text-[#d4a017] mb-3 flex items-center gap-2"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              <span>★</span> Marketplace Picks
+              <Link href="/gallery/marketplace"
+                className="text-[8px] text-[#555] hover:text-[#808080] ml-auto"
+                style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+                View All →
+              </Link>
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
+              {featuredMods.map(mod => (
+                <div key={mod.id} className="shrink-0 w-[280px]">
+                  <ModCard mod={mod} onSelect={setSelectedMod} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filters row */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {/* Search */}
+          <div className="mc-panel-inset flex items-center flex-1 min-w-[200px] max-w-[300px]">
+            <span className="pl-3 text-[#555] text-[10px]">🔍</span>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search mods..."
+              className="flex-1 px-2 py-2 text-[9px] text-[#c0c0c0] bg-transparent focus:outline-none"
+              style={{ fontFamily: "var(--font-pixel), monospace" }} />
+          </div>
+
+          {/* Category filter */}
+          <div className="flex mc-panel p-1">
+            <button
+              onClick={() => setCategory("all")}
+              className={`px-2.5 py-1.5 text-[8px] ${
+                category === "all" ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              All
+            </button>
+            {(Object.entries(CATEGORY_CONFIG) as [ExploreMod["category"], typeof CATEGORY_CONFIG[keyof typeof CATEGORY_CONFIG]][]).map(([key, config]) => (
+              <button key={key}
+                onClick={() => setCategory(key)}
+                className={`px-2.5 py-1.5 text-[8px] ${
+                  category === key ? "bg-[#3d3d3d]" : "hover:text-[#808080]"
                 }`}
-                style={{ transition: "none" }}
-              >
-                {e === "all" ? "All Editions" : e === "java" ? "Java" : "Bedrock"}
+                style={{
+                  fontFamily: "var(--font-pixel), monospace",
+                  transition: "none",
+                  color: category === key ? config.color : "#555",
+                }}>
+                {config.icon} {config.label}
               </button>
             ))}
           </div>
-          <div className="flex mc-panel p-1 border border-[#3d3d3d]">
-            {[
-              { key: "recent", label: "Recent" },
-              { key: "popular", label: "Popular" },
-            ].map((s) => (
-              <button
-                key={s.key}
+
+          {/* Sort */}
+          <div className="flex mc-panel p-1">
+            {([
+              { key: "popular" as SortKey, label: "Most Liked" },
+              { key: "downloads" as SortKey, label: "Most Downloaded" },
+              { key: "recent" as SortKey, label: "Recent" },
+            ]).map(s => (
+              <button key={s.key}
                 onClick={() => setSort(s.key)}
-                className={`px-3 py-1.5 text-xs font-medium ${
-                  sort === s.key
-                    ? "bg-[#3d3d3d] text-white"
-                    : "text-[#808080] hover:text-white"
+                className={`px-2.5 py-1.5 text-[8px] ${
+                  sort === s.key ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
                 }`}
-                style={{ transition: "none" }}
-              >
+                style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
                 {s.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Grid */}
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="flex space-x-1">
-              <div className="w-2.5 h-2.5 bg-[#d4a017] animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-2.5 h-2.5 bg-[#d4a017] animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-2.5 h-2.5 bg-[#d4a017] animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-          </div>
-        ) : mods.length === 0 ? (
+        {/* Mod grid */}
+        {filteredMods.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[#808080] text-lg mb-4">No mods found yet</p>
-            <Link
-              href="/"
-              className="text-[#d4a017] hover:text-[#f0c040]"
-              style={{ transition: "none" }}
-            >
-              Be the first to create one!
-            </Link>
+            <p className="text-[32px] mb-4">🔍</p>
+            <p className="text-[10px] text-[#808080] mb-2"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              No mods found
+            </p>
+            <p className="text-[8px] text-[#555]"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {search ? "Try different search terms" : "Be the first to submit one!"}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mods.map((mod) => (
-              <div
-                key={mod.id}
-                className="mc-panel border border-[#3d3d3d] p-5 hover:border-[#d4a017] group"
-                style={{ transition: "none" }}
-              >
-                {/* Mod icon placeholder */}
-                <div className="w-12 h-12 bg-[#3d3d3d] flex items-center justify-center mb-3 text-lg">
-                  {mod.edition === "bedrock" ? (
-                    <span className="text-blue-400">B</span>
-                  ) : (
-                    <span className="text-[#d4a017]">J</span>
-                  )}
-                </div>
-
-                <h3
-                  className="font-semibold text-white mb-1 group-hover:text-[#d4a017]"
-                  style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
-                >
-                  {mod.name}
-                </h3>
-                <p className="text-xs text-[#808080] mb-3 line-clamp-2">
-                  {mod.description}
-                </p>
-
-                {/* Stats */}
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {mod.weapons_count > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] bg-red-900/30 text-red-400">
-                      {mod.weapons_count} {mod.weapons_count === 1 ? "weapon" : "weapons"}
-                    </span>
-                  )}
-                  {mod.tools_count > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] bg-yellow-900/30 text-yellow-400">
-                      {mod.tools_count} {mod.tools_count === 1 ? "tool" : "tools"}
-                    </span>
-                  )}
-                  {mod.armor_count > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] bg-blue-900/30 text-blue-400">
-                      {mod.armor_count} armor
-                    </span>
-                  )}
-                  {mod.food_count > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] bg-green-900/30 text-[#d4a017]">
-                      {mod.food_count} food
-                    </span>
-                  )}
-                  {mod.blocks_count > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] bg-purple-900/30 text-purple-400">
-                      {mod.blocks_count} {mod.blocks_count === 1 ? "block" : "blocks"}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] text-[#808080]">
-                    by {mod.author} &middot; {new Date(mod.created_at).toLocaleDateString()}
-                  </div>
-                  {mod.download_url && (
-                    <a
-                      href={mod.download_url}
-                      className="text-xs text-[#d4a017] hover:text-[#f0c040] font-medium flex items-center gap-1"
-                      style={{ transition: "none" }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download
-                    </a>
-                  )}
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredMods.map(mod => (
+              <ModCard key={mod.id} mod={mod} onSelect={setSelectedMod} />
             ))}
           </div>
         )}
+
+        {/* Stats footer */}
+        <div className="mt-12 pt-6 border-t border-[#1a1a1a] flex items-center justify-center gap-6">
+          <div className="text-center">
+            <div className="text-[14px] text-[#d4a017]"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {allMods.length}
+            </div>
+            <div className="text-[7px] text-[#555] mt-1"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              Total Mods
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-[14px] text-[#ff5555]"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {allMods.reduce((sum, m) => sum + m.likes, 0)}
+            </div>
+            <div className="text-[7px] text-[#555] mt-1"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              Total Likes
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-[14px] text-[#55ff55]"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {allMods.reduce((sum, m) => sum + m.downloads, 0).toLocaleString()}
+            </div>
+            <div className="text-[7px] text-[#555] mt-1"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              Downloads
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Modals */}
+      <ModDetailModal mod={selectedMod} onClose={() => setSelectedMod(null)} />
+      <SubmitModModal
+        open={showSubmit}
+        onClose={() => setShowSubmit(false)}
+        onSubmitted={() => setShowSubmit(false)}
+      />
     </main>
   );
 }

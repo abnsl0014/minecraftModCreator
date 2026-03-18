@@ -7,6 +7,7 @@ import { generateMod } from "@/lib/api";
 import { Steve, Creeper, Enderman, Chicken } from "@/components/PixelCharacters";
 import { FloatingParticles, HeroBackground, XPOrbs } from "@/components/FloatingParticles";
 import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene } from "@/components/PixelScenes";
+import SignupModal, { isSignedUp } from "@/components/SignupModal";
 
 const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
@@ -19,9 +20,20 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
+
+  function handleInputInteraction() {
+    if (!isSignedUp()) {
+      setShowSignup(true);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSignedUp()) {
+      setShowSignup(true);
+      return;
+    }
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setError(null);
@@ -79,7 +91,8 @@ export default function Home() {
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                readOnly={loading}
+                onFocus={handleInputInteraction}
+                readOnly={loading || !isSignedUp()}
                 className="flex-1 bg-transparent px-4 py-3 text-[10px] text-[#c0c0c0] focus:outline-none relative z-10"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}
               />
@@ -135,6 +148,15 @@ export default function Home() {
           {/* Demo showcase */}
           <DemoShowcase />
         </section>
+
+        <SignupModal
+          open={showSignup}
+          onClose={() => setShowSignup(false)}
+          onSignup={() => {
+            setShowSignup(false);
+            router.push("/builder");
+          }}
+        />
 
         {/* Remaining sections */}
         <ShowcaseSection />
@@ -417,7 +439,11 @@ function FooterCTA() {
           <div className="flex gap-4">
             <a href="/gallery" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-              Gallery
+              Explore
+            </a>
+            <a href="/gallery/marketplace" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              Marketplace
             </a>
             <a href="/create" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>

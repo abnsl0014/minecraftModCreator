@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { findResponse, ItemData } from "@/lib/dummyResponses";
+import SignupModal, { isSignedUp } from "@/components/SignupModal";
 
 interface Message {
   role: "user" | "ai";
@@ -53,6 +55,7 @@ function TypingIndicator() {
 }
 
 export default function ChatInterface({ initialPrompt }: { initialPrompt?: string }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -61,6 +64,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "preview">("chat");
   const hasSubmittedInitial = useRef(false);
+  const [showSignup, setShowSignup] = useState(false);
 
   const allItems = messages.filter((m) => m.role === "ai" && m.items).flatMap((m) => m.items!);
 
@@ -82,7 +86,17 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSignedUp()) {
+      setShowSignup(true);
+      return;
+    }
     submitPrompt(input);
+  }
+
+  function handleInputFocus() {
+    if (!isSignedUp()) {
+      setShowSignup(true);
+    }
   }
 
   useEffect(() => {
@@ -137,10 +151,12 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={handleInputFocus}
             placeholder="Describe items, weapons, armor..."
             className="flex-1 bg-transparent px-3 py-2 text-[9px] text-[#c0c0c0] focus:outline-none placeholder-[#555]"
             style={{ fontFamily: "var(--font-pixel), monospace" }}
             disabled={typing}
+            readOnly={!isSignedUp()}
           />
           <button
             type="submit"
@@ -217,6 +233,15 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
+      <SignupModal
+        open={showSignup}
+        onClose={() => setShowSignup(false)}
+        onSignup={() => {
+          setShowSignup(false);
+          router.push("/builder");
+        }}
+      />
+
       <div className="md:hidden flex border-b-[3px]" style={{ borderColor: "#3d3d3d" }}>
         <button
           onClick={() => setActiveTab("chat")}
