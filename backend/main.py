@@ -34,6 +34,8 @@ app.include_router(generate_router)
 app.include_router(gallery_router)
 
 
+@app.get("/")
+@app.head("/")
 @app.get("/health")
 async def health():
     return {"status": "ok"}
