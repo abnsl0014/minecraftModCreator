@@ -79,7 +79,7 @@ class ItemSpec(BaseModel):
                 "knockback_resistance": 0, "armor_effects": [],
                 "nutrition": 0, "saturation": 0.6, "food_effects": [],
                 "always_edible": False, "fast_eat": False, "stack_size": 64,
-                "properties": {}, "material": "iron", "custom_texture": None,
+                "properties": {}, "color": "#888888", "material": "iron", "custom_texture": None,
                 "glowing": False, "rarity": "", "fire_resistant": False, "hover_text_color": "",
             }
             return defaults.get(info.field_name, v)
@@ -106,7 +106,7 @@ class BlockSpec(BaseModel):
             defaults = {
                 "hardness_level": "stone", "hardness": 2.0, "resistance": 6.0,
                 "luminance": 0, "tool_requirement": "", "transparent": False,
-                "drops": "self", "properties": {},
+                "drops": "self", "properties": {}, "color": "#888888",
             }
             return defaults.get(info.field_name, v)
         return v

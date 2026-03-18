@@ -8,7 +8,7 @@ export default function DownloadButton({ status }: { status: JobStatus }) {
   const isBedrock = status.edition === "bedrock";
   const fileType = isBedrock ? ".mcaddon" : ".jar";
   const installHint = isBedrock
-    ? "Open this file on your device to import into Minecraft"
+    ? "Double-click to import on Windows, or open on mobile"
     : "Place this file in your Minecraft Forge mods/ folder";
 
   const filename = `${status.mod_id || "mod"}${isBedrock ? ".mcaddon" : "-1.0.0.jar"}`;

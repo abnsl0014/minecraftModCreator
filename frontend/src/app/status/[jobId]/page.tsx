@@ -3,10 +3,23 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { getStatus, JobStatus } from "@/lib/api";
 import StatusDisplay from "@/components/StatusDisplay";
 import DownloadButton from "@/components/DownloadButton";
 import EditForm from "@/components/EditForm";
+
+const PreviewPanel = dynamic(
+  () => import("@/components/preview/PreviewPanel"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-2xl mt-8">
+        <div className="w-full h-72 bg-gray-900 rounded-lg animate-pulse" />
+      </div>
+    ),
+  }
+);
 
 export default function StatusPage() {
   const params = useParams();
@@ -106,6 +119,11 @@ export default function StatusPage() {
         </div>
       )}
 
+      {/* 3D Preview */}
+      {status?.download_ready && (
+        <PreviewPanel jobId={jobId} />
+      )}
+
       {/* Edit form */}
       {status?.can_edit && (
         <EditForm jobId={jobId} onEditStarted={handleEditStarted} />
@@ -119,11 +137,16 @@ export default function StatusPage() {
               How to use in Minecraft
             </summary>
             <div className="px-4 pb-3 text-xs text-gray-400 space-y-2">
-              <p>1. Import the .mcaddon file on your device</p>
+              <p className="font-semibold text-gray-300">Windows Desktop:</p>
+              <p>1. Double-click the .mcaddon file — Minecraft will auto-import it</p>
               <p>2. Create a new world → enable both packs (Behavior + Resource)</p>
               <p>3. Enable <span className="text-yellow-300">Beta APIs</span> in Experiments (for weapon effects)</p>
-              <p>4. Give items with: <code className="text-green-300 bg-gray-900/50 px-1 rounded">/give @s {status.mod_id}:item_name</code></p>
-              <p>5. Or craft them at a crafting table in survival mode</p>
+              <p className="font-semibold text-gray-300 pt-2">Mobile (iOS/Android):</p>
+              <p>1. Tap the downloaded .mcaddon file → &quot;Open with Minecraft&quot;</p>
+              <p>2. Create a new world → enable both packs</p>
+              <p className="font-semibold text-gray-300 pt-2">In-game:</p>
+              <p>Give items with: <code className="text-green-300 bg-gray-900/50 px-1 rounded">/give @s {status.mod_id}:item_name</code></p>
+              <p>Or craft them at a crafting table in survival mode</p>
             </div>
           </details>
         </div>

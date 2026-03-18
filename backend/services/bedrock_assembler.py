@@ -8,6 +8,60 @@ from services.texture_generator import generate_texture, generate_pack_icon
 from utils.file_utils import create_build_dir
 
 
+def generate_entity_geometry(registry_name: str) -> dict:
+    """Generate default 4-legged entity geometry for a Bedrock mob."""
+    return {
+        "format_version": "1.16.0",
+        "minecraft:geometry": [{
+            "description": {
+                "identifier": "geometry.%s" % registry_name,
+                "texture_width": 64,
+                "texture_height": 64,
+                "visible_bounds_width": 1.5,
+                "visible_bounds_height": 2.0,
+                "visible_bounds_offset": [0, 1.0, 0]
+            },
+            "bones": [
+                {
+                    "name": "body",
+                    "pivot": [0, 8, 0],
+                    "cubes": [{"origin": [-4, 4, -3], "size": [8, 8, 6], "uv": [0, 0]}]
+                },
+                {
+                    "name": "head",
+                    "parent": "body",
+                    "pivot": [0, 12, -3],
+                    "cubes": [{"origin": [-3, 12, -6], "size": [6, 6, 6], "uv": [0, 14]}]
+                },
+                {
+                    "name": "leg0",
+                    "parent": "body",
+                    "pivot": [-2, 4, 2],
+                    "cubes": [{"origin": [-3, 0, 1], "size": [2, 4, 2], "uv": [0, 26]}]
+                },
+                {
+                    "name": "leg1",
+                    "parent": "body",
+                    "pivot": [2, 4, 2],
+                    "cubes": [{"origin": [1, 0, 1], "size": [2, 4, 2], "uv": [0, 26]}]
+                },
+                {
+                    "name": "leg2",
+                    "parent": "body",
+                    "pivot": [-2, 4, -2],
+                    "cubes": [{"origin": [-3, 0, -3], "size": [2, 4, 2], "uv": [0, 26]}]
+                },
+                {
+                    "name": "leg3",
+                    "parent": "body",
+                    "pivot": [2, 4, -2],
+                    "cubes": [{"origin": [1, 0, -3], "size": [2, 4, 2], "uv": [0, 26]}]
+                }
+            ]
+        }]
+    }
+
+
 def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str, str]) -> str:
     """Assemble a Bedrock .mcaddon file from generated JSON files."""
     build_dir = create_build_dir(job_id)

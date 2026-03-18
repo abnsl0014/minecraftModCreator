@@ -321,11 +321,11 @@ export default function ModForm() {
       <div className="flex justify-center gap-2">
         <button type="button" onClick={() => setEdition("java")}
           className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "java" ? "bg-green-600 text-white shadow-lg shadow-green-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
-          Java Edition<span className="block text-xs opacity-70">.jar (Desktop)</span>
+          Java Edition<span className="block text-xs opacity-70">.jar (Desktop with Forge)</span>
         </button>
         <button type="button" onClick={() => setEdition("bedrock")}
           className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "bedrock" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
-          Bedrock Edition<span className="block text-xs opacity-70">.mcaddon (Mobile)</span>
+          Bedrock Edition<span className="block text-xs opacity-70">.mcaddon (Desktop & Mobile)</span>
         </button>
       </div>
 

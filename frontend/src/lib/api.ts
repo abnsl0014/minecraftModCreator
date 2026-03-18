@@ -78,6 +78,16 @@ export function getDownloadUrl(jobId: string): string {
   return `${API_BASE}/api/download/${jobId}`;
 }
 
+export async function getPreview(jobId: string) {
+  const res = await fetch(`${API_BASE}/api/preview/${jobId}`);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch preview");
+  }
+
+  return res.json();
+}
+
 export interface GalleryMod {
   id: string;
   name: string;
