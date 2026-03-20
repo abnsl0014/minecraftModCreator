@@ -1,5 +1,7 @@
 "use client";
 
+import PixelEmoji from "@/components/PixelEmoji";
+
 const ITEMS = [
   { emoji: "\u2694\uFE0F", delay: 0, duration: 10, left: 10 },
   { emoji: "\u{1F48E}", delay: 2, duration: 12, left: 25 },
@@ -15,14 +17,14 @@ export function FloatingParticles() {
       {ITEMS.map((item, i) => (
         <span
           key={i}
-          className={`absolute text-[12px] opacity-0 ${i >= 3 ? "hidden md:block" : ""}`}
+          className={`absolute opacity-0 ${i >= 3 ? "hidden md:block" : ""}`}
           style={{
             left: `${item.left}%`,
             bottom: "0%",
             animation: `${i % 2 === 0 ? "float-up" : "float-up-reverse"} ${item.duration}s linear ${item.delay}s infinite`,
           }}
         >
-          {item.emoji}
+          <PixelEmoji emoji={item.emoji} size={16} resolution={8} />
         </span>
       ))}
     </div>

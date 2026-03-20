@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { findResponse, ItemData } from "@/lib/dummyResponses";
 import SignupModal, { isSignedUp } from "@/components/SignupModal";
+import PixelEmoji from "@/components/PixelEmoji";
 
 interface Message {
   role: "user" | "ai";
@@ -19,11 +20,18 @@ const CATEGORY_COLORS: Record<string, string> = {
   block: "#aa55ff",
 };
 
+const CREATE_CATEGORIES = [
+  { id: "items", label: "Items or Blocks", icon: "⚔", description: "Weapons, tools, armor, food, blocks" },
+  { id: "mobs", label: "Mobs", icon: "🐾", description: "Custom creatures and entities" },
+  { id: "structures", label: "Structures", icon: "🏰", description: "Buildings and world generation", isNew: true },
+  { id: "skins", label: "Custom Skins", icon: "👤", description: "Character skins and textures", href: "/create/skins" },
+];
+
 function ItemCard({ item }: { item: ItemData }) {
   return (
     <div className="mc-panel p-3 flex gap-3" style={{ borderLeftColor: CATEGORY_COLORS[item.category], borderLeftWidth: "4px" }}>
-      <div className="text-[24px] shrink-0 w-10 h-10 flex items-center justify-center bg-[#111]">
-        {item.icon}
+      <div className="shrink-0 w-10 h-10 flex items-center justify-center bg-[#111]">
+        <PixelEmoji emoji={item.icon} size={28} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-[#d4a017] mb-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>
@@ -65,6 +73,19 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const [activeTab, setActiveTab] = useState<"chat" | "preview">("chat");
   const hasSubmittedInitial = useRef(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("items");
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    }
+    if (categoryDropdownOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [categoryDropdownOpen]);
 
   const allItems = messages.filter((m) => m.role === "ai" && m.items).flatMap((m) => m.items!);
 
@@ -115,16 +136,70 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
     setTimeout(() => setToastVisible(false), 3000);
   }
 
+  const currentCategory = CREATE_CATEGORIES.find(c => c.id === selectedCategory) || CREATE_CATEGORIES[0];
+
   const chatPane = (
     <div className="flex flex-col h-full">
+      {/* Category Dropdown */}
+      <div className="p-3 border-b-[3px]" style={{ borderColor: "#3d3d3d" }}>
+        <div className="mc-dropdown" ref={dropdownRef}>
+          <button
+            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+            className="mc-panel w-full px-4 py-3 flex items-center justify-between text-left"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}
+          >
+            <div className="flex items-center gap-3">
+              <PixelEmoji emoji={currentCategory.icon} size={20} resolution={8} />
+              <div>
+                <span className="text-[10px] text-[#d4a017]">
+                  Craft {currentCategory.label}
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] text-[#808080]">{categoryDropdownOpen ? "▲" : "▼"}</span>
+          </button>
+
+          {categoryDropdownOpen && (
+            <div className="mc-dropdown-menu">
+              {CREATE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  className="mc-dropdown-item w-full text-left"
+                  onClick={() => {
+                    if (cat.href) {
+                      router.push(cat.href);
+                    } else {
+                      setSelectedCategory(cat.id);
+                    }
+                    setCategoryDropdownOpen(false);
+                  }}
+                >
+                  <PixelEmoji emoji={cat.icon} size={20} resolution={8} />
+                  <div className="flex-1">
+                    <span className="text-[10px]">{cat.label}</span>
+                    {cat.isNew && (
+                      <span className="mc-badge-new ml-2">NEW!</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ scrollbarWidth: "thin", scrollbarColor: "#3d3d3d #111" }}>
         {messages.length === 0 && !typing && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-[12px] text-[#d4a017] mb-2" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              Describe your mod
+              Describe your {currentCategory.label.toLowerCase()}
             </p>
             <p className="text-[8px] text-[#808080] max-w-[250px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              Tell me what items, weapons, armor, or tools you want, and I&apos;ll build it for you.
+              {selectedCategory === "items"
+                ? "Tell me what items, weapons, armor, or tools you want, and I'll build it for you."
+                : selectedCategory === "mobs"
+                ? "Describe your custom mob — its behavior, drops, and abilities."
+                : "Describe the structure you want — size, materials, and purpose."}
             </p>
           </div>
         )}

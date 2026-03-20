@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import ModCard from "@/components/explore/ModCard";
 import ModDetailModal from "@/components/explore/ModDetailModal";
 import SubmitModModal from "@/components/explore/SubmitModModal";
+import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, MOCK_EXPLORE_MODS, CATEGORY_CONFIG } from "@/lib/exploreData";
 
 type Tab = "explore" | "featured" | "community";
@@ -173,7 +174,7 @@ export default function ExplorePage() {
                   transition: "none",
                   color: category === key ? config.color : "#555",
                 }}>
-                {config.icon} {config.label}
+                <PixelEmoji emoji={config.icon} size={14} resolution={7} /> {config.label}
               </button>
             ))}
           </div>

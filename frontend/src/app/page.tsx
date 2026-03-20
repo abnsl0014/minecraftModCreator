@@ -8,6 +8,7 @@ import { Steve, Creeper, Enderman, Chicken } from "@/components/PixelCharacters"
 import { FloatingParticles, HeroBackground, XPOrbs } from "@/components/FloatingParticles";
 import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene } from "@/components/PixelScenes";
 import SignupModal, { isSignedUp } from "@/components/SignupModal";
+import PixelEmoji from "@/components/PixelEmoji";
 
 const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
@@ -70,11 +71,11 @@ export default function Home() {
             <span className="block">with AI</span>
           </h1>
 
-          <p className="text-[10px] text-[#808080] text-center mb-8 max-w-xl leading-relaxed"
-            style={{ fontFamily: "var(--font-pixel), monospace" }}>
+          <p className="text-[14px] text-[#808080] text-center mb-8 max-w-xl leading-relaxed"
+            style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
             Describe what you want. Download a working mod.{" "}
             <span className="text-[#55ff55]">Java</span>
-            <span className="text-[#555555] text-[8px]"> (soon)</span> &amp;{" "}
+            <span className="text-[#555555] text-[12px]"> (soon)</span> &amp;{" "}
             <span className="text-[#5555ff]">Bedrock</span> supported.
           </p>
 
@@ -137,13 +138,16 @@ export default function Home() {
             ))}
           </div>
 
-          <p className="text-[8px] text-[#555] mb-12"
+          <p className="text-[8px] text-[#555] mb-8"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             or{" "}
             <a href="/create" className="text-[#d4a017] hover:text-[#f0c040]" style={{ transition: "none" }}>
               try conversational mode →
             </a>
           </p>
+
+          {/* Mods counter */}
+          <ModsCounter />
 
           {/* Demo showcase */}
           <DemoShowcase />
@@ -159,12 +163,50 @@ export default function Home() {
         />
 
         {/* Remaining sections */}
+        <VideoShowcase />
         <ShowcaseSection />
         <HowItWorksSection />
         <CapabilitiesSection />
         <FooterCTA />
       </main>
     </>
+  );
+}
+
+/* ========== MODS COUNTER ========== */
+function ModsCounter() {
+  const [count, setCount] = useState(0);
+  const target = 262289;
+
+  useEffect(() => {
+    const duration = 2000;
+    const steps = 60;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center gap-3 mb-6">
+      <span className="text-[16px] sm:text-[20px] text-[#55ff55]"
+        style={{ fontFamily: "var(--font-pixel), monospace" }}>
+        {count.toLocaleString()}
+      </span>
+      <span className="text-[9px] text-[#808080]"
+        style={{ fontFamily: "var(--font-pixel), monospace" }}>
+        mods created
+      </span>
+      <span style={{ animation: "idle-bob 2s ease-in-out infinite" }}><PixelEmoji emoji="⭐" size={16} /></span>
+    </div>
   );
 }
 
@@ -177,6 +219,76 @@ function DemoShowcase() {
       <MysticFoodsScene />
       <NeonBlocksScene />
     </div>
+  );
+}
+
+/* ========== VIDEO SHOWCASE ========== */
+function VideoShowcase() {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  return (
+    <section className="py-16 px-4 border-t-[3px]" style={{ borderColor: "#1a1a1a" }}>
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-[18px] text-[#d4a017] text-center mb-3"
+          style={{ fontFamily: "var(--font-pixel), monospace" }}>
+          See It In Action
+        </h2>
+        <p className="text-[10px] text-[#808080] text-center mb-8"
+          style={{ fontFamily: "var(--font-pixel), monospace" }}>
+          Watch how easy it is to create your own Minecraft mods.
+        </p>
+
+        <div className="mc-video-container">
+          {!isPlaying ? (
+            <div className="mc-video-placeholder" onClick={() => setIsPlaying(true)}>
+              {/* Play button overlay */}
+              <div className="mc-panel p-6 mb-4" style={{ background: "rgba(26, 26, 26, 0.9)" }}>
+                <span className="text-[40px]">▶</span>
+              </div>
+              <p className="text-[10px] text-[#d4a017]"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                Click to play demo
+              </p>
+              <p className="text-[8px] text-[#808080] mt-2"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                Create a full mod in under 60 seconds
+              </p>
+
+              {/* Decorative pixel elements */}
+              <div className="absolute top-4 left-4 flex gap-2">
+                <PixelEmoji emoji="⚔️" size={16} className="opacity-30" />
+                <PixelEmoji emoji="🛡️" size={16} className="opacity-30" />
+                <PixelEmoji emoji="💎" size={16} className="opacity-30" />
+              </div>
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <PixelEmoji emoji="🔥" size={16} className="opacity-30" />
+                <PixelEmoji emoji="⭐" size={16} className="opacity-30" />
+                <PixelEmoji emoji="🎮" size={16} className="opacity-30" />
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111]">
+              <div className="text-center">
+                <p className="text-[12px] text-[#d4a017] mb-2"
+                  style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                  Demo Video
+                </p>
+                <p className="text-[9px] text-[#808080]"
+                  style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                  Video coming soon — embed your YouTube/Vimeo URL here
+                </p>
+                <button
+                  onClick={() => setIsPlaying(false)}
+                  className="mc-btn mt-4 text-[9px] px-4 py-2"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -262,16 +374,14 @@ function ShowcaseCards() {
         return (
           <div key={i} className="mc-panel shrink-0 w-[200px] p-3">
             <div className="h-16 bg-[#111] mb-2 flex items-center justify-center">
-              <span className="text-[16px]" style={{ color: badge.color }}>
-                {badge.label === "Weapons" ? "\u2694" : badge.label === "Tools" ? "\u26CF" : badge.label === "Armor" ? "\u{1F6E1}" : badge.label === "Food" ? "\u{1F356}" : badge.label === "Blocks" ? "\u25A0" : "\u2726"}
-              </span>
+              <PixelEmoji emoji={badge.label === "Weapons" ? "⚔" : badge.label === "Tools" ? "⛏" : badge.label === "Armor" ? "🛡" : badge.label === "Food" ? "🍖" : badge.label === "Blocks" ? "🟪" : "✦"} size={20} />
             </div>
             <p className="text-[10px] text-[#d4a017] mb-1 truncate"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
               {mod.name}
             </p>
-            <p className="text-[8px] text-[#808080] mb-2 line-clamp-2"
-              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            <p className="text-[13px] text-[#808080] mb-2 line-clamp-2"
+              style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
               {mod.description}
             </p>
             <div className="flex items-center gap-2">
@@ -324,13 +434,13 @@ function HowItWorksSection() {
                 style={{ fontFamily: "var(--font-pixel), monospace" }}>
                 {s.num}
               </div>
-              <div className="text-[20px] mb-3">{s.icon}</div>
+              <div className="mb-3"><PixelEmoji emoji={s.icon} size={28} /></div>
               <h3 className="text-[12px] text-[#d4a017] mb-3"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}>
                 {s.title}
               </h3>
-              <p className="text-[9px] text-[#808080] leading-relaxed"
-                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              <p className="text-[14px] text-[#808080] leading-relaxed"
+                style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
                 {s.desc}
               </p>
             </div>
@@ -353,8 +463,8 @@ function CapabilityCard({ title, desc, color }: { title: string; desc: string; c
         style={{ fontFamily: "var(--font-pixel), monospace", color }}>
         {title}
       </h3>
-      <p className="text-[8px] text-[#808080] leading-relaxed"
-        style={{ fontFamily: "var(--font-pixel), monospace" }}>
+      <p className="text-[13px] text-[#808080] leading-relaxed"
+        style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
         {desc}
       </p>
       {hovered && (
@@ -419,8 +529,8 @@ function FooterCTA() {
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
               Build Your First Mod
             </h2>
-            <p className="text-[9px] text-[#808080] mb-6 leading-relaxed"
-              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            <p className="text-[15px] text-[#808080] mb-6 leading-relaxed"
+              style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
               No coding required. No downloads. Just describe and play.
             </p>
             <a href="/builder" className="mc-btn inline-block px-6 py-3 text-[10px]">
@@ -436,7 +546,7 @@ function FooterCTA() {
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             ModCrafter
           </span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <a href="/gallery" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
               Explore
@@ -448,6 +558,14 @@ function FooterCTA() {
             <a href="/create" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
               Create
+            </a>
+            <a href="/create/skins" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              Skins
+            </a>
+            <a href="/pricing" className="text-[8px] text-[#d4a017] hover:text-[#f0c040]"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+              Tokens
             </a>
             <a href="/builder" className="text-[8px] text-[#808080] hover:text-[#c0c0c0]"
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>

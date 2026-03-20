@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import ModCard from "@/components/explore/ModCard";
 import ModDetailModal from "@/components/explore/ModDetailModal";
+import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, MOCK_EXPLORE_MODS, CATEGORY_CONFIG } from "@/lib/exploreData";
 
 export default function MarketplacePage() {
@@ -77,7 +78,7 @@ export default function MarketplacePage() {
         {byCategory.map(({ key, config, mods }) => (
           <div key={key} className="mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[14px]">{config.icon}</span>
+              <PixelEmoji emoji={config.icon} size={18} resolution={8} />
               <h3 className="text-[10px]"
                 style={{ fontFamily: "var(--font-pixel), monospace", color: config.color }}>
                 {config.label}

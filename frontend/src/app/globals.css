@@ -32,6 +32,8 @@ img {
   image-rendering: pixelated;
 }
 
+/* === Pixelated Emoji (canvas-based, see PixelEmoji component) === */
+
 *, *::before, *::after {
   border-radius: 0 !important;
 }
@@ -199,3 +201,120 @@ img {
 
 .typing-dot:nth-child(2) { animation-delay: 0.15s; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* === Font Classes === */
+.font-pixel-body {
+  font-family: var(--font-pixel-body), monospace;
+}
+
+.font-pixel-alt {
+  font-family: var(--font-pixel-alt), monospace;
+}
+
+/* === Category Dropdown === */
+.mc-dropdown {
+  position: relative;
+}
+
+.mc-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: #1a1a1a;
+  border: 3px solid;
+  border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light);
+  margin-top: 2px;
+}
+
+.mc-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-family: var(--font-pixel), monospace;
+  font-size: 10px;
+  color: #c0c0c0;
+  transition: none;
+}
+
+.mc-dropdown-item:hover {
+  background: #222;
+  color: #d4a017;
+}
+
+/* === Video Section === */
+.mc-video-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 ratio */
+  background: #111;
+  border: 3px solid;
+  border-color: var(--mc-border-light) var(--mc-border-dark) var(--mc-border-dark) var(--mc-border-light);
+  overflow: hidden;
+}
+
+.mc-video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.mc-video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  cursor: pointer;
+}
+
+.mc-video-placeholder:hover {
+  background: linear-gradient(135deg, #151515 0%, #1f1f1f 100%);
+}
+
+/* === Pricing === */
+.mc-card-popular {
+  border-color: #d4a017 !important;
+  box-shadow: 0 0 12px rgba(212, 160, 23, 0.3);
+}
+
+/* === NEW badge === */
+.mc-badge-new {
+  display: inline-block;
+  background: #55ff55;
+  color: #0a0a0a;
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  padding: 2px 5px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+/* === Skin Preview Pixel Grid === */
+@keyframes skin-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(212, 160, 23, 0.2); }
+  50% { box-shadow: 0 0 12px rgba(212, 160, 23, 0.5); }
+}
+
+.mc-skin-preview {
+  animation: skin-glow 3s ease-in-out infinite;
+}
+
+/* === Token Counter === */
+@keyframes token-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.mc-token-pop {
+  animation: token-pop 0.3s ease-in-out;
+}

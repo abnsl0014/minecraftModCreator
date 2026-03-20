@@ -2,10 +2,26 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV_LINKS = [
+  { href: "/gallery", label: "Explore" },
+  { href: "/gallery/marketplace", label: "Marketplace" },
+  { href: "/create", label: "Create" },
+  { href: "/create/skins", label: "Skins" },
+  { href: "/pricing", label: "Tokens" },
+];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    if (href === "/gallery") return pathname === "/gallery";
+    if (href === "/create") return pathname === "/create";
+    return pathname.startsWith(href);
+  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -26,27 +42,21 @@ export default function Header() {
           MODCRAFTER
         </Link>
 
-        <nav className="hidden sm:flex items-center gap-6">
-          <Link href="/gallery"
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-            Explore
-          </Link>
-          <Link href="/gallery/marketplace"
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-            Marketplace
-          </Link>
-          <Link href="/create"
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-            Create
-          </Link>
-          <Link href="/builder"
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-            Builder
-          </Link>
+        <nav className="hidden sm:flex items-center gap-5">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`text-[10px] ${
+                isActive(link.href)
+                  ? "text-[#d4a017]"
+                  : "text-[#808080] hover:text-[#c0c0c0]"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+            >
+              {link.label}
+            </Link>
+          ))}
           <a href="#hero-prompt"
             className="mc-btn text-[10px] px-3 py-1.5">
             Get Started
@@ -66,26 +76,21 @@ export default function Header() {
 
       {menuOpen && (
         <div ref={menuRef} className="sm:hidden mc-panel mx-4 mb-2 p-4 flex flex-col gap-4">
-          <Link href="/gallery" onClick={() => setMenuOpen(false)}
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Explore
-          </Link>
-          <Link href="/gallery/marketplace" onClick={() => setMenuOpen(false)}
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Marketplace
-          </Link>
-          <Link href="/create" onClick={() => setMenuOpen(false)}
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Create
-          </Link>
-          <Link href="/builder" onClick={() => setMenuOpen(false)}
-            className="text-[10px] text-[#808080] hover:text-[#c0c0c0]"
-            style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Builder
-          </Link>
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMenuOpen(false)}
+              className={`text-[10px] ${
+                isActive(link.href)
+                  ? "text-[#d4a017]"
+                  : "text-[#808080] hover:text-[#c0c0c0]"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              {link.label}
+            </Link>
+          ))}
           <a href="#hero-prompt" onClick={() => setMenuOpen(false)}
             className="mc-btn text-[10px] px-3 py-1.5 text-center">
             Get Started

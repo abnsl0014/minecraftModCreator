@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PixelEmoji from "@/components/PixelEmoji";
 
 function SceneCard({ title, description, color, children }: {
   title: string;
@@ -52,8 +53,8 @@ export function ThunderBladeScene() {
   return (
     <SceneCard title="Thunder Blade" description="Lightning swords with chain damage and electrical effects" color="#ff5555">
       <div className="flex flex-col items-center gap-1">
-        <span className="text-[40px]">{"\u2694\uFE0F"}</span>
-        <span className="text-[14px] opacity-60">{"\u26A1"}</span>
+        <PixelEmoji emoji="⚔️" size={48} />
+        <PixelEmoji emoji="⚡" size={18} className="opacity-60" />
       </div>
     </SceneCard>
   );
@@ -63,10 +64,10 @@ export function CrystalArmorScene() {
   return (
     <SceneCard title="Crystal Armor Set" description="Full crystal armor with glow effects and set bonuses" color="#5555ff">
       <div className="flex gap-2 items-end">
-        <span className="text-[24px]">{"\u{1FA96}"}</span>
-        <span className="text-[32px]">{"\u{1F6E1}\uFE0F"}</span>
-        <span className="text-[24px]">{"\u{1F9CA}"}</span>
-        <span className="text-[20px]">{"\u{1F462}"}</span>
+        <PixelEmoji emoji="🪖" size={28} />
+        <PixelEmoji emoji="🛡️" size={36} />
+        <PixelEmoji emoji="🧊" size={28} />
+        <PixelEmoji emoji="👢" size={24} />
       </div>
     </SceneCard>
   );
@@ -76,9 +77,9 @@ export function MysticFoodsScene() {
   return (
     <SceneCard title="Mystic Foods" description="Enchanted foods with powerful potion effects" color="#55ff55">
       <div className="flex gap-3 items-center">
-        <span className="text-[28px]">{"\u{1F34E}"}</span>
-        <span className="text-[28px]">{"\u{1F356}"}</span>
-        <span className="text-[28px]">{"\u{1F370}"}</span>
+        <PixelEmoji emoji="🍎" size={32} />
+        <PixelEmoji emoji="🍖" size={32} />
+        <PixelEmoji emoji="🎂" size={32} />
       </div>
     </SceneCard>
   );

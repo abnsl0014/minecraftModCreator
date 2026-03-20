@@ -1,6 +1,7 @@
 "use client";
 
 import { CraftingSlot } from "@/lib/exploreData";
+import PixelEmoji from "@/components/PixelEmoji";
 
 interface CraftingGridProps {
   recipe: (CraftingSlot | null)[];
@@ -9,7 +10,7 @@ interface CraftingGridProps {
 
 export default function CraftingGrid({ recipe, size = "md" }: CraftingGridProps) {
   const cellSize = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-14 h-14" : "w-10 h-10";
-  const fontSize = size === "sm" ? "text-[14px]" : size === "lg" ? "text-[22px]" : "text-[18px]";
+  const emojiSize = size === "sm" ? 14 : size === "lg" ? 28 : 20;
   const gap = size === "sm" ? "gap-0.5" : "gap-1";
 
   return (
@@ -22,9 +23,7 @@ export default function CraftingGrid({ recipe, size = "md" }: CraftingGridProps)
             title={slot?.item || "empty"}
           >
             {slot && (
-              <span className={fontSize} style={{ lineHeight: 1 }}>
-                {slot.icon}
-              </span>
+              <PixelEmoji emoji={slot.icon} size={emojiSize} resolution={8} />
             )}
           </div>
         ))}

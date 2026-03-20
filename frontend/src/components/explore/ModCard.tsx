@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
 import CraftingGrid from "./CraftingGrid";
+import PixelEmoji from "@/components/PixelEmoji";
 
 interface ModCardProps {
   mod: ExploreMod;
@@ -28,16 +29,17 @@ export default function ModCard({ mod, onSelect }: ModCardProps) {
 
         {mod.thumbnail ? (
           <img src={mod.thumbnail} alt={mod.name} className="w-full h-full object-cover" />
-        ) : (
-          // Placeholder with category icon
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[32px]">{cat.icon}</span>
-            {mod.craftingRecipe.some(s => s !== null) && (
-              <div className="opacity-60 scale-75">
-                <CraftingGrid recipe={mod.craftingRecipe} size="sm" />
-              </div>
-            )}
+        ) : mod.craftingRecipe.some(s => s !== null) ? (
+          // Show crafting grid with icon above it, both centered
+          <div className="flex flex-col items-center justify-center h-full py-3">
+            <PixelEmoji emoji={cat.icon} size={28} />
+            <div className="opacity-60 scale-75 mt-1">
+              <CraftingGrid recipe={mod.craftingRecipe} size="sm" />
+            </div>
           </div>
+        ) : (
+          // No recipe — just the icon, fully centered
+          <PixelEmoji emoji={cat.icon} size={48} />
         )}
 
         {/* Video play overlay */}
