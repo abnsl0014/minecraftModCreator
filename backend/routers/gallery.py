@@ -14,7 +14,7 @@ async def get_gallery(
 ):
     """Return completed mods for the gallery."""
     query = supabase.table("jobs").select(
-        "id, mod_name, description, edition, created_at, jar_file_url, mod_spec, author_name"
+        "id, mod_name, description, edition, created_at, jar_file_url, mod_spec, author_name, model_used"
     ).eq("status", "complete").not_.is_("jar_file_url", "null")
 
     if edition != "all":
@@ -51,6 +51,7 @@ async def get_gallery(
             "armor_count": armor_count,
             "food_count": food_count,
             "blocks_count": blocks_count,
+            "model_used": job.get("model_used", "gpt-oss-120b"),
         })
 
     return {"mods": mods, "total": len(mods)}

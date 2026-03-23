@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 async def run_agent_loop(job_id: str, request: GenerateRequest):
     edition = request.edition
+    model = request.model
     try:
         # Step 1: Processing user prompt
         await update_job(job_id, status="parsing", progress_message="Processing user prompt...")
-        spec = await parse_mod_request(request.description, request.mod_name)
+        spec = await parse_mod_request(request.description, request.mod_name, model_preference=model)
         spec.author_name = request.author_name
 
         # Inject custom textures
@@ -62,9 +63,9 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         )
 
         if edition == "bedrock":
-            await _run_bedrock_loop(job_id, spec)
+            await _run_bedrock_loop(job_id, spec, model_preference=model)
         else:
-            await _run_java_loop(job_id, spec)
+            await _run_java_loop(job_id, spec, model_preference=model)
 
     except Exception as e:
         logger.exception("Agent loop error for job %s" % job_id)
@@ -76,11 +77,11 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         )
 
 
-async def _run_bedrock_loop(job_id: str, spec):
+async def _run_bedrock_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
     """Bedrock: generate JSON files, zip into .mcaddon. No compilation needed."""
     # Step 2: Generating code
     await update_job(job_id, status="generating", progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code...")
-    generated_files = await generate_all_bedrock_code(spec)
+    generated_files = await generate_all_bedrock_code(spec, model_preference=model_preference)
     logger.info("Generated %d Bedrock files" % len(generated_files))
     await update_job(job_id, generated_files=generated_files)
 
@@ -105,11 +106,11 @@ async def _run_bedrock_loop(job_id: str, spec):
     logger.info("Bedrock job %s completed" % job_id)
 
 
-async def _run_java_loop(job_id: str, spec):
+async def _run_java_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
     """Java: generate code, compile with Gradle, fix loop."""
     # Step 2: Generate code
     await update_job(job_id, status="generating", progress_message="Generating mod code...")
-    generated_files = await generate_all_code(spec)
+    generated_files = await generate_all_code(spec, model_preference=model_preference)
     logger.info("Generated %d files: %s" % (len(generated_files), list(generated_files.keys())))
 
     # Store generated files for editing
@@ -154,7 +155,8 @@ async def _run_java_loop(job_id: str, spec):
                 progress_message="Fixing compilation errors (attempt %d/%d)..." % (iteration, max_iterations),
             )
             fixed_files = await fix_compilation_errors(
-                project_dir, result.output, generated_files, spec.mod_id
+                project_dir, result.output, generated_files, spec.mod_id,
+                model_preference=model_preference,
             )
             generated_files.update(fixed_files)
             await update_job(job_id, generated_files=generated_files)
@@ -182,6 +184,7 @@ async def run_edit_loop(job_id: str, edit_description: str):
     await update_job(job_id, error=None, status="generating", progress_message="Processing edit request...")
 
     edition = job.get("edition", "java")
+    model_preference = job.get("model_used", "gpt-oss-120b")
     spec_data = job.get("mod_spec", {})
     old_files = job.get("generated_files", {})
 
@@ -196,7 +199,7 @@ async def run_edit_loop(job_id: str, edit_description: str):
             progress_message="Processing edit request... Done\nApplying changes to code...")
 
         # Apply edits to existing files
-        new_files = await apply_edits(old_files, edit_description, spec, edition)
+        new_files = await apply_edits(old_files, edit_description, spec, edition, model_preference=model_preference)
 
         if edition == "bedrock":
             await update_job(job_id, generated_files=new_files,
@@ -234,7 +237,7 @@ async def run_edit_loop(job_id: str, edit_description: str):
                 if iteration < max_iterations:
                     await update_job(job_id, status="fixing",
                                    progress_message="Fixing errors (attempt %d/%d)..." % (iteration, max_iterations))
-                    fixed = await fix_compilation_errors(project_dir, result.output, new_files, spec.mod_id)
+                    fixed = await fix_compilation_errors(project_dir, result.output, new_files, spec.mod_id, model_preference=model_preference)
                     new_files.update(fixed)
 
             await update_job(job_id, status="failed",

@@ -14,6 +14,7 @@ class GenerateRequest(BaseModel):
     mod_name: Optional[str] = None
     author_name: str = "ModCreator User"
     edition: str = "java"  # "java" or "bedrock"
+    model: str = "gpt-oss-120b"  # "gpt-oss-120b" | "sonnet-4.6"
     custom_textures: Optional[List[CustomTextureItem]] = None  # uploaded textures
 
 
@@ -133,3 +134,4 @@ class JobStatus(BaseModel):
     edition: str = "java"
     can_edit: bool = False
     mod_id: Optional[str] = None
+    model_used: str = "gpt-oss-120b"

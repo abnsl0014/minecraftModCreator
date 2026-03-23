@@ -21,6 +21,7 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
         mod_name=request.mod_name,
         author_name=request.author_name,
         edition=request.edition,
+        model_used=request.model,
     )
 
     background_tasks.add_task(run_agent_loop, job_id, request)
@@ -46,6 +47,7 @@ async def get_status(job_id: str):
         edition=job.get("edition", "java"),
         can_edit=job["status"] in ("complete", "failed") and bool(job.get("generated_files")),
         mod_id=job.get("mod_id"),
+        model_used=job.get("model_used", "gpt-oss-120b"),
     )
 
 
