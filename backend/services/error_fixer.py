@@ -4,7 +4,7 @@ import re
 from typing import Dict, List, Optional
 
 from prompts.fix_prompt import FIX_SYSTEM_PROMPT, FIX_USER_TEMPLATE
-from utils.groq_client import groq_client
+from services.model_router import model_router, GROQ_MODEL
 from services.code_generator import strip_code_fences
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ async def fix_compilation_errors(
     build_output: str,
     generated_files: Dict[str, str],
     mod_id: str,
+    model_preference: str = GROQ_MODEL,
 ) -> Dict[str, str]:
     """Attempt to fix compilation errors by sending them to the LLM."""
     java_base = os.path.join(project_dir, "src", "main", "java", "com", "modcreator", mod_id)
@@ -53,7 +54,7 @@ async def fix_compilation_errors(
         if filename == "unknown":
             for rel_path, code in generated_files.items():
                 error_text = "\n".join(errors[:20])
-                fixed_code = await _fix_single_file(rel_path, code, error_text)
+                fixed_code = await _fix_single_file(rel_path, code, error_text, model_preference=model_preference)
                 if fixed_code:
                     fixed_files[rel_path] = fixed_code
             break
@@ -61,7 +62,7 @@ async def fix_compilation_errors(
         for rel_path, code in generated_files.items():
             if rel_path.endswith(filename):
                 error_text = "\n".join(errors[:20])
-                fixed_code = await _fix_single_file(rel_path, code, error_text)
+                fixed_code = await _fix_single_file(rel_path, code, error_text, model_preference=model_preference)
                 if fixed_code:
                     fixed_files[rel_path] = fixed_code
                 break
@@ -76,7 +77,7 @@ async def fix_compilation_errors(
     return fixed_files
 
 
-async def _fix_single_file(filename: str, code: str, errors: str) -> Optional[str]:
+async def _fix_single_file(filename: str, code: str, errors: str, model_preference: str = GROQ_MODEL) -> Optional[str]:
     prompt = FIX_USER_TEMPLATE.format(
         errors=errors,
         filename=filename,
@@ -84,13 +85,14 @@ async def _fix_single_file(filename: str, code: str, errors: str) -> Optional[st
     )
 
     try:
-        response = await groq_client.chat(
+        response = await model_router.chat(
             messages=[
                 {"role": "system", "content": FIX_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
             max_tokens=4096,
+            model_preference=model_preference,
         )
         return strip_code_fences(response)
     except Exception as e:

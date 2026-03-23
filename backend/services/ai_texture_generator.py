@@ -7,7 +7,7 @@ from typing import List, Tuple
 
 from PIL import Image
 
-from utils.groq_client import groq_client
+from services.model_router import model_router, GROQ_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +255,7 @@ async def generate_pixel_art_texture(
     output_path: str,
     description: str = "",
     sub_type: str = "",
+    model_preference: str = GROQ_MODEL,
 ) -> bool:
     """Generate a pixel art texture using AI. Returns True on success."""
     try:
@@ -267,11 +268,12 @@ async def generate_pixel_art_texture(
             type_guide=type_guide,
         )
 
-        response = await groq_client.chat(
+        response = await model_router.chat(
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=8192,
             json_mode=True,
+            model_preference=model_preference,
         )
 
         data = json.loads(response)
@@ -290,7 +292,7 @@ async def generate_pixel_art_texture(
         return False
 
 
-async def generate_ai_pack_icon(mod_name: str, contents_desc: str, output_path: str) -> bool:
+async def generate_ai_pack_icon(mod_name: str, contents_desc: str, output_path: str, model_preference: str = GROQ_MODEL) -> bool:
     """Generate an AI pack icon (16x16 scaled to 64x64). Returns True on success."""
     try:
         pack_icon_guide = """MINECRAFT PACK ICON GUIDE:
@@ -308,11 +310,12 @@ This is a mod pack icon — it should be eye-catching and recognizable at small 
             type_guide=pack_icon_guide,
         )
 
-        response = await groq_client.chat(
+        response = await model_router.chat(
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=8192,
             json_mode=True,
+            model_preference=model_preference,
         )
 
         data = json.loads(response)

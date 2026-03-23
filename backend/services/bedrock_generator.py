@@ -9,7 +9,7 @@ from prompts.bedrock_prompt import (
     BEDROCK_ITEM_SYSTEM_PROMPT,
     BEDROCK_BLOCK_SYSTEM_PROMPT,
 )
-from utils.groq_client import groq_client
+from services.model_router import model_router, GROQ_MODEL
 from services.code_generator import strip_code_fences
 
 logger = logging.getLogger(__name__)
@@ -147,7 +147,7 @@ def generate_manifest_rp(spec: ModSpec, rp_uuid: str, rp_module_uuid: str) -> di
     }
 
 
-async def generate_bedrock_items(spec: ModSpec) -> Dict[str, str]:
+async def generate_bedrock_items(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     if not spec.items:
         return {}
 
@@ -180,7 +180,7 @@ async def generate_bedrock_items(spec: ModSpec) -> Dict[str, str]:
         batch_desc = "\n".join(all_items_desc[batch_start:batch_end])
         batch_items = spec.items[batch_start:batch_end]
 
-        response = await groq_client.chat(
+        response = await model_router.chat(
             messages=[
                 {"role": "system", "content": BEDROCK_ITEM_SYSTEM_PROMPT},
                 {"role": "user", "content": "Generate Bedrock item JSONs for namespace \"%s\":\n%s\n\nOutput a JSON array with exactly %d items." % (spec.mod_id, batch_desc, len(batch_items))},
@@ -188,6 +188,7 @@ async def generate_bedrock_items(spec: ModSpec) -> Dict[str, str]:
             json_mode=True,
             temperature=0.3,
             max_tokens=8192,
+            model_preference=model_preference,
         )
 
         try:
@@ -220,7 +221,7 @@ async def generate_bedrock_items(spec: ModSpec) -> Dict[str, str]:
     return files
 
 
-async def generate_bedrock_blocks(spec: ModSpec) -> Dict[str, str]:
+async def generate_bedrock_blocks(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     if not spec.blocks:
         return {}
 
@@ -229,7 +230,7 @@ async def generate_bedrock_blocks(spec: ModSpec) -> Dict[str, str]:
         for b in spec.blocks
     )
 
-    response = await groq_client.chat(
+    response = await model_router.chat(
         messages=[
             {"role": "system", "content": BEDROCK_BLOCK_SYSTEM_PROMPT},
             {"role": "user", "content": "Generate Bedrock block JSONs for namespace \"%s\":\n%s\n\nOutput a JSON array." % (spec.mod_id, blocks_desc)},
@@ -237,6 +238,7 @@ async def generate_bedrock_blocks(spec: ModSpec) -> Dict[str, str]:
         json_mode=True,
         temperature=0.3,
         max_tokens=4096,
+        model_preference=model_preference,
     )
 
     files = {}
@@ -805,7 +807,7 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
     return '\n'.join(lines)
 
 
-async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
+async def generate_all_bedrock_code(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     all_files = {}
 
     # Generate UUIDs for manifests
@@ -824,7 +826,7 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
 
     # Items
     if spec.items:
-        item_files = await generate_bedrock_items(spec)
+        item_files = await generate_bedrock_items(spec, model_preference=model_preference)
         # Post-process: fix common item issues + inject effects
         for path, content in item_files.items():
             try:
@@ -845,7 +847,7 @@ async def generate_all_bedrock_code(spec: ModSpec) -> Dict[str, str]:
 
     # Blocks
     if spec.blocks:
-        block_files = await generate_bedrock_blocks(spec)
+        block_files = await generate_bedrock_blocks(spec, model_preference=model_preference)
         # Post-process: fix common block issues
         for path, content in block_files.items():
             try:

@@ -3,7 +3,7 @@ import logging
 from typing import Dict
 
 from models import ModSpec
-from utils.groq_client import groq_client
+from services.model_router import model_router, GROQ_MODEL
 from services.code_generator import strip_code_fences
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ async def apply_edits(
     edit_description: str,
     spec: ModSpec,
     edition: str,
+    model_preference: str = GROQ_MODEL,
 ) -> Dict[str, str]:
     """Apply user's edit request to existing generated files."""
     new_files = dict(old_files)
@@ -35,7 +36,7 @@ async def apply_edits(
     file_summary = "\n".join("- %s" % path for path in editable.keys())
 
     # Step 1: Ask which files need editing
-    plan_response = await groq_client.chat(
+    plan_response = await model_router.chat(
         messages=[
             {"role": "system", "content": "You identify which files need editing. Output ONLY a JSON object: {\"files\": [\"path1\", \"path2\"]}"},
             {"role": "user", "content": "Files:\n%s\n\nEdit: %s\n\nWhich files need changes?" % (file_summary, edit_description)},
@@ -43,6 +44,7 @@ async def apply_edits(
         json_mode=True,
         temperature=0.2,
         max_tokens=512,
+        model_preference=model_preference,
     )
 
     try:
@@ -66,13 +68,14 @@ async def apply_edits(
 
         current_code = old_files[file_path]
 
-        response = await groq_client.chat(
+        response = await model_router.chat(
             messages=[
                 {"role": "system", "content": EDIT_SYSTEM_PROMPT},
                 {"role": "user", "content": "File: %s\n```json\n%s\n```\n\nEdit: %s\n\nOutput modified JSON only." % (file_path, current_code, edit_description)},
             ],
             temperature=0.3,
             max_tokens=4096,
+            model_preference=model_preference,
         )
 
         edited = strip_code_fences(response)

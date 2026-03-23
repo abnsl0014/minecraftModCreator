@@ -7,7 +7,7 @@ from prompts.system_prompt import MAIN_CLASS_SYSTEM_PROMPT, MAIN_CLASS_USER_TEMP
 from prompts.item_prompt import ITEM_SYSTEM_PROMPT, ITEM_USER_TEMPLATE
 from prompts.block_prompt import BLOCK_SYSTEM_PROMPT, BLOCK_USER_TEMPLATE
 from prompts.mob_prompt import MOB_SYSTEM_PROMPT, MOB_USER_TEMPLATE
-from utils.groq_client import groq_client
+from services.model_router import model_router, GROQ_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def extract_single_class(code: str) -> str:
     return code[:end_pos].strip()
 
 
-async def generate_main_class(spec: ModSpec) -> Dict[str, str]:
+async def generate_main_class(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     main_class = mod_id_to_class_name(spec.mod_id)
     first_item = spec.items[0].registry_name if spec.items else "unknown"
 
@@ -114,13 +114,14 @@ async def generate_main_class(spec: ModSpec) -> Dict[str, str]:
         first_item=first_item,
     )
 
-    response = await groq_client.chat(
+    response = await model_router.chat(
         messages=[
             {"role": "system", "content": MAIN_CLASS_SYSTEM_PROMPT.replace("{mod_id}", spec.mod_id)},
             {"role": "user", "content": prompt},
         ],
         temperature=0.3,
         max_tokens=2048,
+        model_preference=model_preference,
     )
 
     code = strip_code_fences(response)
@@ -128,7 +129,7 @@ async def generate_main_class(spec: ModSpec) -> Dict[str, str]:
     return {"%s.java" % main_class: code}
 
 
-async def generate_items(spec: ModSpec) -> Dict[str, str]:
+async def generate_items(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     if not spec.items:
         return {}
 
@@ -144,13 +145,14 @@ async def generate_items(spec: ModSpec) -> Dict[str, str]:
         items_description=items_desc,
     )
 
-    response = await groq_client.chat(
+    response = await model_router.chat(
         messages=[
             {"role": "system", "content": ITEM_SYSTEM_PROMPT.replace("{mod_id}", spec.mod_id)},
             {"role": "user", "content": prompt},
         ],
         temperature=0.3,
         max_tokens=4096,
+        model_preference=model_preference,
     )
 
     code = strip_code_fences(response)
@@ -158,7 +160,7 @@ async def generate_items(spec: ModSpec) -> Dict[str, str]:
     return {"item/ModItems.java": code}
 
 
-async def generate_blocks(spec: ModSpec) -> Dict[str, str]:
+async def generate_blocks(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     if not spec.blocks:
         return {}
 
@@ -174,13 +176,14 @@ async def generate_blocks(spec: ModSpec) -> Dict[str, str]:
         blocks_description=blocks_desc,
     )
 
-    response = await groq_client.chat(
+    response = await model_router.chat(
         messages=[
             {"role": "system", "content": BLOCK_SYSTEM_PROMPT.replace("{mod_id}", spec.mod_id)},
             {"role": "user", "content": prompt},
         ],
         temperature=0.3,
         max_tokens=4096,
+        model_preference=model_preference,
     )
 
     code = strip_code_fences(response)
@@ -188,7 +191,7 @@ async def generate_blocks(spec: ModSpec) -> Dict[str, str]:
     return {"block/ModBlocks.java": code}
 
 
-async def generate_mobs(spec: ModSpec) -> Dict[str, str]:
+async def generate_mobs(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     if not spec.mobs:
         return {}
 
@@ -207,13 +210,14 @@ async def generate_mobs(spec: ModSpec) -> Dict[str, str]:
         mobs_description=mobs_desc,
     )
 
-    response = await groq_client.chat(
+    response = await model_router.chat(
         messages=[
             {"role": "system", "content": MOB_SYSTEM_PROMPT.replace("{mod_id}", spec.mod_id)},
             {"role": "user", "content": prompt},
         ],
         temperature=0.3,
         max_tokens=8192,
+        model_preference=model_preference,
     )
 
     code = strip_code_fences(response)
@@ -239,18 +243,18 @@ async def generate_mobs(spec: ModSpec) -> Dict[str, str]:
     return files
 
 
-async def generate_all_code(spec: ModSpec) -> Dict[str, str]:
+async def generate_all_code(spec: ModSpec, model_preference: str = GROQ_MODEL) -> Dict[str, str]:
     all_files = {}
 
-    main_files = await generate_main_class(spec)
+    main_files = await generate_main_class(spec, model_preference=model_preference)
     all_files.update(main_files)
 
     if spec.items:
-        item_files = await generate_items(spec)
+        item_files = await generate_items(spec, model_preference=model_preference)
         all_files.update(item_files)
 
     if spec.blocks:
-        block_files = await generate_blocks(spec)
+        block_files = await generate_blocks(spec, model_preference=model_preference)
         all_files.update(block_files)
 
     # Auto-fix common 1.20.1 API issues
