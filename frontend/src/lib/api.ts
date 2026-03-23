@@ -96,23 +96,26 @@ export interface GalleryMod {
   id: string;
   name: string;
   description: string;
-  edition: "java" | "bedrock";
   author: string;
+  edition: "java" | "bedrock";
   created_at: string;
   download_url: string;
-  weapons_count: number;
-  tools_count: number;
-  armor_count: number;
-  food_count: number;
-  blocks_count: number;
+  model_used: string;
+  item_count: number;
+  block_count: number;
 }
 
-export async function getGallery(
+export interface GalleryResponse {
+  mods: GalleryMod[];
+  total: number;
+}
+
+export async function getGalleryMods(
   sort: string = "recent",
   edition: string = "all",
   limit: number = 20,
   offset: number = 0,
-): Promise<{ mods: GalleryMod[]; total: number }> {
+): Promise<GalleryResponse> {
   const params = new URLSearchParams({ sort, edition, limit: String(limit), offset: String(offset) });
   const res = await fetch(`${API_BASE}/api/gallery?${params}`);
   if (!res.ok) throw new Error("Failed to fetch gallery");

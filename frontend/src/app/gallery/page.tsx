@@ -1,17 +1,41 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import ModCard from "@/components/explore/ModCard";
 import ModDetailModal from "@/components/explore/ModDetailModal";
 import SubmitModModal from "@/components/explore/SubmitModModal";
 import PixelEmoji from "@/components/PixelEmoji";
-import { ExploreMod, MOCK_EXPLORE_MODS, CATEGORY_CONFIG } from "@/lib/exploreData";
+import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
+import { getGalleryMods, GalleryMod } from "@/lib/api";
 
 type Tab = "explore" | "featured" | "community";
 type CategoryFilter = "all" | ExploreMod["category"];
 type SortKey = "recent" | "popular" | "downloads";
+
+/** Map a GalleryMod from the API into the ExploreMod shape used by ModCard / ModDetailModal */
+function toExploreMod(g: GalleryMod): ExploreMod {
+  return {
+    id: g.id,
+    name: g.name,
+    description: g.description,
+    author: g.author,
+    edition: g.edition,
+    category: g.item_count > 0 ? "weapon" : g.block_count > 0 ? "block" : "tool",
+    thumbnail: null,
+    videoUrl: null,
+    screenshots: [],
+    craftingRecipe: Array(9).fill(null),
+    survivalGuide: "",
+    downloads: 0,
+    likes: 0,
+    status: "approved",
+    featured: false,
+    createdAt: g.created_at,
+    tags: [g.edition, g.model_used],
+  };
+}
 
 export default function ExplorePage() {
   const [tab, setTab] = useState<Tab>("explore");
@@ -21,27 +45,54 @@ export default function ExplorePage() {
   const [selectedMod, setSelectedMod] = useState<ExploreMod | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
 
-  const allMods = MOCK_EXPLORE_MODS.filter(m => m.status === "approved");
+  const [mods, setMods] = useState<GalleryMod[]>([]);
+  const [totalMods, setTotalMods] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch mods from API whenever sort or edition-tab changes
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMods() {
+      try {
+        setLoading(true);
+        // Map the tab to an edition filter for the API; "explore" = all editions
+        const editionParam = tab === "explore" ? "all" : "all";
+        const data = await getGalleryMods(sort, editionParam);
+        if (!cancelled) {
+          setMods(data.mods);
+          setTotalMods(data.total);
+        }
+      } catch (err) {
+        console.error("Failed to fetch gallery:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchMods();
+    return () => { cancelled = true; };
+  }, [sort, tab]);
+
+  const allMods = useMemo(() => mods.map(toExploreMod), [mods]);
 
   const filteredMods = useMemo(() => {
-    let mods = [...allMods];
+    let list = [...allMods];
 
     // Tab filter
     if (tab === "featured") {
-      mods = mods.filter(m => m.featured);
+      list = list.filter(m => m.featured);
     } else if (tab === "community") {
-      mods = mods.filter(m => !m.featured);
+      list = list.filter(m => !m.featured);
     }
 
     // Category filter
     if (category !== "all") {
-      mods = mods.filter(m => m.category === category);
+      list = list.filter(m => m.category === category);
     }
 
     // Search
     if (search.trim()) {
       const q = search.toLowerCase();
-      mods = mods.filter(m =>
+      list = list.filter(m =>
         m.name.toLowerCase().includes(q) ||
         m.description.toLowerCase().includes(q) ||
         m.tags.some(t => t.includes(q)) ||
@@ -49,16 +100,16 @@ export default function ExplorePage() {
       );
     }
 
-    // Sort
+    // Sort (client-side secondary sort)
     if (sort === "popular") {
-      mods.sort((a, b) => b.likes - a.likes);
+      list.sort((a, b) => b.likes - a.likes);
     } else if (sort === "downloads") {
-      mods.sort((a, b) => b.downloads - a.downloads);
+      list.sort((a, b) => b.downloads - a.downloads);
     } else {
-      mods.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    return mods;
+    return list;
   }, [allMods, tab, category, sort, search]);
 
   const featuredMods = allMods.filter(m => m.featured);
@@ -83,7 +134,7 @@ export default function ExplorePage() {
               </h1>
               <p className="text-[8px] text-[#555] mt-1"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}>
-                {allMods.length} mods available
+                {totalMods} mods available
               </p>
             </div>
           </div>
@@ -198,8 +249,15 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Mod grid */}
-        {filteredMods.length === 0 ? (
+        {/* Loading state */}
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-[10px] text-[#808080] mb-2"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              Loading mods...
+            </p>
+          </div>
+        ) : filteredMods.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[32px] mb-4">🔍</p>
             <p className="text-[10px] text-[#808080] mb-2"
@@ -208,7 +266,7 @@ export default function ExplorePage() {
             </p>
             <p className="text-[8px] text-[#555]"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              {search ? "Try different search terms" : "Be the first to submit one!"}
+              {search ? "Try different search terms" : "No mods yet. Be the first to create one!"}
             </p>
           </div>
         ) : (
@@ -224,7 +282,7 @@ export default function ExplorePage() {
           <div className="text-center">
             <div className="text-[14px] text-[#d4a017]"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              {allMods.length}
+              {totalMods}
             </div>
             <div className="text-[7px] text-[#555] mt-1"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
