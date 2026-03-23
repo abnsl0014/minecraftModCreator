@@ -91,6 +91,17 @@ export default function StatusPage() {
           >
             {status?.edition === "bedrock" ? "Bedrock" : "Java"} Edition
           </span>
+          {status?.model_used && (
+            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+              status.model_used === "sonnet-4.6"
+                ? "bg-[#8b5cf6]/20 text-[#8b5cf6]"
+                : "bg-[#00ff88]/20 text-[#00ff88]"
+            }`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              {status.model_used === "sonnet-4.6" ? "Sonnet 4.6" : "GPT-OSS 120B"}
+            </span>
+          )}
           {status?.mod_id && (
             <span className="text-[#808080] text-xs font-mono">{status.mod_id}</span>
           )}

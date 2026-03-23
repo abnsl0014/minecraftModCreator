@@ -24,6 +24,17 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showSignup, setShowSignup] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
+    }
+    return "gpt-oss-120b";
+  });
+
+  function handleModelChange(model: string) {
+    setSelectedModel(model);
+    localStorage.setItem("mc_model_preference", model);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
@@ -49,7 +60,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const { job_id } = await generateMod(prompt.trim());
+      const { job_id } = await generateMod(prompt.trim(), undefined, undefined, "java", undefined, selectedModel);
       router.push(`/status/${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -88,6 +99,32 @@ export default function Home() {
             <span className="text-[#555555] text-[12px]"> (soon)</span> &amp;{" "}
             <span className="text-[#5555ff]">Bedrock</span> supported.
           </p>
+
+          {/* Model toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => handleModelChange("gpt-oss-120b")}
+              className={`px-4 py-2 rounded-lg text-[9px] font-semibold transition ${
+                selectedModel === "gpt-oss-120b"
+                  ? "bg-[#00ff88] text-black"
+                  : "bg-[#1a1a2e] text-gray-400 border border-gray-700 hover:border-[#00ff88]/50"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              GPT-OSS 120B (Fast)
+            </button>
+            <button
+              onClick={() => handleModelChange("sonnet-4.6")}
+              className={`px-4 py-2 rounded-lg text-[9px] font-semibold transition ${
+                selectedModel === "sonnet-4.6"
+                  ? "bg-[#8b5cf6] text-white"
+                  : "bg-[#1a1a2e] text-gray-400 border border-gray-700 hover:border-[#8b5cf6]/50"
+              }`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              Sonnet 4.6 (Quality)
+            </button>
+          </div>
 
           {/* Prompt input */}
           <form onSubmit={handleSubmit} className="w-full max-w-[600px] mb-6" id="hero-prompt">
