@@ -1,15 +1,16 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse, Response
 
 from models import GenerateRequest, EditRequest, JobStatus
 from services.job_manager import create_job, get_job
 from services.agent_loop import run_agent_loop, run_edit_loop
+from utils.auth import require_auth
 
 router = APIRouter(prefix="/api")
 
 
 @router.post("/generate")
-async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTasks):
+async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTasks, user_id: str = Depends(require_auth)):
     if not request.description.strip():
         raise HTTPException(status_code=400, detail="Description cannot be empty")
 
@@ -22,6 +23,7 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
         author_name=request.author_name,
         edition=request.edition,
         model_used=request.model,
+        user_id=user_id,
     )
 
     background_tasks.add_task(run_agent_loop, job_id, request)
@@ -52,7 +54,7 @@ async def get_status(job_id: str):
 
 
 @router.post("/edit/{job_id}")
-async def edit_mod(job_id: str, request: EditRequest, background_tasks: BackgroundTasks):
+async def edit_mod(job_id: str, request: EditRequest, background_tasks: BackgroundTasks, user_id: str = Depends(require_auth)):
     job = await get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
