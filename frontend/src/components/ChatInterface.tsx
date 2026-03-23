@@ -2,15 +2,21 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { findResponse, ItemData } from "@/lib/dummyResponses";
+import { ItemData } from "@/lib/dummyResponses";
+import { generateMod, getStatus } from "@/lib/api";
 import SignupModal from "@/components/SignupModal";
 import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
 
+type MessageRole = "user" | "ai" | "generation-started" | "generation-complete" | "generation-failed";
+
 interface Message {
-  role: "user" | "ai";
+  role: MessageRole;
   text: string;
   items?: ItemData[];
+  jobId?: string;
+  downloadUrl?: string;
+  modelUsed?: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -22,10 +28,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CREATE_CATEGORIES = [
-  { id: "items", label: "Items or Blocks", icon: "⚔", description: "Weapons, tools, armor, food, blocks" },
-  { id: "mobs", label: "Mobs", icon: "🐾", description: "Custom creatures and entities" },
-  { id: "structures", label: "Structures", icon: "🏰", description: "Buildings and world generation", isNew: true },
-  { id: "skins", label: "Custom Skins", icon: "👤", description: "Character skins and textures", href: "/create/skins" },
+  { id: "items", label: "Items or Blocks", icon: "\u2694", description: "Weapons, tools, armor, food, blocks" },
+  { id: "mobs", label: "Mobs", icon: "\uD83D\uDC3E", description: "Custom creatures and entities" },
+  { id: "structures", label: "Structures", icon: "\uD83C\uDFF0", description: "Buildings and world generation", isNew: true },
+  { id: "skins", label: "Custom Skins", icon: "\uD83D\uDC64", description: "Character skins and textures", href: "/create/skins" },
+];
+
+const MODEL_OPTIONS = [
+  { id: "gpt-oss-120b", label: "GPT-OSS 120B", color: "#00ff88" },
+  { id: "sonnet-4.6", label: "Sonnet 4.6", color: "#8b5cf6" },
 ];
 
 function ItemCard({ item }: { item: ItemData }) {
@@ -78,6 +89,17 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [authed, setAuthed] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gpt-oss-120b");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("mc_model_preference");
+    if (saved) setSelectedModel(saved);
+  }, []);
+
+  function handleModelChange(modelId: string) {
+    setSelectedModel(modelId);
+    localStorage.setItem("mc_model_preference", modelId);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
@@ -99,7 +121,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   const allItems = messages.filter((m) => m.role === "ai" && m.items).flatMap((m) => m.items!);
 
-  function submitPrompt(text: string) {
+  async function submitPrompt(text: string) {
     if (!text.trim() || typing) return;
 
     const userMsg: Message = { role: "user", text: text.trim() };
@@ -107,12 +129,78 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
     setInput("");
     setTyping(true);
 
-    setTimeout(() => {
-      const response = findResponse(text);
-      const aiMsg: Message = { role: "ai", text: response.text, items: response.items };
-      setMessages((prev) => [...prev, aiMsg]);
+    try {
+      const model = localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
+      const { job_id } = await generateMod(text.trim(), undefined, undefined, "java", undefined, model);
+
+      // Add generation-started message
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "generation-started" as MessageRole,
+          text: "Starting mod generation...",
+          jobId: job_id,
+        },
+      ]);
+
+      // Poll for status
+      const maxPolls = 120;
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const status = await getStatus(job_id);
+
+        // Update progress text
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.jobId === job_id && m.role === "generation-started"
+              ? { ...m, text: status.progress_message || "Generating..." }
+              : m
+          )
+        );
+
+        if (status.status === "complete") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.jobId === job_id
+                ? {
+                    role: "generation-complete" as MessageRole,
+                    text: "Your mod is ready!",
+                    jobId: job_id,
+                    downloadUrl: status.jar_url || undefined,
+                    modelUsed: status.model_used,
+                  }
+                : m
+            )
+          );
+          break;
+        }
+
+        if (status.status === "failed") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.jobId === job_id
+                ? {
+                    role: "generation-failed" as MessageRole,
+                    text: status.error || "Generation failed. Try again.",
+                    jobId: job_id,
+                  }
+                : m
+            )
+          );
+          break;
+        }
+      }
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "generation-failed" as MessageRole,
+          text: err.message || "Failed to start generation",
+        },
+      ]);
+    } finally {
       setTyping(false);
-    }, 1200 + Math.random() * 800);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -146,7 +234,81 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
     setTimeout(() => setToastVisible(false), 3000);
   }
 
-  const currentCategory = CREATE_CATEGORIES.find(c => c.id === selectedCategory) || CREATE_CATEGORIES[0];
+  function renderMessage(msg: Message, i: number) {
+    if (msg.role === "generation-started") {
+      return (
+        <div key={i} className="flex justify-start">
+          <div className="max-w-[85%] bg-[#1a1a2e] border border-[#00ff88]/30 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin w-4 h-4 border-2 border-[#00ff88] border-t-transparent rounded-full" />
+              <span className="text-[9px] text-[#00ff88]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                {msg.text}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.role === "generation-complete") {
+      return (
+        <div key={i} className="flex justify-start">
+          <div className="max-w-[85%] bg-[#1a1a2e] border border-[#00ff88]/50 rounded-lg p-4">
+            <p className="text-[9px] text-[#00ff88] font-semibold mb-2" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {msg.text}
+            </p>
+            {msg.modelUsed && (
+              <span
+                className={`text-[8px] px-2 py-1 rounded mr-2 ${
+                  msg.modelUsed === "sonnet-4.6"
+                    ? "bg-[#8b5cf6]/20 text-[#8b5cf6]"
+                    : "bg-[#00ff88]/20 text-[#00ff88]"
+                }`}
+                style={{ fontFamily: "var(--font-pixel), monospace" }}
+              >
+                {msg.modelUsed === "sonnet-4.6" ? "Sonnet 4.6" : "GPT-OSS 120B"}
+              </span>
+            )}
+            {msg.downloadUrl && (
+              <a
+                href={msg.downloadUrl}
+                className="inline-block mt-2 px-4 py-2 bg-[#00ff88] text-black rounded text-[9px] font-semibold hover:bg-[#00cc6a] transition"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}
+              >
+                Download Mod
+              </a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.role === "generation-failed") {
+      return (
+        <div key={i} className="flex justify-start">
+          <div className="max-w-[85%] bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+            <p className="text-[9px] text-red-400" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              {msg.text}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: user or ai messages
+    return (
+      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+        <div className={`max-w-[85%] ${msg.role === "user" ? "mc-panel-inset" : "mc-panel"} px-3 py-2`}>
+          <p className="text-[9px] text-[#c0c0c0]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            {msg.text}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCategory = CREATE_CATEGORIES.find((c) => c.id === selectedCategory) || CREATE_CATEGORIES[0];
+  const currentModel = MODEL_OPTIONS.find((m) => m.id === selectedModel) || MODEL_OPTIONS[0];
 
   const chatPane = (
     <div className="flex flex-col h-full">
@@ -166,7 +328,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                 </span>
               </div>
             </div>
-            <span className="text-[10px] text-[#808080]">{categoryDropdownOpen ? "▲" : "▼"}</span>
+            <span className="text-[10px] text-[#808080]">{categoryDropdownOpen ? "\u25B2" : "\u25BC"}</span>
           </button>
 
           {categoryDropdownOpen && (
@@ -208,20 +370,12 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
               {selectedCategory === "items"
                 ? "Tell me what items, weapons, armor, or tools you want, and I'll build it for you."
                 : selectedCategory === "mobs"
-                ? "Describe your custom mob — its behavior, drops, and abilities."
-                : "Describe the structure you want — size, materials, and purpose."}
+                ? "Describe your custom mob \u2014 its behavior, drops, and abilities."
+                : "Describe the structure you want \u2014 size, materials, and purpose."}
             </p>
           </div>
         )}
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] ${msg.role === "user" ? "mc-panel-inset" : "mc-panel"} px-3 py-2`}>
-              <p className="text-[9px] text-[#c0c0c0]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-                {msg.text}
-              </p>
-            </div>
-          </div>
-        ))}
+        {messages.map((msg, i) => renderMessage(msg, i))}
         {typing && (
           <div className="flex justify-start">
             <TypingIndicator />
@@ -231,6 +385,30 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
       </div>
 
       <form onSubmit={handleSubmit} className="p-3 border-t-[3px]" style={{ borderColor: "#3d3d3d" }}>
+        {/* Model Toggle */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[8px] text-[#808080]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            Model:
+          </span>
+          {MODEL_OPTIONS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => handleModelChange(m.id)}
+              className={`text-[8px] px-2 py-1 rounded border transition ${
+                selectedModel === m.id
+                  ? "border-current opacity-100"
+                  : "border-[#3d3d3d] opacity-50 hover:opacity-75"
+              }`}
+              style={{
+                fontFamily: "var(--font-pixel), monospace",
+                color: m.color,
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
         <div className="mc-panel-inset flex items-center">
           <input
             type="text"
