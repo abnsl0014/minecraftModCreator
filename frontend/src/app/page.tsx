@@ -7,7 +7,8 @@ import { generateMod } from "@/lib/api";
 import { Steve, Creeper, Enderman, Chicken } from "@/components/PixelCharacters";
 import { FloatingParticles, HeroBackground, XPOrbs } from "@/components/FloatingParticles";
 import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene } from "@/components/PixelScenes";
-import SignupModal, { isSignedUp } from "@/components/SignupModal";
+import SignupModal from "@/components/SignupModal";
+import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
 
 const EXAMPLE_PROMPTS = [
@@ -22,16 +23,25 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSignup, setShowSignup] = useState(false);
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   function handleInputInteraction() {
-    if (!isSignedUp()) {
+    if (!authed) {
       setShowSignup(true);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isSignedUp()) {
+    if (!authed) {
       setShowSignup(true);
       return;
     }
@@ -93,7 +103,7 @@ export default function Home() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onFocus={handleInputInteraction}
-                readOnly={loading || !isSignedUp()}
+                readOnly={loading || !authed}
                 className="flex-1 bg-transparent px-4 py-3 text-[10px] text-[#c0c0c0] focus:outline-none relative z-10"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}
               />

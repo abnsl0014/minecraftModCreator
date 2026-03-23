@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { findResponse, ItemData } from "@/lib/dummyResponses";
-import SignupModal, { isSignedUp } from "@/components/SignupModal";
+import SignupModal from "@/components/SignupModal";
+import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
 
 interface Message {
@@ -76,6 +77,15 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const [selectedCategory, setSelectedCategory] = useState("items");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -107,7 +117,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isSignedUp()) {
+    if (!authed) {
       setShowSignup(true);
       return;
     }
@@ -115,7 +125,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   }
 
   function handleInputFocus() {
-    if (!isSignedUp()) {
+    if (!authed) {
       setShowSignup(true);
     }
   }
@@ -231,7 +241,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             className="flex-1 bg-transparent px-3 py-2 text-[9px] text-[#c0c0c0] focus:outline-none placeholder-[#555]"
             style={{ fontFamily: "var(--font-pixel), monospace" }}
             disabled={typing}
-            readOnly={!isSignedUp()}
+            readOnly={!authed}
           />
           <button
             type="submit"

@@ -1,4 +1,15 @@
+import { getAuthToken } from "./supabase";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+async function authHeaders(): Promise<HeadersInit> {
+  const token = await getAuthToken();
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export interface JobStatus {
   job_id: string;
@@ -12,6 +23,7 @@ export interface JobStatus {
   edition: "java" | "bedrock";
   can_edit: boolean;
   mod_id: string | null;
+  model_used: string;
 }
 
 export interface CustomTexture {
@@ -25,16 +37,18 @@ export async function generateMod(
   authorName?: string,
   edition: string = "java",
   customTextures?: CustomTexture[],
+  model: string = "gpt-oss-120b",
 ): Promise<{ job_id: string }> {
   const res = await fetch(`${API_BASE}/api/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders(),
     body: JSON.stringify({
       description,
       mod_name: modName || null,
       author_name: authorName || "ModCreator User",
       edition,
       custom_textures: customTextures?.length ? customTextures : null,
+      model,
     }),
   });
 
