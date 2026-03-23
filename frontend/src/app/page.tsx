@@ -10,6 +10,7 @@ import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene
 import SignupModal from "@/components/SignupModal";
 import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
+import AdBanner from "@/components/AdBanner";
 
 const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
@@ -192,6 +193,8 @@ export default function Home() {
               try conversational mode →
             </a>
           </p>
+
+          <AdBanner slot="home-hero" className="mt-8 max-w-2xl mx-auto" />
 
           {/* Mods counter */}
           <ModsCounter />

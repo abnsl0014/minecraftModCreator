@@ -9,6 +9,7 @@ import SubmitModModal from "@/components/explore/SubmitModModal";
 import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
 import { getGalleryMods, GalleryMod } from "@/lib/api";
+import AdBanner from "@/components/AdBanner";
 
 type Tab = "explore" | "featured" | "community";
 type CategoryFilter = "all" | ExploreMod["category"];
@@ -248,6 +249,8 @@ export default function ExplorePage() {
             ))}
           </div>
         </div>
+
+        <AdBanner slot="gallery-feed" className="my-4" />
 
         {/* Loading state */}
         {loading ? (

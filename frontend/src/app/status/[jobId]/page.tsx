@@ -8,6 +8,7 @@ import StatusDisplay from "@/components/StatusDisplay";
 import DownloadButton from "@/components/DownloadButton";
 import EditForm from "@/components/EditForm";
 import Header from "@/components/Header";
+import AdBanner from "@/components/AdBanner";
 
 export default function StatusPage() {
   const params = useParams();
@@ -116,6 +117,8 @@ export default function StatusPage() {
 
       {/* Progress / Status */}
       {status && <StatusDisplay status={status} />}
+
+      <AdBanner slot="status-wait" className="mt-6" />
 
       {/* Download */}
       {status?.download_ready && (
