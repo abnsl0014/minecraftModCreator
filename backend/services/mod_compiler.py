@@ -17,10 +17,15 @@ class CompileResult:
 
 
 async def compile_mod(project_dir: str) -> CompileResult:
-    gradlew = os.path.join(project_dir, "gradlew")
-
     env = os.environ.copy()
-    # Auto-detect JAVA_HOME: Docker (Linux) vs macOS (Homebrew)
+
+    # Pick the right gradlew for the OS
+    if os.name == "nt":
+        gradlew = os.path.join(project_dir, "gradlew.bat")
+    else:
+        gradlew = os.path.join(project_dir, "gradlew")
+
+    # Auto-detect JAVA_HOME
     if not env.get("JAVA_HOME"):
         if os.path.exists("/usr/lib/jvm/java-17-openjdk-amd64"):
             env["JAVA_HOME"] = "/usr/lib/jvm/java-17-openjdk-amd64"
@@ -28,15 +33,25 @@ async def compile_mod(project_dir: str) -> CompileResult:
             env["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
             env["PATH"] = "/opt/homebrew/opt/openjdk@17/bin:" + env.get("PATH", "")
 
-    logger.info(f"Running gradle build in {project_dir}")
+    logger.info(f"Running gradle build in {project_dir} with {gradlew}")
 
-    process = await asyncio.create_subprocess_exec(
-        gradlew, "build", "--no-daemon",
-        cwd=project_dir,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=env,
-    )
+    # On Windows, .bat files must run via cmd.exe
+    if os.name == "nt":
+        process = await asyncio.create_subprocess_exec(
+            "cmd.exe", "/c", gradlew, "build", "--no-daemon",
+            cwd=project_dir,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+    else:
+        process = await asyncio.create_subprocess_exec(
+            gradlew, "build", "--no-daemon",
+            cwd=project_dir,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
 
     try:
         stdout, stderr = await asyncio.wait_for(

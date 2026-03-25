@@ -68,12 +68,14 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
             await _run_java_loop(job_id, spec, model_preference=model)
 
     except Exception as e:
-        logger.exception("Agent loop error for job %s" % job_id)
+        import traceback
+        error_detail = str(e) or repr(e) or traceback.format_exc()
+        logger.exception("Agent loop error for job %s: %s" % (job_id, error_detail))
         await update_job(
             job_id,
             status="failed",
             progress_message="An unexpected error occurred",
-            error=str(e)[:2000],
+            error=error_detail[:2000],
         )
 
 

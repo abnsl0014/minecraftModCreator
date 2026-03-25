@@ -61,7 +61,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const { job_id } = await generateMod(prompt.trim(), undefined, undefined, "java", undefined, selectedModel);
+      const { job_id } = await generateMod(prompt.trim(), undefined, undefined, "bedrock", undefined, selectedModel);
       router.push(`/status/${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

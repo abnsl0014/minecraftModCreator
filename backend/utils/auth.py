@@ -1,13 +1,16 @@
-"""FastAPI dependency for Supabase JWT validation."""
-import jwt
+"""FastAPI dependency for Supabase auth validation."""
 from fastapi import Depends, HTTPException, Header
 from typing import Optional
+from supabase import create_client
 from config import settings
+
+# Create a separate client for auth validation (uses service role key)
+_auth_client = create_client(settings.supabase_url, settings.supabase_key)
 
 
 async def get_current_user(authorization: Optional[str] = Header(None)) -> Optional[str]:
     """
-    Extract and validate Supabase JWT from Authorization header.
+    Validate Supabase auth token via Supabase's auth.getUser() API.
     Returns user_id (UUID string) or None if no auth header.
     """
     if not authorization:
@@ -19,17 +22,14 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Optio
     token = authorization[7:]
 
     try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
-        return payload.get("sub")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
+        user_response = _auth_client.auth.get_user(token)
+        if user_response and user_response.user:
+            return user_response.user.id
         raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        if "401" in str(e) or "invalid" in str(e).lower():
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail=f"Auth validation failed: {str(e)}")
 
 
 async def require_auth(user_id: Optional[str] = Depends(get_current_user)) -> str:
