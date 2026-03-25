@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.generate import router as generate_router
 from routers.gallery import router as gallery_router
 from routers.user import router as user_router
+from routers.browse import router as browse_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,6 +39,7 @@ app.add_middleware(
 app.include_router(generate_router)
 app.include_router(gallery_router)
 app.include_router(user_router)
+app.include_router(browse_router)
 
 
 @app.get("/health")

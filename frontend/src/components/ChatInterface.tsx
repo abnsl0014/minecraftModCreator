@@ -362,17 +362,30 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ scrollbarWidth: "thin", scrollbarColor: "#3d3d3d #111" }}>
         {messages.length === 0 && !typing && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-[12px] text-[#d4a017] mb-2" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              Describe your {currentCategory.label.toLowerCase()}
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <p className="text-[12px] text-[#d4a017] mb-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              AI Mod Assistant
             </p>
-            <p className="text-[8px] text-[#808080] max-w-[250px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              {selectedCategory === "items"
-                ? "Tell me what items, weapons, armor, or tools you want, and I'll build it for you."
-                : selectedCategory === "mobs"
-                ? "Describe your custom mob \u2014 its behavior, drops, and abilities."
-                : "Describe the structure you want \u2014 size, materials, and purpose."}
+            <p className="text-[8px] text-[#808080] max-w-[280px] mb-6" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              Describe what you want and I&apos;ll generate a working Minecraft mod for you.
             </p>
+            <div className="flex flex-col gap-2 w-full max-w-[280px]">
+              {[
+                "Diamond sword that shoots fireballs",
+                "Ruby armor set with fire resistance",
+                "Emerald pickaxe that auto-smelts ores",
+                "Magic food that gives speed and jump boost",
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => { if (authed) submitPrompt(suggestion); else setShowSignup(true); }}
+                  className="mc-panel px-3 py-2 text-left text-[8px] text-[#c0c0c0] hover:text-[#d4a017] hover:border-[#d4a017]"
+                  style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+                >
+                  &quot;{suggestion}&quot;
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((msg, i) => renderMessage(msg, i))}

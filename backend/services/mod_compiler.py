@@ -27,7 +27,17 @@ async def compile_mod(project_dir: str) -> CompileResult:
 
     # Auto-detect JAVA_HOME
     if not env.get("JAVA_HOME"):
-        if os.path.exists("/usr/lib/jvm/java-17-openjdk-amd64"):
+        if os.name == "nt":
+            # Windows: check common install paths
+            for path in [
+                r"C:\Program Files\Java\jdk-17",
+                r"C:\Program Files\Eclipse Adoptium\jdk-17",
+                r"C:\Program Files\Microsoft\jdk-17",
+            ]:
+                if os.path.exists(path):
+                    env["JAVA_HOME"] = path
+                    break
+        elif os.path.exists("/usr/lib/jvm/java-17-openjdk-amd64"):
             env["JAVA_HOME"] = "/usr/lib/jvm/java-17-openjdk-amd64"
         elif os.path.exists("/opt/homebrew/opt/openjdk@17"):
             env["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"

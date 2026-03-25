@@ -168,6 +168,36 @@ export async function getTokenHistory(
   return res.json();
 }
 
+// ---- Browse External Mods API ----
+
+export interface ExternalMod {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  icon_url: string | null;
+  downloads: number;
+  follows: number;
+  categories: string[];
+  game_versions: string[];
+  source: "modrinth" | "curseforge";
+  url: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export async function searchExternalMods(
+  query: string = "",
+  source: string = "modrinth",
+  limit: number = 20,
+  offset: number = 0,
+): Promise<{ mods: ExternalMod[]; total: number }> {
+  const params = new URLSearchParams({ q: query, source, limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/browse/search?${params}`);
+  if (!res.ok) throw new Error("Failed to search mods");
+  return res.json();
+}
+
 // ---- My Mods API ----
 
 export async function getMyMods(
