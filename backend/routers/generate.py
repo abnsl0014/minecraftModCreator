@@ -6,6 +6,7 @@ from services.job_manager import create_job, get_job
 from services.agent_loop import run_agent_loop, run_edit_loop
 from utils.auth import require_auth
 from utils.rate_limiter import check_rate_limit
+from routers.user import deduct_tokens
 
 router = APIRouter(prefix="/api")
 
@@ -17,6 +18,10 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
 
     if request.edition not in ("java", "bedrock"):
         raise HTTPException(status_code=400, detail="Edition must be 'java' or 'bedrock'")
+
+    # Deduct tokens: 1 for Bedrock, 2 for Java
+    token_cost = 2 if request.edition == "java" else 1
+    await deduct_tokens(user_id, token_cost, "mod_generation")
 
     job_id = await create_job(
         description=request.description,

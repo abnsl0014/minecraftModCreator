@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
+import { getUserProfile, getTokenHistory, TokenTransaction } from "@/lib/api";
+import { isAuthenticated } from "@/lib/supabase";
 
 const FONT = { fontFamily: "var(--font-pixel), monospace" } as const;
 
@@ -83,18 +85,39 @@ const EARN_METHODS = [
   },
 ] as const;
 
-const TOKEN_HISTORY = [
-  { date: "2026-03-19", action: "Daily Login", tokens: "+1", color: "#55ff55" },
-  { date: "2026-03-18", action: "Ad Watched", tokens: "+2", color: "#55ff55" },
-  { date: "2026-03-18", action: "Mod Created", tokens: "-1", color: "#ff5555" },
-  { date: "2026-03-17", action: "Pro Plan", tokens: "+100", color: "#55ff55" },
-  { date: "2026-03-17", action: "Mod Created", tokens: "-1", color: "#ff5555" },
-  { date: "2026-03-16", action: "Share Bonus", tokens: "+3", color: "#55ff55" },
-  { date: "2026-03-16", action: "Mod Created", tokens: "-1", color: "#ff5555" },
-] as const;
+const REASON_LABELS: Record<string, string> = {
+  mod_generation: "Mod Created",
+  daily_login: "Daily Login",
+  ad_watch: "Ad Watched",
+  share: "Share Bonus",
+  signup_bonus: "Signup Bonus",
+};
 
 export default function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>("Free");
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+  const [tokenHistory, setTokenHistory] = useState<TokenTransaction[]>([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const authed = await isAuthenticated();
+      setLoggedIn(authed);
+      if (!authed) return;
+      try {
+        const [profile, history] = await Promise.all([
+          getUserProfile(),
+          getTokenHistory(),
+        ]);
+        setTokenBalance(profile.token_balance);
+        setSelectedPlan(profile.tier === "free" ? "Free" : profile.tier === "pro" ? "Pro" : profile.tier === "unlimited" ? "Unlimited" : "Free");
+        setTokenHistory(history.transactions);
+      } catch (err) {
+        console.error("Failed to load token data:", err);
+      }
+    }
+    load();
+  }, []);
 
   return (
     <>
@@ -127,7 +150,7 @@ export default function PricingPage() {
                   className="text-[28px] text-[#d4a017]"
                   style={FONT}
                 >
-                  5
+                  {loggedIn ? (tokenBalance ?? "...") : "—"}
                 </span>
                 <span
                   className="text-[10px] text-[#808080]"
@@ -315,32 +338,44 @@ export default function PricingPage() {
               </div>
 
               {/* Table rows */}
-              {TOKEN_HISTORY.map((entry, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-3 gap-4 px-4 py-3"
-                  style={
-                    i < TOKEN_HISTORY.length - 1
-                      ? {
-                          borderBottom: "1px solid #1a1a1a",
-                        }
-                      : undefined
-                  }
-                >
-                  <span className="text-[8px] text-[#808080]" style={FONT}>
-                    {entry.date}
-                  </span>
-                  <span className="text-[8px] text-[#c0c0c0]" style={FONT}>
-                    {entry.action}
-                  </span>
-                  <span
-                    className="text-[8px] text-right"
-                    style={{ ...FONT, color: entry.color }}
-                  >
-                    {entry.tokens}
-                  </span>
+              {!loggedIn ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-[9px] text-[#808080]" style={FONT}>
+                    Sign in to see your token history
+                  </p>
                 </div>
-              ))}
+              ) : tokenHistory.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-[9px] text-[#808080]" style={FONT}>
+                    No transactions yet
+                  </p>
+                </div>
+              ) : (
+                tokenHistory.map((entry, i) => (
+                  <div
+                    key={entry.id}
+                    className="grid grid-cols-3 gap-4 px-4 py-3"
+                    style={
+                      i < tokenHistory.length - 1
+                        ? { borderBottom: "1px solid #1a1a1a" }
+                        : undefined
+                    }
+                  >
+                    <span className="text-[8px] text-[#808080]" style={FONT}>
+                      {new Date(entry.created_at).toLocaleDateString()}
+                    </span>
+                    <span className="text-[8px] text-[#c0c0c0]" style={FONT}>
+                      {REASON_LABELS[entry.reason] || entry.reason}
+                    </span>
+                    <span
+                      className="text-[8px] text-right"
+                      style={{ ...FONT, color: entry.amount > 0 ? "#55ff55" : "#ff5555" }}
+                    >
+                      {entry.amount > 0 ? `+${entry.amount}` : String(entry.amount)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 

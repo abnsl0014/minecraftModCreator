@@ -54,7 +54,9 @@ export async function generateMod(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Failed to start generation" }));
-    throw new Error(err.detail || "Failed to start generation");
+    const detail = err.detail;
+    const message = typeof detail === "string" ? detail : detail?.message || "Failed to start generation";
+    throw new Error(message);
   }
 
   return res.json();
@@ -130,6 +132,43 @@ export interface MyModsResponse {
   mods: MyMod[];
   total: number;
 }
+
+// ---- User / Token APIs ----
+
+export interface UserProfile {
+  token_balance: number;
+  tier: string;
+  created_at?: string;
+}
+
+export interface TokenTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  created_at: string;
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  const res = await fetch(`${API_BASE}/api/user/profile`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch profile");
+  return res.json();
+}
+
+export async function getTokenHistory(
+  limit: number = 20,
+  offset: number = 0,
+): Promise<{ transactions: TokenTransaction[]; total: number }> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/user/tokens/history?${params}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch token history");
+  return res.json();
+}
+
+// ---- My Mods API ----
 
 export async function getMyMods(
   limit: number = 20,

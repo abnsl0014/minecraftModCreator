@@ -5,11 +5,17 @@ services:
     dockerfilePath: ./Dockerfile
     plan: standard
     envVars:
+      - key: ENVIRONMENT
+        value: production
       - key: GROQ_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
         sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
         sync: false
       - key: FRONTEND_URL
         sync: false
