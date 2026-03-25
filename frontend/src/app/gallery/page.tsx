@@ -8,10 +8,11 @@ import ModDetailModal from "@/components/explore/ModDetailModal";
 import SubmitModModal from "@/components/explore/SubmitModModal";
 import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
-import { getGalleryMods, GalleryMod } from "@/lib/api";
+import { getGalleryMods, getMyMods, GalleryMod, MyMod } from "@/lib/api";
+import { isAuthenticated } from "@/lib/supabase";
 import AdBanner from "@/components/AdBanner";
 
-type Tab = "explore" | "featured" | "community";
+type Tab = "explore" | "featured" | "community" | "my-mods";
 type CategoryFilter = "all" | ExploreMod["category"];
 type SortKey = "recent" | "popular" | "downloads";
 
@@ -47,21 +48,35 @@ export default function ExplorePage() {
   const [showSubmit, setShowSubmit] = useState(false);
 
   const [mods, setMods] = useState<GalleryMod[]>([]);
+  const [myMods, setMyMods] = useState<MyMod[]>([]);
   const [totalMods, setTotalMods] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
 
-  // Fetch mods from API whenever sort or edition-tab changes
+  // Check auth state
+  useEffect(() => {
+    isAuthenticated().then(setLoggedIn);
+  }, []);
+
+  // Fetch mods from API whenever sort or tab changes
   useEffect(() => {
     let cancelled = false;
     async function fetchMods() {
       try {
         setLoading(true);
-        // Map the tab to an edition filter for the API; "explore" = all editions
-        const editionParam = tab === "explore" ? "all" : "all";
-        const data = await getGalleryMods(sort, editionParam);
-        if (!cancelled) {
-          setMods(data.mods);
-          setTotalMods(data.total);
+        if (tab === "my-mods") {
+          const data = await getMyMods();
+          if (!cancelled) {
+            setMyMods(data.mods);
+            setTotalMods(data.total);
+          }
+        } else {
+          const editionParam = "all";
+          const data = await getGalleryMods(sort, editionParam);
+          if (!cancelled) {
+            setMods(data.mods);
+            setTotalMods(data.total);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch gallery:", err);
@@ -158,6 +173,7 @@ export default function ExplorePage() {
             { key: "explore" as Tab, label: "Explore" },
             { key: "featured" as Tab, label: "Featured" },
             { key: "community" as Tab, label: "Community" },
+            ...(loggedIn ? [{ key: "my-mods" as Tab, label: "My Mods" }] : []),
           ]).map(t => (
             <button key={t.key}
               onClick={() => setTab(t.key)}
@@ -252,8 +268,51 @@ export default function ExplorePage() {
 
         <AdBanner slot="gallery-feed" className="my-4" />
 
-        {/* Loading state */}
-        {loading ? (
+        {/* My Mods tab content */}
+        {tab === "my-mods" ? (
+          loading ? (
+            <div className="text-center py-20">
+              <p className="text-[10px] text-[#808080]"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                Loading your mods...
+              </p>
+            </div>
+          ) : myMods.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-[32px] mb-4">🔨</p>
+              <p className="text-[10px] text-[#808080] mb-2"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                You haven&apos;t created any mods yet
+              </p>
+              <Link href="/create"
+                className="mc-btn px-4 py-2 text-[9px] inline-block mt-3"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                Create Your First Mod
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {myMods.map(mod => {
+                const exploreMod = toExploreMod(mod);
+                return (
+                  <div key={mod.id} className="relative">
+                    <div className={`absolute top-2 right-2 z-10 px-2 py-0.5 text-[7px] rounded ${
+                      mod.status === "complete" ? "bg-green-900/80 text-green-400" :
+                      mod.status === "failed" ? "bg-red-900/80 text-red-400" :
+                      "bg-yellow-900/80 text-yellow-400"
+                    }`} style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                      {mod.status === "complete" ? "READY" : mod.status === "failed" ? "FAILED" : mod.status.toUpperCase()}
+                    </div>
+                    <ModCard mod={exploreMod} onSelect={setSelectedMod} />
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) :
+
+        /* Loading state */
+        loading ? (
           <div className="text-center py-20">
             <p className="text-[10px] text-[#808080] mb-2"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>

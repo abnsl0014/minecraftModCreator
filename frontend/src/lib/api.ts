@@ -121,3 +121,27 @@ export async function getGalleryMods(
   if (!res.ok) throw new Error("Failed to fetch gallery");
   return res.json();
 }
+
+export interface MyMod extends GalleryMod {
+  status: string;
+}
+
+export interface MyModsResponse {
+  mods: MyMod[];
+  total: number;
+}
+
+export async function getMyMods(
+  limit: number = 20,
+  offset: number = 0,
+): Promise<MyModsResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/gallery/my-mods?${params}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Please sign in to view your mods");
+    throw new Error("Failed to fetch your mods");
+  }
+  return res.json();
+}

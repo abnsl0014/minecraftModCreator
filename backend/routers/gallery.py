@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from utils.auth import require_auth
 from utils.supabase_client import supabase
 
 router = APIRouter(prefix="/api")
@@ -52,6 +53,46 @@ async def get_gallery(
             "food_count": food_count,
             "blocks_count": blocks_count,
             "model_used": job.get("model_used", "gpt-oss-120b"),
+        })
+
+    return {"mods": mods, "total": len(mods)}
+
+
+@router.get("/gallery/my-mods")
+async def get_my_mods(
+    user_id: str = Depends(require_auth),
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+):
+    """Return mods created by the authenticated user."""
+    query = (
+        supabase.table("jobs")
+        .select("id, mod_name, description, edition, created_at, jar_file_url, mod_spec, author_name, model_used, status")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+    )
+    result = query.execute()
+
+    mods = []
+    for job in result.data:
+        spec = job.get("mod_spec") or {}
+        items = spec.get("items", [])
+        mods.append({
+            "id": job["id"],
+            "name": job.get("mod_name") or spec.get("mod_name", "Unnamed Mod"),
+            "description": (job.get("description") or "")[:200],
+            "edition": job.get("edition", "java"),
+            "author": job.get("author_name", "Anonymous"),
+            "created_at": job.get("created_at"),
+            "download_url": job.get("jar_file_url"),
+            "status": job.get("status", "unknown"),
+            "model_used": job.get("model_used", "gpt-oss-120b"),
+            "weapons_count": len([i for i in items if i.get("item_type") == "weapon"]),
+            "tools_count": len([i for i in items if i.get("item_type") == "tool"]),
+            "armor_count": len([i for i in items if i.get("item_type") == "armor"]),
+            "food_count": len([i for i in items if i.get("item_type") == "food"]),
+            "blocks_count": len(spec.get("blocks", [])),
         })
 
     return {"mods": mods, "total": len(mods)}

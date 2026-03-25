@@ -5,12 +5,13 @@ from models import GenerateRequest, EditRequest, JobStatus
 from services.job_manager import create_job, get_job
 from services.agent_loop import run_agent_loop, run_edit_loop
 from utils.auth import require_auth
+from utils.rate_limiter import check_rate_limit
 
 router = APIRouter(prefix="/api")
 
 
 @router.post("/generate")
-async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTasks, user_id: str = Depends(require_auth)):
+async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTasks, user_id: str = Depends(check_rate_limit)):
     if not request.description.strip():
         raise HTTPException(status_code=400, detail="Description cannot be empty")
 
