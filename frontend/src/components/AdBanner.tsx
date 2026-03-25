@@ -22,11 +22,7 @@ export default function AdBanner({ slot, format = "auto", className = "" }: Prop
   }, [clientId]);
 
   if (!clientId) {
-    return (
-      <div className={`bg-[#1a1a2e] border border-dashed border-gray-700 rounded p-4 text-center text-gray-600 text-sm ${className}`}>
-        Ad Placement
-      </div>
-    );
+    return null;
   }
 
   return (

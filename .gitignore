@@ -21,3 +21,25 @@ frontend/.env.local
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright/Testing
+.playwright-mcp/
+*.png
+!frontend/public/*.png
+
+# Superpowers/Dev tools
+.superpowers/
+
+# Gradle build artifacts
+mod-template/.gradle/
+mod-template/bin/
+mod-template/build/
+
+# Supabase temp
+supabase/.temp/
+
+# Claude Code
+.claude/
+
+# Gradle properties (generated)
+mod-template/gradle.properties
