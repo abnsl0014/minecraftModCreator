@@ -78,7 +78,7 @@ export async function editMod(
 ): Promise<{ job_id: string }> {
   const res = await fetch(`${API_BASE}/api/edit/${jobId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders(),
     body: JSON.stringify({ edit_description: editDescription }),
   });
 
