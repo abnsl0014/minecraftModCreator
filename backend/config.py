@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     supabase_jwt_secret: str = ""
+    environment: str = "development"
+    frontend_url: str = ""
     mod_template_dir: str = "../mod-template"
     temp_dir_base: str = "/tmp/modcreator"
     max_fix_iterations: int = 3
