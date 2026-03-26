@@ -108,8 +108,7 @@ export default function MarketplacePage() {
                     <img
                       src={mod.icon_url}
                       alt={mod.name}
-                      className="w-12 h-12 rounded"
-                      style={{ imageRendering: "pixelated" }}
+                      className="w-12 h-12 rounded object-cover"
                     />
                   ) : (
                     <div className="w-12 h-12 rounded bg-[#1a1a1a] flex items-center justify-center text-[#555] text-[16px]">
