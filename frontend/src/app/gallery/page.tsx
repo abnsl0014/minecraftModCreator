@@ -36,6 +36,7 @@ function toExploreMod(g: GalleryMod): ExploreMod {
     featured: false,
     createdAt: g.created_at,
     tags: [g.edition, g.model_used],
+    download_url: g.download_url,
   };
 }
 

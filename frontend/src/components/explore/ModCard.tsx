@@ -21,7 +21,7 @@ export default function ModCard({ mod, onSelect }: ModCardProps) {
       onClick={() => onSelect?.(mod)}
     >
       {/* Thumbnail / Media area */}
-      <div className="relative h-40 bg-[#111] overflow-hidden flex items-center justify-center"
+      <div className="relative h-32 sm:h-40 bg-[#111] overflow-hidden flex items-center justify-center"
         style={{ borderBottom: `2px solid ${cat.color}22` }}>
 
         {/* Category color bar on left */}

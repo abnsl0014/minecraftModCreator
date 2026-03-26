@@ -40,9 +40,13 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
 
     try {
       if (mode === "signup") {
+        const siteUrl = window.location.origin;
         const { error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            emailRedirectTo: `${siteUrl}/gallery`,
+          },
         });
         if (signUpError) {
           setError(signUpError.message);
@@ -70,8 +74,12 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
     setLoading(true);
     setError("");
     try {
+      const siteUrl = window.location.origin;
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        options: {
+          redirectTo: `${siteUrl}/gallery`,
+        },
       });
       if (oauthError) {
         setError(oauthError.message);

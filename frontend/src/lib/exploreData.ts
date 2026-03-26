@@ -24,6 +24,7 @@ export interface ExploreMod {
   featured: boolean;              // marketplace pick
   createdAt: string;
   tags: string[];
+  download_url?: string | null;   // Supabase storage URL for download
 }
 
 export interface ModSubmission {

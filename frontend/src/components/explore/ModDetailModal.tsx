@@ -20,7 +20,7 @@ export default function ModDetailModal({ mod, onClose }: ModDetailModalProps) {
       <div className="absolute inset-0 bg-black/80" />
 
       {/* Modal */}
-      <div className="relative mc-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0"
+      <div className="relative mc-panel w-full max-w-2xl max-h-[85vh] overflow-y-auto p-0"
         onClick={e => e.stopPropagation()}>
         {/* Close button */}
         <button onClick={onClose}
@@ -157,14 +157,23 @@ export default function ModDetailModal({ mod, onClose }: ModDetailModalProps) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3 mt-6 pt-4 border-t border-[#2a2a2a]">
-            <button className="mc-btn px-4 py-2 text-[10px] flex items-center gap-2">
-              ⬇ Download Mod
-            </button>
-            <button className="mc-btn px-4 py-2 text-[10px] flex items-center gap-2"
-              style={{ color: "#ff5555" }}>
-              ♥ Like
-            </button>
+          <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-[#2a2a2a]">
+            {mod.download_url ? (
+              <a
+                href={mod.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mc-btn px-4 py-2 text-[10px] flex items-center gap-2 no-underline"
+                onClick={e => e.stopPropagation()}
+              >
+                ⬇ Download Mod
+              </a>
+            ) : (
+              <span className="text-[9px] text-[#555]"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                No download available
+              </span>
+            )}
           </div>
         </div>
       </div>
