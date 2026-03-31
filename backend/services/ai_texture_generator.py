@@ -380,6 +380,49 @@ def _save_custom_texture(data_url: str, output_path: str):
     img.save(output_path)
 
 
+def collect_texture_previews(spec, build_dir: str, edition: str = "java") -> dict:
+    """Read generated texture PNGs and return as base64 previews for the frontend."""
+    import base64 as b64mod
+    previews = {"items": [], "blocks": []}
+
+    if edition == "bedrock":
+        tex_base = os.path.join(build_dir, "resource_pack", "textures")
+        item_dir = os.path.join(tex_base, "items")
+        block_dir = os.path.join(tex_base, "blocks")
+    else:
+        tex_base = os.path.join(build_dir, "src", "main", "resources", "assets", spec.mod_id, "textures")
+        item_dir = os.path.join(tex_base, "item")
+        block_dir = os.path.join(tex_base, "block")
+
+    for item in spec.items:
+        tex_path = os.path.join(item_dir, "%s.png" % item.registry_name)
+        b64 = ""
+        if os.path.exists(tex_path):
+            with open(tex_path, "rb") as f:
+                b64 = "data:image/png;base64," + b64mod.b64encode(f.read()).decode()
+        previews["items"].append({
+            "name": item.display_name,
+            "registry_name": item.registry_name,
+            "type": item.item_type or "weapon",
+            "texture": b64,
+        })
+
+    for block in spec.blocks:
+        tex_path = os.path.join(block_dir, "%s.png" % block.registry_name)
+        b64 = ""
+        if os.path.exists(tex_path):
+            with open(tex_path, "rb") as f:
+                b64 = "data:image/png;base64," + b64mod.b64encode(f.read()).decode()
+        previews["blocks"].append({
+            "name": block.display_name,
+            "registry_name": block.registry_name,
+            "type": "block",
+            "texture": b64,
+        })
+
+    return previews
+
+
 async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
     """Generate textures — uses custom uploaded texture if provided, otherwise procedural."""
     from services.procedural_textures import (
