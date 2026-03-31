@@ -53,7 +53,14 @@ CREATE POLICY "Allow public update" ON jobs FOR UPDATE USING (true);
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS edition TEXT DEFAULT 'java' CHECK (edition IN ('java', 'bedrock'));
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS generated_files JSONB DEFAULT '{}';
 
--- 7. Storage bucket for .jar files
+-- 7. Migration: Add texture_previews column and update status check
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS texture_previews JSONB;
+-- Update status constraint to include 'packaging' and remove 'compiling'/'fixing'
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
+ALTER TABLE jobs ADD CONSTRAINT jobs_status_check
+    CHECK (status IN ('queued', 'parsing', 'generating', 'packaging', 'compiling', 'fixing', 'complete', 'failed'));
+
+-- 8. Storage bucket for .jar files
 -- Run this OR create via Dashboard > Storage > New Bucket
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES ('mod-jars', 'mod-jars', true, 52428800);
