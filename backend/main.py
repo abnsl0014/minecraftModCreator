@@ -12,7 +12,7 @@ from routers.subscriptions import router as subscriptions_router
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Minecraft Mod Creator", version="1.0.0")
+app = FastAPI(title="Minecraft Mod Creator", version="0.2.0")
 
 # CORS: production URL from env, localhost only in dev
 cors_origins = []
