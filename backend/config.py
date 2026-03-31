@@ -13,8 +13,12 @@ class Settings(BaseSettings):
     frontend_url: str = ""
     mod_template_dir: str = "../mod-template"
     temp_dir_base: str = "/tmp/modcreator"
-    max_fix_iterations: int = 3
-    build_timeout_seconds: int = 300
+    dodo_payments_api_key: str = ""
+    dodo_payments_webhook_key: str = ""
+    dodo_payments_environment: str = "test_mode"
+    dodo_product_basic_weekly: str = ""
+    dodo_product_basic_monthly: str = ""
+    dodo_product_unlimited_monthly: str = ""
 
     class Config:
         env_file = ".env"
