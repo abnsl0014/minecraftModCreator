@@ -9,23 +9,29 @@ router = APIRouter(prefix="/api/user")
 
 @router.get("/profile")
 async def get_profile(user_id: str = Depends(require_auth)):
-    """Return the authenticated user's profile with token balance."""
+    """Return the authenticated user's profile with token balance and subscription info."""
     result = supabase.table("user_profiles").select("*").eq("id", user_id).execute()
 
     if not result.data:
-        # Auto-create profile if missing (e.g. user signed up before migration)
         supabase.table("user_profiles").insert({
             "id": user_id,
             "token_balance": 5,
             "tier": "free",
         }).execute()
-        return {"token_balance": 5, "tier": "free"}
+        return {
+            "token_balance": 5,
+            "tier": "free",
+            "subscription_status": "none",
+            "billing_period": None,
+        }
 
     profile = result.data[0]
     return {
         "token_balance": profile["token_balance"],
         "tier": profile["tier"],
         "created_at": profile["created_at"],
+        "subscription_status": profile.get("subscription_status", "none"),
+        "billing_period": profile.get("billing_period"),
     }
 
 
