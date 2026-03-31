@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ItemData } from "@/lib/dummyResponses";
-import { generateMod, getStatus } from "@/lib/api";
+import { generateMod, getStatus, TexturePreviews } from "@/lib/api";
+import LootReveal from "@/components/LootReveal";
 import SignupModal from "@/components/SignupModal";
 import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
@@ -17,6 +18,8 @@ interface Message {
   jobId?: string;
   downloadUrl?: string;
   modelUsed?: string;
+  texturePreviews?: TexturePreviews;
+  edition?: "java" | "bedrock";
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -29,9 +32,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const CREATE_CATEGORIES = [
   { id: "items", label: "Items or Blocks", icon: "\u2694", description: "Weapons, tools, armor, food, blocks" },
-  { id: "mobs", label: "Mobs", icon: "\uD83D\uDC3E", description: "Custom creatures and entities" },
+  { id: "skins", label: "Custom Skins", icon: "\uD83D\uDC64", description: "Player skins and texture packs", href: "/create/skins" },
   { id: "structures", label: "Structures", icon: "\uD83C\uDFF0", description: "Buildings and world generation", isNew: true },
-  { id: "skins", label: "Custom Skins", icon: "\uD83D\uDC64", description: "Character skins and textures", href: "/create/skins" },
 ];
 
 const MODEL_OPTIONS = [
@@ -89,6 +91,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [authed, setAuthed] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gpt-oss-120b");
 
   useEffect(() => {
@@ -102,9 +105,13 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setAuthChecked(true);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthed(!!session);
+      setAuthChecked(true);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -168,6 +175,8 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                     jobId: job_id,
                     downloadUrl: status.jar_url || undefined,
                     modelUsed: status.model_used,
+                    texturePreviews: status.texture_previews || undefined,
+                    edition: status.edition,
                   }
                 : m
             )
@@ -205,6 +214,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!authChecked) return;
     if (!authed) {
       setShowSignup(true);
       return;
@@ -213,7 +223,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   }
 
   function handleInputFocus() {
-    if (!authed) {
+    if (authChecked && !authed) {
       setShowSignup(true);
     }
   }
@@ -253,30 +263,100 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
     if (msg.role === "generation-complete") {
       return (
         <div key={i} className="flex justify-start">
-          <div className="max-w-[85%] bg-[#1a1a2e] border border-[#00ff88]/50 rounded-lg p-4">
-            <p className="text-[9px] text-[#00ff88] font-semibold mb-2" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-              {msg.text}
-            </p>
-            {msg.modelUsed && (
-              <span
-                className={`text-[8px] px-2 py-1 rounded mr-2 ${
-                  msg.modelUsed === "sonnet-4.6"
-                    ? "bg-[#8b5cf6]/20 text-[#8b5cf6]"
-                    : "bg-[#00ff88]/20 text-[#00ff88]"
-                }`}
-                style={{ fontFamily: "var(--font-pixel), monospace" }}
-              >
-                {msg.modelUsed === "sonnet-4.6" ? "Sonnet 4.6" : "GPT-OSS 120B"}
+          <div className="max-w-[95%] w-full bg-[#1a1a2e] border border-[#00ff88]/50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[10px] text-[#00ff88] font-semibold" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+                {msg.text}
               </span>
-            )}
-            {msg.downloadUrl && (
-              <a
-                href={msg.downloadUrl}
-                className="inline-block mt-2 px-4 py-2 bg-[#00ff88] text-black rounded text-[9px] font-semibold hover:bg-[#00cc6a] transition"
-                style={{ fontFamily: "var(--font-pixel), monospace" }}
-              >
-                Download Mod
-              </a>
+              {msg.modelUsed && (
+                <span
+                  className={`text-[8px] px-2 py-0.5 ${
+                    msg.modelUsed === "sonnet-4.6"
+                      ? "bg-[#8b5cf6]/20 text-[#8b5cf6]"
+                      : "bg-[#00ff88]/20 text-[#00ff88]"
+                  }`}
+                  style={{ fontFamily: "var(--font-pixel), monospace" }}
+                >
+                  {msg.modelUsed === "sonnet-4.6" ? "Sonnet 4.6" : "GPT-OSS 120B"}
+                </span>
+              )}
+            </div>
+
+            {/* Loot Reveal with textures */}
+            {msg.texturePreviews && msg.jobId ? (
+              <LootReveal
+                previews={msg.texturePreviews}
+                jobId={msg.jobId}
+                downloadUrl={msg.downloadUrl}
+                edition={msg.edition || "java"}
+                onEditStarted={() => {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      role: "generation-started" as MessageRole,
+                      text: "Applying edit...",
+                      jobId: msg.jobId,
+                    },
+                  ]);
+                  setTyping(true);
+                  // Re-poll for the edit
+                  const pollEdit = async () => {
+                    for (let j = 0; j < 120; j++) {
+                      await new Promise((r) => setTimeout(r, 2500));
+                      const s = await getStatus(msg.jobId!);
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.jobId === msg.jobId && m.role === "generation-started"
+                            ? { ...m, text: s.progress_message || "Applying edit..." }
+                            : m
+                        )
+                      );
+                      if (s.status === "complete") {
+                        setMessages((prev) =>
+                          prev.map((m) =>
+                            m.jobId === msg.jobId && m.role === "generation-started"
+                              ? {
+                                  role: "generation-complete" as MessageRole,
+                                  text: "Edit applied!",
+                                  jobId: msg.jobId,
+                                  downloadUrl: s.jar_url || undefined,
+                                  modelUsed: s.model_used,
+                                  texturePreviews: s.texture_previews || undefined,
+                                  edition: s.edition,
+                                }
+                              : m
+                          )
+                        );
+                        setTyping(false);
+                        break;
+                      }
+                      if (s.status === "failed") {
+                        setMessages((prev) =>
+                          prev.map((m) =>
+                            m.jobId === msg.jobId && m.role === "generation-started"
+                              ? { role: "generation-failed" as MessageRole, text: s.error || "Edit failed", jobId: msg.jobId }
+                              : m
+                          )
+                        );
+                        setTyping(false);
+                        break;
+                      }
+                    }
+                  };
+                  pollEdit();
+                }}
+              />
+            ) : (
+              /* Fallback if no textures (older jobs) */
+              msg.downloadUrl && (
+                <a
+                  href={msg.downloadUrl}
+                  className="inline-block mt-1 mc-btn px-4 py-2 text-[9px] text-[#55ff55]"
+                  style={{ fontFamily: "var(--font-pixel), monospace" }}
+                >
+                  Download Mod
+                </a>
+              )
             )}
           </div>
         </div>
@@ -375,10 +455,14 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                 "Ruby armor set with fire resistance",
                 "Emerald pickaxe that auto-smelts ores",
                 "Magic food that gives speed and jump boost",
+                "Netherite helmet with night vision",
+                "Glowing neon blocks in 8 colors",
+                "TNT bow that explodes on impact",
+                "Golden apple that gives regeneration",
               ].map((suggestion) => (
                 <button
                   key={suggestion}
-                  onClick={() => { if (authed) submitPrompt(suggestion); else setShowSignup(true); }}
+                  onClick={() => { if (!authChecked) return; if (authed) submitPrompt(suggestion); else setShowSignup(true); }}
                   className="mc-panel px-3 py-2 text-left text-[8px] text-[#c0c0c0] hover:text-[#d4a017] hover:border-[#d4a017]"
                   style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
                 >
@@ -421,6 +505,9 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
               {m.label}
             </button>
           ))}
+          <span className="text-[7px] text-[#555] ml-auto" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            1 token/mod
+          </span>
         </div>
         <div className="mc-panel-inset flex items-center">
           <input
@@ -432,7 +519,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             className="flex-1 bg-transparent px-3 py-2 text-[9px] text-[#c0c0c0] focus:outline-none placeholder-[#555]"
             style={{ fontFamily: "var(--font-pixel), monospace" }}
             disabled={typing}
-            readOnly={!authed}
+            readOnly={authChecked && !authed}
           />
           <button
             type="submit"

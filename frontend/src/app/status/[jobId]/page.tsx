@@ -10,6 +10,143 @@ import EditForm from "@/components/EditForm";
 import Header from "@/components/Header";
 import AdBanner from "@/components/AdBanner";
 
+const FONT = { fontFamily: "var(--font-pixel), monospace" } as const;
+
+function getOS(): "windows" | "mac" | "linux" {
+  if (typeof navigator === "undefined") return "windows";
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("mac")) return "mac";
+  if (ua.includes("linux")) return "linux";
+  return "windows";
+}
+
+function JavaBuildGuide({ modId }: { modId: string }) {
+  const os = typeof window !== "undefined" ? getOS() : "windows";
+
+  const gradlewCmd = os === "windows" ? "gradlew.bat build" : "./gradlew build";
+  const extractHint =
+    os === "windows"
+      ? "Right-click the .zip → Extract All"
+      : os === "mac"
+      ? "Double-click the .zip to extract"
+      : "unzip the .zip file";
+  const terminalHint =
+    os === "windows"
+      ? "Open PowerShell or Command Prompt in the extracted folder"
+      : os === "mac"
+      ? "Open Terminal, then cd into the extracted folder"
+      : "Open a terminal and cd into the extracted folder";
+  const jdkLink = "https://adoptium.net/";
+  const jdkNote =
+    os === "windows"
+      ? "Download the .msi installer for Windows x64"
+      : os === "mac"
+      ? "Download the .pkg installer for macOS (Apple Silicon or Intel)"
+      : "Install via: sudo apt install openjdk-17-jdk";
+
+  return (
+    <div className="mt-6 w-full max-w-2xl">
+      <details open className="mc-panel border border-[#d4a017]/30">
+        <summary
+          className="px-4 py-2 text-xs text-[#d4a017] cursor-pointer hover:text-white"
+          style={FONT}
+        >
+          How to build your mod
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-[8px] text-[#555]" style={FONT}>
+            Detected: <span className="text-[#808080]">{os === "windows" ? "Windows" : os === "mac" ? "macOS" : "Linux"}</span>
+          </p>
+
+          {/* Step 1 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">1.</span> Install Java 17 (if you don&apos;t have it)
+            </p>
+            <p className="text-[8px] text-[#808080]" style={FONT}>{jdkNote}</p>
+            <a
+              href={jdkLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[8px] text-[#5555ff] hover:text-[#8888ff]"
+              style={FONT}
+            >
+              Download JDK 17 (Adoptium) &rarr;
+            </a>
+          </div>
+
+          {/* Step 2 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">2.</span> Extract the downloaded ZIP
+            </p>
+            <p className="text-[8px] text-[#808080]" style={FONT}>{extractHint}</p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">3.</span> Open a terminal in the project folder
+            </p>
+            <p className="text-[8px] text-[#808080]" style={FONT}>{terminalHint}</p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">4.</span> Build the mod
+            </p>
+            <div className="bg-[#0a0a0a] border border-[#3d3d3d] px-3 py-2 flex items-center justify-between">
+              <code className="text-[9px] text-[#d4a017]" style={FONT}>{gradlewCmd}</code>
+              <button
+                onClick={() => navigator.clipboard?.writeText(gradlewCmd)}
+                className="text-[8px] text-[#555] hover:text-white ml-3"
+                style={FONT}
+                title="Copy command"
+              >
+                copy
+              </button>
+            </div>
+            <p className="text-[8px] text-[#808080]" style={FONT}>
+              First build downloads dependencies (~2-3 min). Subsequent builds are faster.
+            </p>
+          </div>
+
+          {/* Step 5 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">5.</span> Find your .jar file
+            </p>
+            <div className="bg-[#0a0a0a] border border-[#3d3d3d] px-3 py-2">
+              <code className="text-[9px] text-[#808080]" style={FONT}>build/libs/{modId}-1.0.0.jar</code>
+            </div>
+          </div>
+
+          {/* Step 6 */}
+          <div className="space-y-1">
+            <p className="text-[9px] text-[#c0c0c0]" style={FONT}>
+              <span className="text-[#55ff55]">6.</span> Install in Minecraft
+            </p>
+            <p className="text-[8px] text-[#808080]" style={FONT}>
+              Copy the .jar into your <code className="text-[#d4a017]">.minecraft/mods/</code> folder and launch with Forge 1.20.1
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-[#3d3d3d]">
+            <Link
+              href="/guide"
+              className="text-[8px] text-[#5555ff] hover:text-[#8888ff]"
+              style={FONT}
+            >
+              Full installation guide &rarr;
+            </Link>
+          </div>
+        </div>
+      </details>
+    </div>
+  );
+}
+
 export default function StatusPage() {
   const params = useParams();
   const jobId = params.jobId as string;
@@ -120,6 +257,32 @@ export default function StatusPage() {
 
       <AdBanner slot="status-wait" className="mt-6" />
 
+      {/* Texture Previews */}
+      {isComplete && status?.texture_previews && (
+        <div className="mt-6 w-full max-w-2xl">
+          <p className="text-[9px] text-[#808080] mb-3" style={FONT}>Generated Items</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {[...(status.texture_previews.items || []), ...(status.texture_previews.blocks || [])].map((item, i) => (
+              <div
+                key={item.registry_name}
+                className="mc-panel p-3 flex flex-col items-center gap-2 relative loot-card-enter"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="enchant-glint" />
+                <div className="w-12 h-12 bg-[#0a0a0a] border border-[#3d3d3d] flex items-center justify-center">
+                  {item.texture ? (
+                    <img src={item.texture} alt={item.name} className="w-10 h-10" style={{ imageRendering: "pixelated" }} />
+                  ) : (
+                    <span className="text-[14px] opacity-30">?</span>
+                  )}
+                </div>
+                <p className="text-[8px] text-[#c0c0c0] text-center truncate w-full" style={FONT}>{item.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Download */}
       {status?.download_ready && (
         <div className="mt-8">
@@ -132,8 +295,8 @@ export default function StatusPage() {
         <EditForm jobId={jobId} onEditStarted={handleEditStarted} />
       )}
 
-      {/* Give commands hint */}
-      {isComplete && status?.mod_id && (
+      {/* Usage hints — edition-specific */}
+      {isComplete && status?.mod_id && status?.edition === "bedrock" && (
         <div className="mt-6 w-full max-w-2xl">
           <details className="mc-panel border border-gray-700/50">
             <summary
@@ -144,13 +307,18 @@ export default function StatusPage() {
             </summary>
             <div className="px-4 pb-3 text-xs text-[#808080] space-y-2">
               <p>1. Import the .mcaddon file on your device</p>
-              <p>2. Create a new world → enable both packs (Behavior + Resource)</p>
+              <p>2. Create a new world &rarr; enable both packs (Behavior + Resource)</p>
               <p>3. Enable <span className="text-yellow-300">Beta APIs</span> in Experiments (for weapon effects)</p>
               <p>4. Give items with: <code className="text-[#d4a017] bg-[#1a1a1a] px-1">/give @s {status.mod_id}:item_name</code></p>
               <p>5. Or craft them at a crafting table in survival mode</p>
             </div>
           </details>
         </div>
+      )}
+
+      {/* Java build guide — inline smart guide */}
+      {isComplete && status?.mod_id && status?.edition === "java" && (
+        <JavaBuildGuide modId={status.mod_id} />
       )}
 
       {/* Navigation */}

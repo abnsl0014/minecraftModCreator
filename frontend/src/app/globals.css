@@ -318,3 +318,71 @@ img {
 .mc-token-pop {
   animation: token-pop 0.3s ease-in-out;
 }
+
+/* === Loot Reveal Animations === */
+@keyframes loot-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.loot-card-enter {
+  opacity: 0;
+  animation: loot-slide-in 0.4s ease-out forwards;
+}
+
+/* Enchantment glint — diagonal shimmer like Minecraft enchanted items */
+@keyframes enchant-shimmer {
+  0% { transform: translateX(-100%) rotate(-45deg); }
+  100% { transform: translateX(200%) rotate(-45deg); }
+}
+
+.enchant-glint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.enchant-glint::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(138, 43, 226, 0.06) 45%,
+    rgba(138, 43, 226, 0.12) 50%,
+    rgba(138, 43, 226, 0.06) 55%,
+    transparent 60%
+  );
+  animation: enchant-shimmer 3s ease-in-out infinite;
+}
+
+.mc-panel:hover > .enchant-glint::after {
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(212, 160, 23, 0.08) 45%,
+    rgba(212, 160, 23, 0.15) 50%,
+    rgba(212, 160, 23, 0.08) 55%,
+    transparent 60%
+  );
+  animation-duration: 2s;
+}
