@@ -12,3 +12,9 @@ ALTER TABLE user_profiles
 CREATE INDEX IF NOT EXISTS idx_user_profiles_subscription_id
   ON user_profiles(subscription_id)
   WHERE subscription_id IS NOT NULL;
+
+-- RPC function: look up user_id by email (used by webhook handler)
+CREATE OR REPLACE FUNCTION get_user_id_by_email(lookup_email TEXT)
+RETURNS UUID AS $$
+  SELECT id FROM auth.users WHERE email = lookup_email LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER;

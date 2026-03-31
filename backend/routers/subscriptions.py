@@ -108,9 +108,10 @@ async def cancel_subscription(user_id: str = Depends(require_auth)):
         logger.error(f"Failed to cancel subscription {sub_id}: {e}")
         raise HTTPException(status_code=502, detail="Failed to cancel subscription")
 
+    # Don't downgrade tier immediately — let them keep access until period ends.
+    # The subscription.on_hold/failed webhook will handle the actual downgrade.
     supabase.table("user_profiles").update({
         "subscription_status": "cancelled",
-        "tier": "free",
     }).eq("id", user_id).execute()
 
     return {"status": "cancelled"}
@@ -121,8 +122,8 @@ async def cancel_subscription(user_id: str = Depends(require_auth)):
 def _verify_webhook_signature(payload: bytes, signature: str) -> bool:
     """Verify DodoPayments webhook signature."""
     if not settings.dodo_payments_webhook_key:
-        logger.warning("Webhook key not configured, skipping verification")
-        return True
+        logger.error("Webhook key not configured — rejecting all webhooks")
+        return False
     expected = hmac.new(
         settings.dodo_payments_webhook_key.encode(),
         payload,
@@ -174,6 +175,10 @@ async def _handle_subscription_active(data: dict):
         logger.error(f"Missing subscription_id or product_id in webhook: {data}")
         return
 
+    if not customer_email:
+        logger.error(f"Missing customer email in webhook: {data}")
+        return
+
     tier_map = get_product_tier_map()
     tier_info = tier_map.get(product_id)
     if not tier_info:
@@ -182,17 +187,26 @@ async def _handle_subscription_active(data: dict):
 
     tier, billing_period, token_grant = tier_info
 
-    # Find user by email (DodoPayments doesn't know our user_id)
-    user_result = supabase.auth.admin.list_users()
-    user_id = None
-    for user in user_result:
-        if hasattr(user, 'email') and user.email == customer_email:
-            user_id = user.id
-            break
+    # Look up user by email via direct DB query (scalable, not paginated)
+    user_result = supabase.rpc("get_user_id_by_email", {"lookup_email": customer_email}).execute()
+    user_id = user_result.data if isinstance(user_result.data, str) else None
+
+    # Fallback: query user_profiles joined approach — try matching via auth admin
+    if not user_id:
+        try:
+            user_resp = supabase.auth.admin.get_user_by_id  # not usable by email
+            # Use list with filter as last resort (paginated but with filter)
+            users = supabase.auth.admin.list_users(f"email=eq.{customer_email}")
+            if users and len(users) > 0:
+                user_id = users[0].id
+        except Exception:
+            pass
 
     if not user_id:
         logger.error(f"No user found for email: {customer_email}")
         return
+
+    period_end = data.get("current_period_end")
 
     update_data = {
         "tier": tier,
@@ -200,6 +214,8 @@ async def _handle_subscription_active(data: dict):
         "subscription_status": "active",
         "billing_period": billing_period,
     }
+    if period_end:
+        update_data["subscription_expires_at"] = period_end
     if token_grant > 0:
         update_data["token_balance"] = token_grant
 
@@ -272,7 +288,7 @@ async def _handle_subscription_failed(data: dict):
     supabase.table("token_transactions").insert({
         "user_id": user_id,
         "amount": 0,
-        "reason": "subscription_cancelled",
+        "reason": "subscription_failed",
     }).execute()
 
     logger.info(f"User {user_id} downgraded to free (subscription failed/on_hold)")

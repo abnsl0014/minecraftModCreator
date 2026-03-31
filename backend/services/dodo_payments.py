@@ -69,18 +69,6 @@ def create_checkout_session(
     }
 
 
-def get_subscription(subscription_id: str) -> dict:
-    """Get subscription details from DodoPayments."""
-    client = _get_client()
-    sub = client.subscriptions.retrieve(subscription_id)
-    return {
-        "subscription_id": sub.subscription_id,
-        "status": sub.status,
-        "product_id": sub.product_id,
-        "current_period_end": str(sub.current_period_end) if hasattr(sub, "current_period_end") else None,
-    }
-
-
 def cancel_subscription(subscription_id: str) -> bool:
     """Cancel a subscription. Returns True on success."""
     client = _get_client()

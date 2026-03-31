@@ -123,6 +123,7 @@ const REASON_LABELS: Record<string, string> = {
   subscription_purchase: "Subscription",
   subscription_renewal: "Renewal",
   subscription_cancelled: "Sub Cancelled",
+  subscription_failed: "Sub Failed",
 };
 
 export default function PricingPage() {
@@ -178,7 +179,7 @@ export default function PricingPage() {
   }
 
   async function handleCancel() {
-    if (!confirm("Cancel your subscription? You'll be downgraded to the free tier.")) return;
+    if (!confirm("Cancel your subscription? You'll keep access until the end of your billing period.")) return;
     try {
       await cancelSubscription();
       const p = await getUserProfile();
