@@ -2,6 +2,34 @@
 
 All notable changes to ModCrafter will be documented in this file.
 
+## [0.3.0] - 2026-03-31
+
+### Added
+- Texture preview system: generated item/block textures shown as base64 previews
+- Loot reveal UI on status page with Minecraft-style enchantment shimmer animations
+- Auth callback route (`/auth/callback`) for proper OAuth code exchange
+- Marketplace mod detail modal with full info display
+- Token balance display in header for logged-in users
+- Token cost hint on home page
+- Three new example prompts on home page
+- `authChecked` guard to prevent flash of signup modal on page load
+
+### Changed
+- **Java edition no longer compiles on server** — mods packaged as Forge project ZIPs instead of JARs
+- Removed JDK 17 from Docker image (significantly smaller image)
+- Removed compile/fix iteration loop from agent
+- Flattened token cost to 1 per generation (was 2 for Java)
+- Download extension changed from `.jar` to `-forge-project.zip` for Java
+- Auth redirects now go through `/auth/callback?next=` instead of direct page
+- Meta description updated for Forge project output
+- Job status model: removed `iteration`/`max_iterations`, added `texture_previews`
+- Status page redesigned with step-by-step progress display
+
+### Removed
+- Server-side Gradle compilation (JDK, compile loop, error fixer)
+- Mock data from `dummyResponses.ts` and `exploreData.ts` (replaced by real API)
+- `MAX_FIX_ITERATIONS` and `BUILD_TIMEOUT_SECONDS` from render.yaml
+
 ## [0.2.0] - 2026-03-31
 
 ### Added
