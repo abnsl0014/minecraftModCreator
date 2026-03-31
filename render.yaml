@@ -25,7 +25,3 @@ services:
         value: /tmp/modcreator
       - key: GROQ_MODEL
         value: openai/gpt-oss-120b
-      - key: MAX_FIX_ITERATIONS
-        value: "3"
-      - key: BUILD_TIMEOUT_SECONDS
-        value: "300"

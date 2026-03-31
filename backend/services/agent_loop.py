@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 
 from config import settings
 from models import GenerateRequest
@@ -7,11 +8,9 @@ from services.job_manager import update_job
 from services.mod_request_parser import parse_mod_request
 from services.code_generator import generate_all_code
 from services.mod_assembler import assemble_mod
-from services.mod_compiler import compile_mod
-from services.error_fixer import fix_compilation_errors
 from services.bedrock_generator import generate_all_bedrock_code
 from services.bedrock_assembler import assemble_bedrock_addon
-from services.ai_texture_generator import generate_all_textures
+from services.ai_texture_generator import generate_all_textures, collect_texture_previews
 from services.mechanics_engine import analyze_and_enrich
 from utils.file_utils import create_build_dir
 from utils.supabase_client import supabase
@@ -92,8 +91,11 @@ async def _run_bedrock_loop(job_id: str, spec, model_preference: str = "gpt-oss-
     build_dir = create_build_dir(job_id)
     await generate_all_textures(spec, build_dir, edition="bedrock")
 
+    # Collect texture previews for the frontend
+    previews = collect_texture_previews(spec, build_dir, edition="bedrock")
+
     # Step 4: Packaging files
-    await update_job(job_id, status="compiling", iteration=1, progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files...")
+    await update_job(job_id, status="packaging", progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files...")
     mcaddon_path = assemble_bedrock_addon(job_id, spec, generated_files)
 
     # Step 5: Upload
@@ -104,14 +106,15 @@ async def _run_bedrock_loop(job_id: str, spec, model_preference: str = "gpt-oss-
         progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files... Done",
         jar_file_url=addon_url,
         jar_file_path=mcaddon_path,
+        texture_previews=previews,
     )
     logger.info("Bedrock job %s completed" % job_id)
 
 
 async def _run_java_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
-    """Java: generate code, compile with Gradle, fix loop."""
+    """Java: generate code, assemble project, package as ZIP (no compilation)."""
     # Step 2: Generate code
-    await update_job(job_id, status="generating", progress_message="Generating mod code...")
+    await update_job(job_id, status="generating", progress_message="Processing user prompt... Done\nGenerating mod code...")
     generated_files = await generate_all_code(spec, model_preference=model_preference)
     logger.info("Generated %d files: %s" % (len(generated_files), list(generated_files.keys())))
 
@@ -119,57 +122,37 @@ async def _run_java_loop(job_id: str, spec, model_preference: str = "gpt-oss-120
     await update_job(job_id, generated_files=generated_files)
 
     # Step 3: Assemble the project
-    await update_job(job_id, progress_message="Assembling mod project...")
+    await update_job(job_id, progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project...")
     project_dir = assemble_mod(job_id, spec, generated_files)
 
     # Step 3.5: Generate AI textures (overwrites solid color fallbacks)
-    await update_job(job_id, progress_message="Creating pixel art textures...")
+    await update_job(job_id, progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project... Done\nCrafting textures...")
     await generate_all_textures(spec, project_dir, edition="java")
 
-    # Step 4: Compile + fix loop
-    max_iterations = settings.max_fix_iterations
-    for iteration in range(1, max_iterations + 1):
-        await update_job(
-            job_id,
-            status="compiling",
-            iteration=iteration,
-            progress_message="Compiling mod (attempt %d/%d)..." % (iteration, max_iterations),
-        )
+    # Collect texture previews for the frontend
+    previews = collect_texture_previews(spec, project_dir, edition="java")
 
-        result = await compile_mod(project_dir)
+    # Step 4: Package as ZIP
+    await update_job(job_id, status="packaging", progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project... Done\nCrafting textures... Done\nPackaging project...")
+    zip_filename = "%s-forge-project" % spec.mod_id
+    zip_path = shutil.make_archive(
+        os.path.join(settings.temp_dir_base, job_id, zip_filename),
+        "zip",
+        root_dir=os.path.dirname(project_dir),
+        base_dir=os.path.basename(project_dir),
+    )
 
-        if result.success:
-            jar_url = await upload_file(job_id, result.jar_path, "%s-1.0.0.jar" % spec.mod_id)
-            await update_job(
-                job_id,
-                status="complete",
-                progress_message="Mod built successfully!",
-                jar_file_url=jar_url,
-                jar_file_path=result.jar_path,
-            )
-            logger.info("Job %s completed on iteration %d" % (job_id, iteration))
-            return
-
-        if iteration < max_iterations:
-            await update_job(
-                job_id,
-                status="fixing",
-                progress_message="Fixing compilation errors (attempt %d/%d)..." % (iteration, max_iterations),
-            )
-            fixed_files = await fix_compilation_errors(
-                project_dir, result.output, generated_files, spec.mod_id,
-                model_preference=model_preference,
-            )
-            generated_files.update(fixed_files)
-            await update_job(job_id, generated_files=generated_files)
-
-    error_summary = result.output[-2000:] if result.output else "Unknown build error"
+    # Step 5: Upload
+    zip_url = await upload_file(job_id, zip_path, "%s-forge-project.zip" % spec.mod_id)
     await update_job(
         job_id,
-        status="failed",
-        progress_message="Could not compile mod after all attempts",
-        error=error_summary,
+        status="complete",
+        progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project... Done\nCrafting textures... Done\nPackaging project... Done",
+        jar_file_url=zip_url,
+        jar_file_path=zip_path,
+        texture_previews=previews,
     )
+    logger.info("Java job %s completed (ZIP packaged)" % job_id)
 
 
 async def run_edit_loop(job_id: str, edit_description: str):
@@ -209,8 +192,9 @@ async def run_edit_loop(job_id: str, edit_description: str):
 
             build_dir = create_build_dir(job_id)
             await generate_all_textures(spec, build_dir, edition="bedrock")
+            previews = collect_texture_previews(spec, build_dir, edition="bedrock")
 
-            await update_job(job_id, status="compiling",
+            await update_job(job_id, status="packaging",
                 progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files...")
 
             mcaddon_path = assemble_bedrock_addon(job_id, spec, new_files)
@@ -219,32 +203,31 @@ async def run_edit_loop(job_id: str, edit_description: str):
                 job_id, status="complete",
                 progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files... Done",
                 jar_file_url=addon_url,
+                texture_previews=previews,
             )
         else:
             await update_job(job_id, generated_files=new_files,
-                           progress_message="Rebuilding mod...")
+                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod...")
             project_dir = assemble_mod(job_id, spec, new_files)
 
-            max_iterations = settings.max_fix_iterations
-            for iteration in range(1, max_iterations + 1):
-                await update_job(job_id, status="compiling", iteration=iteration,
-                               progress_message="Compiling edited mod (attempt %d/%d)..." % (iteration, max_iterations))
-                result = await compile_mod(project_dir)
-                if result.success:
-                    jar_url = await upload_file(job_id, result.jar_path, "%s-1.0.0.jar" % spec.mod_id)
-                    await update_job(job_id, status="complete",
-                                   progress_message="Edited mod built!",
-                                   jar_file_url=jar_url)
-                    return
-                if iteration < max_iterations:
-                    await update_job(job_id, status="fixing",
-                                   progress_message="Fixing errors (attempt %d/%d)..." % (iteration, max_iterations))
-                    fixed = await fix_compilation_errors(project_dir, result.output, new_files, spec.mod_id, model_preference=model_preference)
-                    new_files.update(fixed)
+            await update_job(job_id, progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures...")
+            await generate_all_textures(spec, project_dir, edition="java")
+            previews = collect_texture_previews(spec, project_dir, edition="java")
 
-            await update_job(job_id, status="failed",
-                           progress_message="Could not compile after edits",
-                           error=result.output[-2000:])
+            await update_job(job_id, status="packaging",
+                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project...")
+            zip_filename = "%s-forge-project" % spec.mod_id
+            zip_path = shutil.make_archive(
+                os.path.join(settings.temp_dir_base, job_id, zip_filename),
+                "zip",
+                root_dir=os.path.dirname(project_dir),
+                base_dir=os.path.basename(project_dir),
+            )
+            zip_url = await upload_file(job_id, zip_path, "%s-forge-project.zip" % spec.mod_id)
+            await update_job(job_id, status="complete",
+                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project... Done",
+                           jar_file_url=zip_url,
+                           texture_previews=previews)
 
     except Exception as e:
         logger.exception("Edit loop error for job %s" % job_id)

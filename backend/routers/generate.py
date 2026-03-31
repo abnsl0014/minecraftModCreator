@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse, Response
 
-from models import GenerateRequest, EditRequest, JobStatus
+from models import GenerateRequest, EditRequest, JobStatus, TexturePreviews
 from services.job_manager import create_job, get_job
 from services.agent_loop import run_agent_loop, run_edit_loop
 from utils.auth import require_auth
@@ -19,8 +19,8 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
     if request.edition not in ("java", "bedrock"):
         raise HTTPException(status_code=400, detail="Edition must be 'java' or 'bedrock'")
 
-    # Deduct tokens: 1 for Bedrock, 2 for Java
-    token_cost = 2 if request.edition == "java" else 1
+    # Deduct tokens: 1 per generation (no server-side compilation)
+    token_cost = 1
     await deduct_tokens(user_id, token_cost, "mod_generation")
 
     job_id = await create_job(
@@ -43,12 +43,13 @@ async def get_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    tex = job.get("texture_previews")
+    texture_previews = TexturePreviews(**tex) if tex else None
+
     return JobStatus(
         job_id=job["id"],
         status=job["status"],
         progress_message=job["progress_message"] or "",
-        iteration=job["iteration"] or 0,
-        max_iterations=job["max_iterations"] or 3,
         download_ready=job["status"] == "complete",
         jar_url=job.get("jar_file_url"),
         error=job.get("error"),
@@ -56,6 +57,7 @@ async def get_status(job_id: str):
         can_edit=job["status"] in ("complete", "failed") and bool(job.get("generated_files")),
         mod_id=job.get("mod_id"),
         model_used=job.get("model_used", "gpt-oss-120b"),
+        texture_previews=texture_previews,
     )
 
 
@@ -92,7 +94,7 @@ async def download_mod(job_id: str):
     # Build a proper filename
     mod_id = job.get("mod_id") or "mod"
     edition = job.get("edition", "java")
-    ext = ".mcaddon" if edition == "bedrock" else "-1.0.0.jar"
+    ext = ".mcaddon" if edition == "bedrock" else "-forge-project.zip"
     filename = "%s%s" % (mod_id, ext)
 
     # Redirect to Supabase URL with content-disposition header hint

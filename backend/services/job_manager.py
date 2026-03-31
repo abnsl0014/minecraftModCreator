@@ -39,21 +39,19 @@ async def update_job(
     job_id: str,
     status: Optional[str] = None,
     progress_message: Optional[str] = None,
-    iteration: Optional[int] = None,
     mod_id: Optional[str] = None,
     mod_spec: Optional[dict] = None,
     jar_file_path: Optional[str] = None,
     jar_file_url: Optional[str] = None,
     error: Optional[str] = None,
     generated_files: Optional[dict] = None,
+    texture_previews: Optional[dict] = None,
 ):
     data = {}
     if status is not None:
         data["status"] = status
     if progress_message is not None:
         data["progress_message"] = progress_message
-    if iteration is not None:
-        data["iteration"] = iteration
     if mod_id is not None:
         data["mod_id"] = mod_id
     if mod_spec is not None:
@@ -66,6 +64,8 @@ async def update_job(
         data["error"] = error
     if generated_files is not None:
         data["generated_files"] = generated_files
+    if texture_previews is not None:
+        data["texture_previews"] = texture_previews
 
     if data:
         supabase.table("jobs").update(data).eq("id", job_id).execute()

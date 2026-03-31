@@ -122,12 +122,22 @@ class ModSpec(BaseModel):
     blocks: List[BlockSpec] = []
 
 
+class TexturePreviewItem(BaseModel):
+    name: str
+    registry_name: str
+    type: str
+    texture: str  # base64 data URL
+
+
+class TexturePreviews(BaseModel):
+    items: List[TexturePreviewItem] = []
+    blocks: List[TexturePreviewItem] = []
+
+
 class JobStatus(BaseModel):
     job_id: str
-    status: str
+    status: str  # queued, parsing, generating, packaging, complete, failed
     progress_message: str
-    iteration: int = 0
-    max_iterations: int = 3
     download_ready: bool = False
     jar_url: Optional[str] = None
     error: Optional[str] = None
@@ -135,3 +145,4 @@ class JobStatus(BaseModel):
     can_edit: bool = False
     mod_id: Optional[str] = None
     model_used: str = "gpt-oss-120b"
+    texture_previews: Optional[TexturePreviews] = None
