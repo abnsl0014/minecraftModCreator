@@ -11,12 +11,22 @@ async function authHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+export interface TexturePreviewItem {
+  name: string;
+  registry_name: string;
+  type: string;
+  texture: string; // base64 data URL
+}
+
+export interface TexturePreviews {
+  items: TexturePreviewItem[];
+  blocks: TexturePreviewItem[];
+}
+
 export interface JobStatus {
   job_id: string;
-  status: "queued" | "parsing" | "generating" | "compiling" | "fixing" | "complete" | "failed";
+  status: "queued" | "parsing" | "generating" | "packaging" | "complete" | "failed";
   progress_message: string;
-  iteration: number;
-  max_iterations: number;
   download_ready: boolean;
   jar_url: string | null;
   error: string | null;
@@ -24,6 +34,7 @@ export interface JobStatus {
   can_edit: boolean;
   mod_id: string | null;
   model_used: string;
+  texture_previews: TexturePreviews | null;
 }
 
 export interface CustomTexture {
@@ -139,6 +150,8 @@ export interface UserProfile {
   token_balance: number;
   tier: string;
   created_at?: string;
+  subscription_status?: string;
+  billing_period?: string | null;
 }
 
 export interface TokenTransaction {
@@ -211,6 +224,51 @@ export async function getMyMods(
   if (!res.ok) {
     if (res.status === 401) throw new Error("Please sign in to view your mods");
     throw new Error("Failed to fetch your mods");
+  }
+  return res.json();
+}
+
+// ---- Subscription APIs ----
+
+export interface SubscriptionStatus {
+  tier: string;
+  subscription_status: string;
+  billing_period: string | null;
+  subscription_expires_at: string | null;
+}
+
+export async function createCheckoutSession(
+  plan: string,
+  returnUrl?: string,
+): Promise<{ checkout_url: string; session_id: string }> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/checkout`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ plan, return_url: returnUrl }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Checkout failed" }));
+    throw new Error(typeof err.detail === "string" ? err.detail : "Checkout failed");
+  }
+  return res.json();
+}
+
+export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/status`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch subscription status");
+  return res.json();
+}
+
+export async function cancelSubscription(): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/cancel`, {
+    method: "POST",
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Cancel failed" }));
+    throw new Error(typeof err.detail === "string" ? err.detail : "Cancel failed");
   }
   return res.json();
 }
