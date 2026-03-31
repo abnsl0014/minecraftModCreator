@@ -7,11 +7,109 @@ import { searchExternalMods, ExternalMod } from "@/lib/api";
 
 const FONT = { fontFamily: "var(--font-pixel), monospace" } as const;
 
+function ModDetailModal({ mod, onClose }: { mod: ExternalMod | null; onClose: () => void }) {
+  if (!mod) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}>
+      <div className="mc-panel w-full max-w-[500px] max-h-[80vh] overflow-y-auto p-0 relative"
+        onClick={e => e.stopPropagation()}
+        style={{ scrollbarWidth: "thin", scrollbarColor: "#3d3d3d #111" }}>
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 border-b-[3px]" style={{ borderColor: "#3d3d3d" }}>
+          <div className="flex gap-4 items-start">
+            {mod.icon_url ? (
+              <img src={mod.icon_url} alt={mod.name}
+                className="w-16 h-16 rounded object-cover shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded bg-[#1a1a1a] flex items-center justify-center text-[#555] text-[20px] shrink-0">?</div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[14px] text-[#d4a017] mb-1" style={FONT}>{mod.name}</h2>
+              <p className="text-[9px] text-[#808080]" style={FONT}>by {mod.author}</p>
+              <div className="flex gap-3 mt-2 text-[8px]" style={FONT}>
+                <span className="text-[#55ff55]">
+                  {mod.downloads >= 1000 ? `${(mod.downloads / 1000).toFixed(1)}k` : mod.downloads} downloads
+                </span>
+                <span className="text-[#808080]">{mod.follows} follows</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-4">
+          <div>
+            <h3 className="text-[9px] text-[#808080] mb-2" style={FONT}>Description</h3>
+            <p className="text-[10px] text-[#c0c0c0] leading-relaxed" style={FONT}>{mod.description}</p>
+          </div>
+
+          {mod.categories.length > 0 && (
+            <div>
+              <h3 className="text-[9px] text-[#808080] mb-2" style={FONT}>Categories</h3>
+              <div className="flex flex-wrap gap-2">
+                {mod.categories.map(cat => (
+                  <span key={cat} className="text-[8px] text-[#d4a017] px-2 py-1 bg-[#1a1a1a] rounded" style={FONT}>{cat}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {mod.game_versions.length > 0 && (
+            <div>
+              <h3 className="text-[9px] text-[#808080] mb-2" style={FONT}>Game Versions</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {mod.game_versions.slice(0, 10).map(v => (
+                  <span key={v} className="text-[7px] text-[#55ff55] px-1.5 py-0.5 border border-[#55ff55]/30 rounded" style={FONT}>{v}</span>
+                ))}
+                {mod.game_versions.length > 10 && (
+                  <span className="text-[7px] text-[#555]" style={FONT}>+{mod.game_versions.length - 10} more</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 pt-2">
+            <span className="text-[7px] text-[#555] px-2 py-0.5 bg-[#1a1a1a] rounded" style={FONT}>
+              {mod.source}
+            </span>
+            {mod.updated_at && (
+              <span className="text-[7px] text-[#555]" style={FONT}>
+                Updated: {new Date(mod.updated_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t-[3px] flex gap-2" style={{ borderColor: "#3d3d3d" }}>
+          <a href={mod.url} target="_blank" rel="noopener noreferrer"
+            className="mc-btn flex-1 py-2.5 text-[9px] text-center" style={FONT}>
+            Open on Modrinth
+          </a>
+          <button onClick={onClose}
+            className="mc-btn px-4 py-2.5 text-[9px] text-[#808080]" style={FONT}>
+            Close
+          </button>
+        </div>
+
+        {/* Close X */}
+        <button onClick={onClose}
+          className="absolute top-3 right-3 text-[#808080] hover:text-[#c0c0c0] text-[14px]"
+          style={{ ...FONT, transition: "none" }}>
+          x
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketplacePage() {
   const [query, setQuery] = useState("");
   const [mods, setMods] = useState<ExternalMod[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
+  const [selectedMod, setSelectedMod] = useState<ExternalMod | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,12 +193,10 @@ export default function MarketplacePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mods.map(mod => (
-              <a
+              <button
                 key={mod.id}
-                href={mod.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mc-panel p-4 hover:border-[#d4a017] block"
+                onClick={() => setSelectedMod(mod)}
+                className="mc-panel p-4 hover:border-[#d4a017] block text-left w-full"
                 style={{ transition: "none" }}
               >
                 <div className="flex gap-3 mb-3">
@@ -148,13 +244,15 @@ export default function MarketplacePage() {
                     modrinth
                   </span>
                   <span className="text-[7px] text-[#808080]" style={FONT}>
-                    View on Modrinth &#8594;
+                    View Details &#8594;
                   </span>
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         )}
+
+        <ModDetailModal mod={selectedMod} onClose={() => setSelectedMod(null)} />
       </div>
     </main>
   );

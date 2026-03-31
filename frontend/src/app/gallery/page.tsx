@@ -132,20 +132,20 @@ export default function ExplorePage() {
   const featuredMods = allMods.filter(m => m.featured);
 
   return (
-    <main className="min-h-screen px-4 py-8 pt-20">
+    <main className="min-h-screen px-3 sm:px-4 py-6 pt-18 sm:pt-20">
       <Header />
       <div className="max-w-6xl mx-auto">
 
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-[#808080] hover:text-white" style={{ transition: "none" }}>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/" className="text-[#808080] hover:text-white shrink-0" style={{ transition: "none" }}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </Link>
-            <div>
-              <h1 className="text-[16px] text-[#d4a017]"
+            <div className="min-w-0">
+              <h1 className="text-[14px] sm:text-[16px] text-[#d4a017] truncate"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}>
                 Explore Mods
               </h1>
@@ -155,13 +155,13 @@ export default function ExplorePage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setShowSubmit(true)}
-              className="mc-btn px-4 py-2 text-[9px] flex items-center gap-2">
-              + Submit Your Mod
+              className="mc-btn px-3 py-2 text-[8px] sm:text-[9px] flex items-center gap-1">
+              <span className="hidden sm:inline">+</span> Submit
             </button>
             <Link href="/gallery/admin"
-              className="mc-btn px-3 py-2 text-[9px]"
+              className="mc-btn px-2 sm:px-3 py-2 text-[8px] sm:text-[9px]"
               style={{ color: "#808080" }}>
               Admin
             </Link>
@@ -169,7 +169,7 @@ export default function ExplorePage() {
         </div>
 
         {/* Tabs: Explore / Featured / Community */}
-        <div className="flex items-center gap-0 mb-6 mc-panel p-1 w-fit">
+        <div className="flex items-center gap-0 mb-4 mc-panel p-1 overflow-x-auto w-full sm:w-fit" style={{ scrollbarWidth: "none" }}>
           {([
             { key: "explore" as Tab, label: "Explore" },
             { key: "featured" as Tab, label: "Featured" },
@@ -178,7 +178,7 @@ export default function ExplorePage() {
           ]).map(t => (
             <button key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 text-[9px] ${
+              className={`px-3 sm:px-4 py-2 text-[9px] whitespace-nowrap shrink-0 ${
                 tab === t.key
                   ? "bg-[#3d3d3d] text-[#d4a017]"
                   : "text-[#555] hover:text-[#808080]"
@@ -211,60 +211,57 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Filters row */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          {/* Search */}
-          <div className="mc-panel-inset flex items-center flex-1 min-w-[200px] max-w-[300px]">
-            <span className="pl-3 text-[#555] text-[10px]">🔍</span>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search mods..."
-              className="flex-1 px-2 py-2 text-[9px] text-[#c0c0c0] bg-transparent focus:outline-none"
-              style={{ fontFamily: "var(--font-pixel), monospace" }} />
-          </div>
+        {/* Search */}
+        <div className="mc-panel-inset flex items-center mb-3">
+          <span className="pl-3 text-[#555] text-[10px]">🔍</span>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search mods..."
+            className="flex-1 px-2 py-2 text-[9px] text-[#c0c0c0] bg-transparent focus:outline-none"
+            style={{ fontFamily: "var(--font-pixel), monospace" }} />
+        </div>
 
-          {/* Category filter */}
-          <div className="flex mc-panel p-1">
-            <button
-              onClick={() => setCategory("all")}
-              className={`px-2.5 py-1.5 text-[8px] ${
-                category === "all" ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
+        {/* Category filter */}
+        <div className="flex overflow-x-auto mc-panel p-1 mb-3" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+          <button
+            onClick={() => setCategory("all")}
+            className={`px-2.5 py-1.5 text-[8px] shrink-0 whitespace-nowrap ${
+              category === "all" ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
+            }`}
+            style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
+            All
+          </button>
+          {(Object.entries(CATEGORY_CONFIG) as [ExploreMod["category"], typeof CATEGORY_CONFIG[keyof typeof CATEGORY_CONFIG]][]).map(([key, config]) => (
+            <button key={key}
+              onClick={() => setCategory(key)}
+              className={`px-2.5 py-1.5 text-[8px] shrink-0 whitespace-nowrap ${
+                category === key ? "bg-[#3d3d3d]" : "hover:text-[#808080]"
+              }`}
+              style={{
+                fontFamily: "var(--font-pixel), monospace",
+                transition: "none",
+                color: category === key ? config.color : "#555",
+              }}>
+              <PixelEmoji emoji={config.icon} size={14} resolution={7} /> {config.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort */}
+        <div className="flex overflow-x-auto mc-panel p-1 mb-6" style={{ scrollbarWidth: "none" }}>
+          {([
+            { key: "popular" as SortKey, label: "Most Liked" },
+            { key: "downloads" as SortKey, label: "Most Downloaded" },
+            { key: "recent" as SortKey, label: "Recent" },
+          ]).map(s => (
+            <button key={s.key}
+              onClick={() => setSort(s.key)}
+              className={`px-2.5 py-1.5 text-[8px] shrink-0 whitespace-nowrap ${
+                sort === s.key ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
               }`}
               style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-              All
+              {s.label}
             </button>
-            {(Object.entries(CATEGORY_CONFIG) as [ExploreMod["category"], typeof CATEGORY_CONFIG[keyof typeof CATEGORY_CONFIG]][]).map(([key, config]) => (
-              <button key={key}
-                onClick={() => setCategory(key)}
-                className={`px-2.5 py-1.5 text-[8px] ${
-                  category === key ? "bg-[#3d3d3d]" : "hover:text-[#808080]"
-                }`}
-                style={{
-                  fontFamily: "var(--font-pixel), monospace",
-                  transition: "none",
-                  color: category === key ? config.color : "#555",
-                }}>
-                <PixelEmoji emoji={config.icon} size={14} resolution={7} /> {config.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort */}
-          <div className="flex mc-panel p-1">
-            {([
-              { key: "popular" as SortKey, label: "Most Liked" },
-              { key: "downloads" as SortKey, label: "Most Downloaded" },
-              { key: "recent" as SortKey, label: "Recent" },
-            ]).map(s => (
-              <button key={s.key}
-                onClick={() => setSort(s.key)}
-                className={`px-2.5 py-1.5 text-[8px] ${
-                  sort === s.key ? "bg-[#3d3d3d] text-white" : "text-[#555] hover:text-[#808080]"
-                }`}
-                style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
         <AdBanner slot="gallery-feed" className="my-4" />

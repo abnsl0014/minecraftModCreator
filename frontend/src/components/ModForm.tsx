@@ -334,7 +334,7 @@ export default function ModForm() {
             </svg>
             Java Edition
           </span>
-          <span className="block text-xs opacity-50">.jar (Desktop)</span>
+          <span className="block text-xs opacity-50">.zip Project (Desktop)</span>
           <span className="absolute -top-2 -right-2 bg-yellow-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">
             SOON
           </span>

@@ -8,12 +8,12 @@ export default function DownloadButton({ status }: { status: JobStatus }) {
   if (!status.download_ready || !status.jar_url) return null;
 
   const isBedrock = status.edition === "bedrock";
-  const fileType = isBedrock ? ".mcaddon" : ".jar";
+  const fileType = isBedrock ? ".mcaddon" : ".zip";
   const installHint = isBedrock
     ? "Open this file on your device to import into Minecraft"
-    : "Place this file in your Minecraft Forge mods/ folder";
+    : "Extract the ZIP and run ./gradlew build to compile your mod";
 
-  const filename = `${status.mod_id || "mod"}${isBedrock ? ".mcaddon" : "-1.0.0.jar"}`;
+  const filename = `${status.mod_id || "mod"}${isBedrock ? ".mcaddon" : "-forge-project.zip"}`;
 
   const handleDownload = async () => {
     try {
@@ -53,7 +53,7 @@ export default function DownloadButton({ status }: { status: JobStatus }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
-        Download {fileType}
+        Download {isBedrock ? ".mcaddon" : "Project"} {fileType}
       </button>
 
       <p className="text-[8px] text-[#808080]" style={FONT}>{installHint}</p>

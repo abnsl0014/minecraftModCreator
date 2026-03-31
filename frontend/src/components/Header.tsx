@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { getUserProfile } from "@/lib/api";
 
 const NAV_LINKS = [
   { href: "/gallery", label: "Explore" },
@@ -16,6 +18,28 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const loggedIn = !!data.session;
+      setAuthed(loggedIn);
+      if (loggedIn) {
+        getUserProfile().then(p => setTokenBalance(p.token_balance)).catch(() => {});
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const loggedIn = !!session;
+      setAuthed(loggedIn);
+      if (loggedIn) {
+        getUserProfile().then(p => setTokenBalance(p.token_balance)).catch(() => {});
+      } else {
+        setTokenBalance(null);
+      }
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   function isActive(href: string) {
     if (href === "/gallery") return pathname === "/gallery";
@@ -57,10 +81,19 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          <a href="#hero-prompt"
-            className="mc-btn text-[10px] px-3 py-1.5">
-            Get Started
-          </a>
+          {authed && tokenBalance !== null ? (
+            <Link href="/pricing"
+              className="mc-btn text-[10px] px-3 py-1.5 flex items-center gap-2"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              <span className="text-[#d4a017]">{tokenBalance}</span>
+              <span className="text-[#808080]">tokens</span>
+            </Link>
+          ) : (
+            <a href="#hero-prompt"
+              className="mc-btn text-[10px] px-3 py-1.5">
+              Get Started
+            </a>
+          )}
         </nav>
 
         <button
@@ -91,10 +124,19 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          <a href="#hero-prompt" onClick={() => setMenuOpen(false)}
-            className="mc-btn text-[10px] px-3 py-1.5 text-center">
-            Get Started
-          </a>
+          {authed && tokenBalance !== null ? (
+            <Link href="/pricing" onClick={() => setMenuOpen(false)}
+              className="mc-btn text-[10px] px-3 py-1.5 text-center flex items-center justify-center gap-2"
+              style={{ fontFamily: "var(--font-pixel), monospace" }}>
+              <span className="text-[#d4a017]">{tokenBalance}</span>
+              <span className="text-[#808080]">tokens</span>
+            </Link>
+          ) : (
+            <a href="#hero-prompt" onClick={() => setMenuOpen(false)}
+              className="mc-btn text-[10px] px-3 py-1.5 text-center">
+              Get Started
+            </a>
+          )}
         </div>
       )}
     </header>

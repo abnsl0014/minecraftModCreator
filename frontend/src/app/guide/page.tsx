@@ -31,27 +31,31 @@ const GUIDES: Record<Tab, { title: string; steps: { title: string; detail: strin
     ],
   },
   "java-forge": {
-    title: "Java Edition — Forge (.jar)",
+    title: "Java Edition — Forge (Build from Source)",
     steps: [
       {
-        title: "1. Install Java 17",
-        detail: "Download and install Java 17 (JDK) from adoptium.net if you don't have it. Minecraft 1.20.1 requires Java 17.",
+        title: "1. Install Java 17 (JDK)",
+        detail: "Download and install Java 17 (JDK) from adoptium.net. This is required to compile your mod.\n\nWindows: Download the .msi installer for Windows x64\nmacOS: Download the .pkg installer\nLinux: sudo apt install openjdk-17-jdk",
       },
       {
-        title: "2. Install Minecraft Forge",
+        title: "2. Extract the downloaded ZIP",
+        detail: "Your mod downloads as a .zip file containing a complete Forge project. Extract it to any folder.\n\nWindows: Right-click → Extract All\nmacOS: Double-click the .zip\nLinux: unzip filename.zip",
+      },
+      {
+        title: "3. Build the mod",
+        detail: "Open a terminal/command prompt in the extracted folder and run:\n\nWindows: gradlew.bat build\nmacOS/Linux: ./gradlew build\n\nThe first build will download Forge dependencies (~2-3 minutes). Subsequent builds are much faster.",
+      },
+      {
+        title: "4. Find your compiled .jar",
+        detail: "After a successful build, find your mod JAR at:\n\nbuild/libs/your_mod_id-1.0.0.jar\n\nThis is the file you install in Minecraft.",
+      },
+      {
+        title: "5. Install Minecraft Forge",
         detail: "Go to files.minecraftforge.net and download the installer for Minecraft 1.20.1 (version 47.2.0). Run the installer and select \"Install Client\".",
       },
       {
-        title: "3. Find your mods folder",
-        detail: "Windows: Press Win+R, type %appdata%/.minecraft/mods and press Enter.\nmacOS: ~/Library/Application Support/minecraft/mods\nLinux: ~/.minecraft/mods\n\nCreate the \"mods\" folder if it doesn't exist.",
-      },
-      {
-        title: "4. Drop the .jar file",
-        detail: "Copy the downloaded .jar file from ModCrafter into the mods folder.",
-      },
-      {
-        title: "5. Launch with Forge",
-        detail: "Open the Minecraft Launcher. Select the \"Forge\" profile from the dropdown (bottom-left). Click Play. Your mod will be loaded automatically.",
+        title: "6. Install and play",
+        detail: "Copy the .jar from build/libs/ into your mods folder:\n\nWindows: %appdata%/.minecraft/mods\nmacOS: ~/Library/Application Support/minecraft/mods\nLinux: ~/.minecraft/mods\n\nLaunch Minecraft with the Forge 1.20.1 profile. Your mod is ready!",
       },
     ],
   },
