@@ -16,6 +16,9 @@ const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
   "Emerald armor with flight",
   "Food that gives night vision",
+  "Netherite pickaxe that mines 3x3",
+  "Glowing neon blocks in 8 colors",
+  "Golden apple with regeneration",
 ];
 
 export default function Home() {
@@ -25,6 +28,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showSignup, setShowSignup] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
@@ -38,21 +42,26 @@ export default function Home() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setAuthChecked(true);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthed(!!session);
+      setAuthChecked(true);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
   function handleInputInteraction() {
-    if (!authed) {
+    if (authChecked && !authed) {
       setShowSignup(true);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!authChecked) return;
     if (!authed) {
       setShowSignup(true);
       return;
@@ -127,6 +136,12 @@ export default function Home() {
             </button>
           </div>
 
+          {/* Token cost hint */}
+          <p className="text-[8px] text-[#555] mb-3"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}>
+            Cost: <span className="text-[#5555ff]">1 token</span> (Bedrock) · <span className="text-[#55ff55]">2 tokens</span> (Java) · <a href="/pricing" className="text-[#d4a017] hover:text-[#f0c040]" style={{ transition: "none" }}>View pricing →</a>
+          </p>
+
           {/* Prompt input */}
           <form onSubmit={handleSubmit} className="w-full max-w-[600px] mb-6" id="hero-prompt">
             <div className="mc-panel-inset flex items-center relative">
@@ -141,7 +156,7 @@ export default function Home() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onFocus={handleInputInteraction}
-                readOnly={loading || !authed}
+                readOnly={loading || (authChecked && !authed)}
                 className="flex-1 bg-transparent px-4 py-3 text-[10px] text-[#c0c0c0] focus:outline-none relative z-10"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}
               />
@@ -460,7 +475,7 @@ function ShowcaseCards() {
 function HowItWorksSection() {
   const steps = [
     { num: "1", title: "Describe Your Mod", desc: "Tell the AI what items, weapons, armor, or blocks you want. Be as creative as you like.", icon: "\u{1F4AC}" },
-    { num: "2", title: "AI Builds It", desc: "Textures, recipes, behaviors, and pack files are generated automatically. Java .jar or Bedrock .mcaddon.", icon: "\u2692" },
+    { num: "2", title: "AI Builds It", desc: "Textures, recipes, behaviors, and pack files are generated automatically. Java Forge project or Bedrock .mcaddon.", icon: "\u2692" },
     { num: "3", title: "Download & Play", desc: "Drop the file into your mods folder. Works with vanilla Minecraft — no other mods required.", icon: "\u{1F4E6}" },
   ];
 
@@ -544,7 +559,7 @@ function CapabilitiesSection() {
     { title: "Full Armor Sets", desc: "Custom protection, effects, and set bonuses", color: "#5555ff" },
     { title: "Custom Foods", desc: "Hunger restoration, potion effects, and special abilities", color: "#55ff55" },
     { title: "Placeable Blocks", desc: "Custom textures, hardness, drops, and behaviors", color: "#aa55ff" },
-    { title: "AI Companions", desc: "Summonable entities with custom AI, gadgets, and abilities", color: "#d4a017" },
+    { title: "Custom Skins", desc: "Player skins and texture packs for characters and mobs", color: "#d4a017" },
   ];
 
   return (

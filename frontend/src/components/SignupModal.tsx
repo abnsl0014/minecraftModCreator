@@ -45,7 +45,7 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${siteUrl}/gallery`,
+            emailRedirectTo: `${siteUrl}/auth/callback?next=/create`,
           },
         });
         if (signUpError) {
@@ -78,7 +78,7 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${siteUrl}/gallery`,
+          redirectTo: `${siteUrl}/auth/callback?next=/create`,
         },
       });
       if (oauthError) {
