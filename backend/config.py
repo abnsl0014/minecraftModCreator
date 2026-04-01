@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     dodo_product_basic_weekly: str = ""
     dodo_product_basic_monthly: str = ""
     dodo_product_unlimited_monthly: str = ""
+    earnings_per_download: int = 100  # paise (₹1 per download)
 
     class Config:
         env_file = ".env"

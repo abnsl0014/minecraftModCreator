@@ -146,3 +146,53 @@ class JobStatus(BaseModel):
     mod_id: Optional[str] = None
     model_used: str = "gpt-oss-120b"
     texture_previews: Optional[TexturePreviews] = None
+
+
+class SubmissionCreate(BaseModel):
+    title: str
+    description: str
+    edition: str = "bedrock"
+    category: str = "weapon"
+    tags: List[str] = []
+    video_url: Optional[str] = None
+    crafting_recipe: Optional[dict] = None
+    survival_guide: Optional[str] = None
+    job_id: Optional[str] = None  # link to AI-generated mod
+
+
+class SubmissionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    edition: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    video_url: Optional[str] = None
+    crafting_recipe: Optional[dict] = None
+    survival_guide: Optional[str] = None
+
+
+class SubmissionResponse(BaseModel):
+    id: str
+    user_id: str
+    job_id: Optional[str] = None
+    title: str
+    description: str
+    edition: str
+    category: str
+    tags: List[str] = []
+    screenshots: List[str] = []
+    video_url: Optional[str] = None
+    download_url: str
+    crafting_recipe: Optional[dict] = None
+    survival_guide: Optional[str] = None
+    status: str
+    rejection_reason: Optional[str] = None
+    download_count: int = 0
+    featured: bool = False
+    created_at: str
+    updated_at: str
+    author_name: Optional[str] = None  # joined from user_profiles.display_name
+
+
+class AdminRejectRequest(BaseModel):
+    reason: str
