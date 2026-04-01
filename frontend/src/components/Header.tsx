@@ -20,22 +20,30 @@ export default function Header() {
   const pathname = usePathname();
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   const [authed, setAuthed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const loggedIn = !!data.session;
       setAuthed(loggedIn);
       if (loggedIn) {
-        getUserProfile().then(p => setTokenBalance(p.token_balance)).catch(() => {});
+        getUserProfile().then(p => {
+          setTokenBalance(p.token_balance);
+          setIsAdmin(!!p.is_admin);
+        }).catch(() => {});
       }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const loggedIn = !!session;
       setAuthed(loggedIn);
       if (loggedIn) {
-        getUserProfile().then(p => setTokenBalance(p.token_balance)).catch(() => {});
+        getUserProfile().then(p => {
+          setTokenBalance(p.token_balance);
+          setIsAdmin(!!p.is_admin);
+        }).catch(() => {});
       } else {
         setTokenBalance(null);
+        setIsAdmin(false);
       }
     });
     return () => listener.subscription.unsubscribe();
@@ -81,6 +89,24 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+          {authed && (
+            <Link
+              href="/gallery/my-submissions"
+              className={`text-[10px] ${isActive("/gallery/my-submissions") ? "text-[#d4a017]" : "text-[#808080] hover:text-[#c0c0c0]"}`}
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+            >
+              My Submissions
+            </Link>
+          )}
+          {authed && isAdmin && (
+            <Link
+              href="/gallery/admin"
+              className={`text-[10px] ${isActive("/gallery/admin") ? "text-[#d4a017]" : "text-[#808080] hover:text-[#c0c0c0]"}`}
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+            >
+              Admin
+            </Link>
+          )}
           {authed && tokenBalance !== null ? (
             <Link href="/pricing"
               className="mc-btn text-[10px] px-3 py-1.5 flex items-center gap-2"
@@ -124,6 +150,26 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+          {authed && (
+            <Link
+              href="/gallery/my-submissions"
+              onClick={() => setMenuOpen(false)}
+              className={`text-[10px] ${isActive("/gallery/my-submissions") ? "text-[#d4a017]" : "text-[#808080] hover:text-[#c0c0c0]"}`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              My Submissions
+            </Link>
+          )}
+          {authed && isAdmin && (
+            <Link
+              href="/gallery/admin"
+              onClick={() => setMenuOpen(false)}
+              className={`text-[10px] ${isActive("/gallery/admin") ? "text-[#d4a017]" : "text-[#808080] hover:text-[#c0c0c0]"}`}
+              style={{ fontFamily: "var(--font-pixel), monospace" }}
+            >
+              Admin
+            </Link>
+          )}
           {authed && tokenBalance !== null ? (
             <Link href="/pricing" onClick={() => setMenuOpen(false)}
               className="mc-btn text-[10px] px-3 py-1.5 text-center flex items-center justify-center gap-2"

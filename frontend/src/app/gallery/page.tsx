@@ -8,7 +8,7 @@ import ModDetailModal from "@/components/explore/ModDetailModal";
 import SubmitModModal from "@/components/explore/SubmitModModal";
 import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
-import { getGalleryMods, getMyMods, GalleryMod, MyMod } from "@/lib/api";
+import { getGalleryMods, getGalleryItems, getMyMods, GalleryMod, GalleryItem, MyMod } from "@/lib/api";
 import { isAuthenticated } from "@/lib/supabase";
 import AdBanner from "@/components/AdBanner";
 
@@ -16,26 +16,26 @@ type Tab = "explore" | "featured" | "community" | "my-mods";
 type CategoryFilter = "all" | ExploreMod["category"];
 type SortKey = "recent" | "popular" | "downloads";
 
-/** Map a GalleryMod from the API into the ExploreMod shape used by ModCard / ModDetailModal */
-function toExploreMod(g: GalleryMod): ExploreMod {
+/** Map a GalleryItem from the API into the ExploreMod shape used by ModCard / ModDetailModal */
+function toExploreMod(g: GalleryItem): ExploreMod {
   return {
     id: g.id,
     name: g.name,
     description: g.description,
     author: g.author,
-    edition: g.edition,
-    category: g.item_count > 0 ? "weapon" : g.block_count > 0 ? "block" : "tool",
-    thumbnail: null,
+    edition: g.edition as "java" | "bedrock",
+    category: (g.category || "tool") as ExploreMod["category"],
+    thumbnail: g.screenshots?.[0] || null,
     videoUrl: null,
-    screenshots: [],
+    screenshots: g.screenshots || [],
     craftingRecipe: Array(9).fill(null),
     survivalGuide: "",
-    downloads: 0,
+    downloads: g.download_count,
     likes: 0,
     status: "approved",
-    featured: false,
+    featured: g.featured,
     createdAt: g.created_at,
-    tags: [g.edition, g.model_used],
+    tags: g.tags || [],
     download_url: g.download_url,
   };
 }
@@ -48,7 +48,7 @@ export default function ExplorePage() {
   const [selectedMod, setSelectedMod] = useState<ExploreMod | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
 
-  const [mods, setMods] = useState<GalleryMod[]>([]);
+  const [mods, setMods] = useState<GalleryItem[]>([]);
   const [myMods, setMyMods] = useState<MyMod[]>([]);
   const [totalMods, setTotalMods] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export default function ExplorePage() {
           }
         } else {
           const editionParam = "all";
-          const data = await getGalleryMods(sort, editionParam);
+          const data = await getGalleryItems(sort, editionParam, category);
           if (!cancelled) {
             setMods(data.mods);
             setTotalMods(data.total);
@@ -87,7 +87,7 @@ export default function ExplorePage() {
     }
     fetchMods();
     return () => { cancelled = true; };
-  }, [sort, tab]);
+  }, [sort, tab, category]);
 
   const allMods = useMemo(() => mods.map(toExploreMod), [mods]);
 
@@ -160,11 +160,13 @@ export default function ExplorePage() {
               className="mc-btn px-3 py-2 text-[8px] sm:text-[9px] flex items-center gap-1">
               <span className="hidden sm:inline">+</span> Submit
             </button>
-            <Link href="/gallery/admin"
-              className="mc-btn px-2 sm:px-3 py-2 text-[8px] sm:text-[9px]"
-              style={{ color: "#808080" }}>
-              Admin
-            </Link>
+            {loggedIn && (
+              <Link href="/gallery/my-submissions"
+                className="mc-btn px-2 sm:px-3 py-2 text-[8px] sm:text-[9px]"
+                style={{ color: "#808080" }}>
+                My Submissions
+              </Link>
+            )}
           </div>
         </div>
 
