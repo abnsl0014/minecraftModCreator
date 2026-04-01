@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ModSubmission, CraftingSlot, CATEGORY_CONFIG, MATERIAL_ICONS, generateId, saveSubmission } from "@/lib/exploreData";
+import { ModSubmission, CraftingSlot, CATEGORY_CONFIG, MATERIAL_ICONS } from "@/lib/exploreData";
 
 interface SubmitModModalProps {
   open: boolean;
@@ -39,7 +39,7 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
 
   function handleSubmit() {
     const submission: ModSubmission = {
-      id: generateId(),
+      id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: name.trim(),
       description: description.trim(),
       author: author.trim() || "Anonymous",
@@ -54,7 +54,13 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
       status: "pending",
       submittedAt: new Date().toISOString(),
     };
-    saveSubmission(submission);
+    // Store locally until backend submission endpoint is wired up
+    try {
+      const key = "modcrafter_submissions";
+      const existing: ModSubmission[] = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.push(submission);
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch { /* ignore storage errors */ }
     setSubmitted(true);
     setTimeout(() => {
       onSubmitted();

@@ -40,6 +40,30 @@ function toExploreMod(g: GalleryItem): ExploreMod {
   };
 }
 
+/** Map a MyMod (AI-generated) into ExploreMod shape for display in My Mods tab */
+function myModToExploreMod(m: MyMod): ExploreMod {
+  return {
+    id: m.id,
+    name: m.name,
+    description: m.description,
+    author: m.author,
+    edition: m.edition as "java" | "bedrock",
+    category: "tool",
+    thumbnail: null,
+    videoUrl: null,
+    screenshots: [],
+    craftingRecipe: Array(9).fill(null),
+    survivalGuide: "",
+    downloads: 0,
+    likes: 0,
+    status: "approved",
+    featured: false,
+    createdAt: m.created_at,
+    tags: [],
+    download_url: m.download_url,
+  };
+}
+
 export default function ExplorePage() {
   const [tab, setTab] = useState<Tab>("explore");
   const [category, setCategory] = useState<CategoryFilter>("all");
@@ -293,7 +317,7 @@ export default function ExplorePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {myMods.map(mod => {
-                const exploreMod = toExploreMod(mod);
+                const exploreMod = myModToExploreMod(mod);
                 return (
                   <div key={mod.id} className="relative">
                     <div className={`absolute top-2 right-2 z-10 px-2 py-0.5 text-[7px] rounded ${

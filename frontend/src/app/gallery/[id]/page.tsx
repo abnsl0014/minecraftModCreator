@@ -6,7 +6,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import CraftingGrid from "@/components/explore/CraftingGrid";
 import { getSubmission, trackDownload, Submission } from "@/lib/api";
-import { CATEGORY_CONFIG } from "@/lib/exploreData";
+import { CATEGORY_CONFIG, CraftingSlot } from "@/lib/exploreData";
 
 function YouTubeEmbed({ url }: { url: string }) {
   const match = url.match(/(?:youtu\.be\/|v=|\/embed\/)([a-zA-Z0-9_-]{11})/);
@@ -166,7 +166,7 @@ export default function ModDetailPage() {
         {submission.crafting_recipe && (
           <div className="mc-panel p-4 mb-4">
             <h2 className="text-[10px] text-[#d4a017] mb-2" style={{ fontFamily: "var(--font-pixel), monospace" }}>Crafting Recipe</h2>
-            <CraftingGrid recipe={submission.crafting_recipe as (Record<string, string> | null)[]} />
+            <CraftingGrid recipe={submission.crafting_recipe as unknown as (CraftingSlot | null)[]} />
           </div>
         )}
 

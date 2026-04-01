@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -13,7 +13,7 @@ const STATUS_STYLES: Record<string, { label: string; color: string }> = {
   rejected: { label: "Rejected", color: "#ff5555" },
 };
 
-export default function MySubmissionsPage() {
+function MySubmissionsContent() {
   const searchParams = useSearchParams();
   const justSubmitted = searchParams.get("submitted") === "true";
 
@@ -155,5 +155,13 @@ export default function MySubmissionsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function MySubmissionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <MySubmissionsContent />
+    </Suspense>
   );
 }

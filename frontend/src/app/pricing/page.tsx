@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import {
@@ -126,7 +126,7 @@ const REASON_LABELS: Record<string, string> = {
   subscription_failed: "Sub Failed",
 };
 
-export default function PricingPage() {
+function PricingContent() {
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tokenHistory, setTokenHistory] = useState<TokenTransaction[]>([]);
@@ -238,7 +238,7 @@ export default function PricingPage() {
   return (
     <>
       <Header />
-      {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
+      {showSignup && <SignupModal open={showSignup} onClose={() => setShowSignup(false)} onSignup={() => setShowSignup(false)} />}
       <main className="min-h-screen pt-20 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
 
@@ -455,5 +455,13 @@ export default function PricingPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={null}>
+      <PricingContent />
+    </Suspense>
   );
 }
