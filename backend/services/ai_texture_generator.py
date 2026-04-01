@@ -100,6 +100,79 @@ Spears are drawn DIAGONALLY from bottom-left to top-right.
 - May have small decorative wrapping near the head
 - Background is fully transparent""",
 
+    "gun": """MINECRAFT GUN/RIFLE TEXTURE GUIDE:
+Guns in Minecraft style are drawn HORIZONTALLY (pointing right) or at a slight angle.
+- The barrel extends from center-left to the right edge, 1-2px tall, metallic gray or dark steel
+- The body/receiver in the center is a blocky rectangular shape (4-5px wide, 3-4px tall)
+- A magazine/clip extends downward from the body (2-3px)
+- The stock extends from the body to the left (3-4px), wooden brown (#8B6914) or dark polymer (#333333)
+- The trigger is a small 1px notch under the body
+- Use metallic shading: barrel highlight (#C0C0C0), body (#707070), shadow (#404040)
+- For colored guns, tint the metallic shades with the primary color
+- AK-47 style: wood stock + curved magazine. Sniper: long barrel. Pistol: compact, no stock
+- Background is fully transparent (#00000000)""",
+
+    "crossbow": """MINECRAFT CROSSBOW TEXTURE GUIDE:
+Crossbows are drawn with a horizontal bow piece and vertical stock.
+- The stock/body is vertical in the center, wooden brown (#8B6914, #6B4C12)
+- The bow limbs extend horizontally from the top of the stock, curving slightly
+- Bow limbs use darker wood or metallic colors (#5A4A3A or #808080)
+- A bowstring connects the tips of the limbs — thin 1px line (#E8E8E8)
+- The trigger mechanism is a small detail at the center where bow meets stock
+- An arrow/bolt may be loaded on top, pointing upward
+- Background is fully transparent (#00000000)""",
+
+    "gauntlet": """MINECRAFT GAUNTLET/FIST WEAPON TEXTURE GUIDE:
+Gauntlets are drawn as a glove/fist shape viewed from the side.
+- The main body is a fist shape: roughly 8-10px wide, 6-8px tall, centered
+- Finger shapes at the front (right side): 3-4 blocky knuckle bumps, each 2px
+- The wrist/cuff at the back (left side): slightly wider, decorative trim
+- Use metallic shading for armored gauntlets: highlight on knuckles, shadow underneath
+- For claws: add 3-4 sharp pointed pixels extending from the fingers (1-2px each)
+- Wolverine-style: metallic silver claws on dark gray/black gauntlet
+- Background is fully transparent (#00000000)""",
+
+    "throwable": """MINECRAFT THROWABLE ITEM TEXTURE GUIDE:
+Throwables are small, compact items centered in the 16x16 grid.
+- Shuriken: 4-pointed star shape, 8-10px across, metallic silver (#C0C0C0, #808080, #404040)
+- Grenade: small oval/round shape (6-8px), dark green (#2D4A1D) or gray, with a small pin/handle at top
+- Throwing knife: small diagonal blade (shorter than a sword), minimal handle
+- Bomb: round black sphere (#1A1A1A) with a fuse at the top (orange #FF8800 spark)
+- Dynamite: red cylinder (#CC0000) with a white fuse line and spark
+- Center the item in the grid — throwables are smaller than full weapons
+- Background is fully transparent (#00000000)""",
+
+    "shield": """MINECRAFT SHIELD TEXTURE GUIDE:
+Shields are drawn as a front-facing shield shape.
+- Classic shape: rounded top, pointed or flat bottom, roughly 10-12px wide, 12-14px tall
+- Outer border/rim: 1-2px darker shade for the frame
+- Inner face: primary color with a centered emblem or cross design
+- Add metallic rivets (bright highlight dots) at corners or edges
+- Center line or cross pattern for decoration
+- Handle straps on the back are NOT visible (front view only)
+- Use heraldic colors: bold reds, blues, golds with contrasting trim
+- Background is fully transparent (#00000000)""",
+
+    "whip": """MINECRAFT WHIP TEXTURE GUIDE:
+Whips are drawn as a long curving line from bottom-left to top-right.
+- The handle at bottom-left: short thick grip (2-3px), leather brown (#6B4C12, #4A3409)
+- The whip body curves upward and to the right in an S or C shape
+- The whip is 1px wide, using leather brown or dark tones
+- The tip at the top-right may have a small frayed end or metal tip (bright highlight)
+- The curve should feel dynamic and flowing — not a straight line
+- For chain whips: use metallic gray (#808080) with individual link details
+- Background is fully transparent (#00000000)""",
+
+    "nuke": """MINECRAFT NUKE/EXPLOSIVE TEXTURE GUIDE:
+Nukes and super-weapons are drawn as large, imposing items.
+- Missile/nuke: vertical rocket shape, pointed top, fins at bottom, dark military colors
+- TNT cannon: blocky TNT-like shape with red (#CC0000) and white text markings
+- Orbital strike device: futuristic rod with glowing energy core (bright cyan/yellow center)
+- Use warning colors: red + black stripes, yellow hazard, bright glowing accents
+- Add a bright glow pixel (white or yellow) to suggest energy/power
+- Make it look dangerous and powerful — heavy use of dark colors with bright accent
+- Background is fully transparent (#00000000)""",
+
     "pickaxe": """MINECRAFT PICKAXE TEXTURE GUIDE:
 Pickaxes are drawn DIAGONALLY from bottom-left to top-right.
 - The pickaxe head is at the top-right: a T-shaped or curved pick head

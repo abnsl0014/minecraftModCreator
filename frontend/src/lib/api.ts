@@ -481,3 +481,24 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile> {
   if (!res.ok) throw new Error("Profile not found");
   return res.json();
 }
+
+// ---- Skin Generation API ----
+
+export interface SkinResult {
+  skin_id: string;
+  texture: string; // base64 data URL of 64x64 PNG
+  description: string;
+}
+
+export async function generateSkin(
+  description: string,
+  model: string = "gpt-oss-120b",
+): Promise<SkinResult> {
+  const res = await fetch(`${API_BASE}/api/skins/generate`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ description, model }),
+  });
+  if (!res.ok) throw new Error("Skin generation failed");
+  return res.json();
+}

@@ -313,7 +313,152 @@ Rules:
 - NEVER create mobs or entities
 - If the prompt is VAGUE (like "make me something cool" or "surprise me"), create a cool themed set:
   a powerful weapon with on-hit effects, an armor piece with effects, and a special food item.
-  Use creative names and interesting effects. Don't return empty — ALWAYS create at least 1 item."""
+  Use creative names and interesting effects. Don't return empty — ALWAYS create at least 1 item.
+
+=== FEW-SHOT EXAMPLES ===
+
+Example 1 — User says: "AK-47 with fire bullets"
+Output:
+{
+  "mod_id": "ak47_fire",
+  "mod_name": "AK-47 Fire Edition",
+  "mod_description": "A rapid-fire assault rifle that shoots flaming projectiles",
+  "items": [
+    {
+      "registry_name": "ak47_fire",
+      "display_name": "AK-47 Fire Edition",
+      "item_type": "weapon",
+      "weapon_type": "gun",
+      "damage": 12.0,
+      "attack_speed": "fast",
+      "durability": 800,
+      "on_hit_effects": ["fire"],
+      "special_ability": "Shoots a fireball on right-click",
+      "cooldown": 2,
+      "color": "#8B4513",
+      "material": "iron",
+      "glowing": false,
+      "rarity": "rare",
+      "fire_resistant": false,
+      "hover_text_color": "red"
+    }
+  ],
+  "blocks": []
+}
+
+Example 2 — User says: "diamond knight armor set with speed and night vision"
+Output:
+{
+  "mod_id": "diamond_knight",
+  "mod_name": "Diamond Knight Armor",
+  "mod_description": "A full set of enchanted diamond knight armor with speed and night vision",
+  "items": [
+    {
+      "registry_name": "diamond_knight_helmet",
+      "display_name": "Diamond Knight Helmet",
+      "item_type": "armor",
+      "armor_slot": "helmet",
+      "defense": 4,
+      "toughness": 3.0,
+      "durability": 600,
+      "knockback_resistance": 0.1,
+      "armor_effects": ["night_vision"],
+      "color": "#6CECEC",
+      "material": "diamond",
+      "glowing": true,
+      "rarity": "epic"
+    },
+    {
+      "registry_name": "diamond_knight_chestplate",
+      "display_name": "Diamond Knight Chestplate",
+      "item_type": "armor",
+      "armor_slot": "chestplate",
+      "defense": 10,
+      "toughness": 3.0,
+      "durability": 800,
+      "knockback_resistance": 0.15,
+      "armor_effects": ["speed"],
+      "color": "#6CECEC",
+      "material": "diamond",
+      "glowing": true,
+      "rarity": "epic"
+    },
+    {
+      "registry_name": "diamond_knight_leggings",
+      "display_name": "Diamond Knight Leggings",
+      "item_type": "armor",
+      "armor_slot": "leggings",
+      "defense": 7,
+      "toughness": 3.0,
+      "durability": 700,
+      "knockback_resistance": 0.1,
+      "armor_effects": ["speed"],
+      "color": "#6CECEC",
+      "material": "diamond",
+      "glowing": true,
+      "rarity": "epic"
+    },
+    {
+      "registry_name": "diamond_knight_boots",
+      "display_name": "Diamond Knight Boots",
+      "item_type": "armor",
+      "armor_slot": "boots",
+      "defense": 4,
+      "toughness": 3.0,
+      "durability": 500,
+      "knockback_resistance": 0.1,
+      "armor_effects": ["speed"],
+      "color": "#6CECEC",
+      "material": "diamond",
+      "glowing": true,
+      "rarity": "epic"
+    }
+  ],
+  "blocks": []
+}
+
+Example 3 — User says: "healing apple and a lightning hammer"
+Output:
+{
+  "mod_id": "thunder_feast",
+  "mod_name": "Thunder Feast",
+  "mod_description": "A divine healing apple and a devastating lightning hammer",
+  "items": [
+    {
+      "registry_name": "divine_apple",
+      "display_name": "Divine Healing Apple",
+      "item_type": "food",
+      "nutrition": 8,
+      "saturation": 1.2,
+      "food_effects": ["instant_health", "regeneration", "absorption"],
+      "always_edible": true,
+      "fast_eat": false,
+      "stack_size": 16,
+      "color": "#FFD700",
+      "material": "gold",
+      "glowing": true,
+      "rarity": "rare"
+    },
+    {
+      "registry_name": "thunder_hammer",
+      "display_name": "Thunder Hammer",
+      "item_type": "weapon",
+      "weapon_type": "hammer",
+      "damage": 18.0,
+      "attack_speed": "slow",
+      "durability": 1200,
+      "on_hit_effects": ["lightning", "knockback"],
+      "special_ability": "Summons lightning forward on right-click",
+      "cooldown": 3,
+      "color": "#4169E1",
+      "material": "diamond",
+      "glowing": true,
+      "rarity": "epic",
+      "hover_text_color": "aqua"
+    }
+  ],
+  "blocks": []
+}"""
 
 PARSE_USER_TEMPLATE = """Analyze this Minecraft mod description and extract the specifications:
 

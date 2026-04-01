@@ -78,6 +78,7 @@ All backend routes prefixed with `/api`:
 - `/api/gallery`, `/api/gallery/my-mods` — Gallery
 - `/api/browse/search` — Modrinth/CurseForge search proxy
 - `/api/subscriptions/checkout`, `/api/subscriptions/status`, `/api/subscriptions/cancel`, `/api/subscriptions/webhook` — Payments
+- `/api/skins/generate` — AI skin generation (64x64 PNG)
 - `/health` — Health check
 
 ## Deployment

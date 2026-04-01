@@ -11,6 +11,7 @@ from routers.browse import router as browse_router
 from routers.subscriptions import router as subscriptions_router
 from routers.submissions import router as submissions_router
 from routers.admin import router as admin_router
+from routers.skins import router as skins_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,6 +47,7 @@ app.include_router(browse_router)
 app.include_router(subscriptions_router)
 app.include_router(submissions_router)
 app.include_router(admin_router)
+app.include_router(skins_router)
 
 
 @app.get("/health")
