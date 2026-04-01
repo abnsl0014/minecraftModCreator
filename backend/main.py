@@ -9,6 +9,8 @@ from routers.gallery import router as gallery_router
 from routers.user import router as user_router
 from routers.browse import router as browse_router
 from routers.subscriptions import router as subscriptions_router
+from routers.submissions import router as submissions_router
+from routers.admin import router as admin_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,6 +44,8 @@ app.include_router(gallery_router)
 app.include_router(user_router)
 app.include_router(browse_router)
 app.include_router(subscriptions_router)
+app.include_router(submissions_router)
+app.include_router(admin_router)
 
 
 @app.get("/health")

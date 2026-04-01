@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from utils.auth import require_auth
 from utils.supabase_client import supabase
+from services.submission_manager import get_user_public_profile
 
 router = APIRouter(prefix="/api/user")
 
@@ -23,6 +24,9 @@ async def get_profile(user_id: str = Depends(require_auth)):
             "tier": "free",
             "subscription_status": "none",
             "billing_period": None,
+            "is_admin": False,
+            "display_name": None,
+            "earnings_balance": 0,
         }
 
     profile = result.data[0]
@@ -32,6 +36,9 @@ async def get_profile(user_id: str = Depends(require_auth)):
         "created_at": profile["created_at"],
         "subscription_status": profile.get("subscription_status", "none"),
         "billing_period": profile.get("billing_period"),
+        "is_admin": profile.get("is_admin", False),
+        "display_name": profile.get("display_name"),
+        "earnings_balance": profile.get("earnings_balance", 0),
     }
 
 
@@ -136,3 +143,25 @@ async def add_tokens(user_id: str, amount: int, reason: str) -> int:
     }).execute()
 
     return new_balance
+
+
+@router.get("/{target_user_id}/public")
+async def get_public_profile(target_user_id: str):
+    """Get a user's public profile with their approved mods."""
+    profile = await get_user_public_profile(target_user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get their approved submissions
+    subs = (
+        supabase.table("mod_submissions")
+        .select("id, title, description, edition, category, download_count, featured, screenshots, created_at")
+        .eq("user_id", target_user_id)
+        .eq("status", "approved")
+        .order("created_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+
+    profile["mods"] = subs.data
+    return profile
