@@ -152,6 +152,9 @@ export interface UserProfile {
   created_at?: string;
   subscription_status?: string;
   billing_period?: string | null;
+  is_admin?: boolean;
+  display_name?: string | null;
+  earnings_balance?: number;
 }
 
 export interface TokenTransaction {
@@ -270,5 +273,211 @@ export async function cancelSubscription(): Promise<{ status: string }> {
     const err = await res.json().catch(() => ({ detail: "Cancel failed" }));
     throw new Error(typeof err.detail === "string" ? err.detail : "Cancel failed");
   }
+  return res.json();
+}
+
+// ---- Submission APIs ----
+
+export interface Submission {
+  id: string;
+  user_id: string;
+  job_id: string | null;
+  title: string;
+  description: string;
+  edition: "java" | "bedrock";
+  category: "weapon" | "tool" | "armor" | "food" | "block" | "ability";
+  tags: string[];
+  screenshots: string[];
+  video_url: string | null;
+  download_url: string;
+  crafting_recipe: Record<string, unknown> | null;
+  survival_guide: string | null;
+  status: "pending" | "approved" | "rejected";
+  rejection_reason: string | null;
+  download_count: number;
+  featured: boolean;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
+}
+
+export interface GalleryItem {
+  id: string;
+  name: string;
+  description: string;
+  edition: "java" | "bedrock";
+  author: string;
+  category: string;
+  created_at: string;
+  download_url: string;
+  download_count: number;
+  featured: boolean;
+  screenshots: string[];
+  tags: string[];
+  source: "submission" | "ai_generated";
+}
+
+export interface GalleryListResponse {
+  mods: GalleryItem[];
+  total: number;
+}
+
+export async function getGalleryItems(
+  sort: string = "recent",
+  edition: string = "all",
+  category: string = "all",
+  limit: number = 20,
+  offset: number = 0,
+): Promise<GalleryListResponse> {
+  const params = new URLSearchParams({ sort, edition, category, limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/gallery?${params}`);
+  if (!res.ok) throw new Error("Failed to fetch gallery");
+  return res.json();
+}
+
+export async function submitMod(formData: FormData): Promise<{ id: string; status: string }> {
+  const token = await getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  // Don't set Content-Type — browser sets multipart boundary automatically
+
+  const res = await fetch(`${API_BASE}/api/submissions`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Submission failed" }));
+    throw new Error(typeof err.detail === "string" ? err.detail : "Submission failed");
+  }
+  return res.json();
+}
+
+export async function getMySubmissions(
+  limit: number = 20,
+  offset: number = 0,
+): Promise<{ submissions: Submission[]; total: number; earnings_balance: number }> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/submissions/my?${params}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch submissions");
+  return res.json();
+}
+
+export async function getSubmission(id: string): Promise<Submission> {
+  const res = await fetch(`${API_BASE}/api/submissions/${id}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Submission not found");
+  return res.json();
+}
+
+export async function updateSubmission(
+  id: string,
+  updates: Partial<Pick<Submission, "title" | "description" | "edition" | "category" | "tags" | "video_url" | "crafting_recipe" | "survival_guide">>,
+): Promise<Submission> {
+  const res = await fetch(`${API_BASE}/api/submissions/${id}`, {
+    method: "PUT",
+    headers: await authHeaders(),
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update submission");
+  return res.json();
+}
+
+export async function deleteSubmission(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/submissions/${id}`, {
+    method: "DELETE",
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to delete submission");
+}
+
+export async function trackDownload(
+  submissionId: string,
+): Promise<{ download_url: string; counted: boolean }> {
+  const res = await fetch(`${API_BASE}/api/submissions/${submissionId}/download`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Download failed");
+  return res.json();
+}
+
+// ---- Admin APIs ----
+
+export async function getAdminSubmissions(
+  status: string = "pending",
+  limit: number = 50,
+  offset: number = 0,
+): Promise<{ submissions: Submission[]; total: number }> {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${API_BASE}/api/admin/submissions?${params}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch admin submissions");
+  return res.json();
+}
+
+export async function approveSubmission(
+  id: string,
+  featured: boolean = false,
+): Promise<Submission> {
+  const params = new URLSearchParams({ featured: String(featured) });
+  const res = await fetch(`${API_BASE}/api/admin/submissions/${id}/approve?${params}`, {
+    method: "POST",
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to approve");
+  return res.json();
+}
+
+export async function rejectSubmission(
+  id: string,
+  reason: string,
+): Promise<Submission> {
+  const res = await fetch(`${API_BASE}/api/admin/submissions/${id}/reject`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error("Failed to reject");
+  return res.json();
+}
+
+export async function toggleFeatured(id: string): Promise<Submission> {
+  const res = await fetch(`${API_BASE}/api/admin/submissions/${id}/feature`, {
+    method: "POST",
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to toggle featured");
+  return res.json();
+}
+
+// ---- Public Profile API ----
+
+export interface PublicProfile {
+  user_id: string;
+  display_name: string;
+  joined_at: string;
+  total_mods: number;
+  total_downloads: number;
+  mods: {
+    id: string;
+    title: string;
+    description: string;
+    edition: string;
+    category: string;
+    download_count: number;
+    featured: boolean;
+    screenshots: string[];
+    created_at: string;
+  }[];
+}
+
+export async function getPublicProfile(userId: string): Promise<PublicProfile> {
+  const res = await fetch(`${API_BASE}/api/user/${userId}/public`);
+  if (!res.ok) throw new Error("Profile not found");
   return res.json();
 }
