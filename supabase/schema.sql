@@ -71,3 +71,6 @@ CREATE POLICY "Public read mod-jars" ON storage.objects
 
 CREATE POLICY "Service upload mod-jars" ON storage.objects
     FOR INSERT WITH CHECK (bucket_id = 'mod-jars');
+
+-- 9. Marketplace tables (see migration-004-marketplace.sql)
+-- mod_submissions, download_events, user_profiles additions
