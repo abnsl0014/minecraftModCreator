@@ -54,9 +54,14 @@ async def submit_mod(
     mod_file_path = f"submissions/{submission_id}/mod.{file_ext}"
     mod_file_content = await mod_file.read()
 
+    # Validate file extension
+    allowed_extensions = {"zip", "jar", "mcaddon", "mcpack"}
+    if file_ext.lower() not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
+
     supabase.storage.from_("mod-jars").upload(
         mod_file_path, mod_file_content,
-        file_options={"content-type": mod_file.content_type or "application/octet-stream"},
+        file_options={"content-type": "application/octet-stream"},
     )
     mod_file_url = supabase.storage.from_("mod-jars").get_public_url(mod_file_path)
 
@@ -66,17 +71,25 @@ async def submit_mod(
         ss_content = await screenshot.read()
         ss_ext = screenshot.filename.split(".")[-1] if screenshot.filename else "png"
         ss_path = f"submissions/{submission_id}/screenshot_{i}.{ss_ext}"
+        allowed_img = {"png", "jpg", "jpeg", "gif", "webp"}
+        if ss_ext.lower() not in allowed_img:
+            continue  # skip invalid screenshot types
         supabase.storage.from_("mod-screenshots").upload(
             ss_path, ss_content,
-            file_options={"content-type": screenshot.content_type or "image/png"},
+            file_options={"content-type": f"image/{ss_ext.lower()}"},
         )
         screenshot_urls.append(
             supabase.storage.from_("mod-screenshots").get_public_url(ss_path)
         )
 
     # Parse tags and crafting recipe
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
-    recipe_data = json.loads(crafting_recipe) if crafting_recipe else None
+    tag_list = [t.strip()[:50] for t in tags.split(",") if t.strip()][:20] if tags else []
+    recipe_data = None
+    if crafting_recipe:
+        try:
+            recipe_data = json.loads(crafting_recipe)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid crafting recipe JSON")
 
     result = await create_submission(
         user_id=user_id,

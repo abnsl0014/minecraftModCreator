@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getUserProfile } from "@/lib/api";
 
@@ -18,6 +18,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   const [authed, setAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -120,6 +121,18 @@ export default function Header() {
               Get Started
             </a>
           )}
+          {authed && (
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.push("/");
+              }}
+              className="text-[10px] text-[#808080] hover:text-red-400 px-2 py-1 border border-[#3d3d3d] hover:border-red-400"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+            >
+              Sign Out
+            </button>
+          )}
         </nav>
 
         <button
@@ -182,6 +195,19 @@ export default function Header() {
               className="mc-btn text-[10px] px-3 py-1.5 text-center">
               Get Started
             </a>
+          )}
+          {authed && (
+            <button
+              onClick={async () => {
+                setMenuOpen(false);
+                await supabase.auth.signOut();
+                router.push("/");
+              }}
+              className="text-[10px] text-[#808080] hover:text-red-400 px-2 py-1 border border-[#3d3d3d] hover:border-red-400 text-center"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+            >
+              Sign Out
+            </button>
           )}
         </div>
       )}

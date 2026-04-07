@@ -29,6 +29,7 @@ export default function ModDetailPage() {
 
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [currentImage, setCurrentImage] = useState(0);
 
@@ -38,7 +39,7 @@ export default function ModDetailPage() {
         const data = await getSubmission(id);
         setSubmission(data);
       } catch {
-        // Not found
+        setError("Failed to load mod details. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -78,7 +79,7 @@ export default function ModDetailPage() {
       <main className="min-h-screen px-4 py-8 pt-20">
         <Header />
         <div className="max-w-3xl mx-auto mc-panel p-8 text-center">
-          <p className="text-red-400 text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>Mod not found</p>
+          <p className="text-red-400 text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>{error || "Mod not found"}</p>
           <Link href="/gallery" className="mc-btn px-4 py-2 text-[9px] inline-block mt-4" style={{ fontFamily: "var(--font-pixel), monospace" }}>
             Back to Gallery
           </Link>

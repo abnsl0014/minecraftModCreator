@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import zipfile
 from typing import Dict
@@ -6,6 +7,8 @@ from typing import Dict
 from models import ModSpec
 from services.texture_generator import generate_texture, generate_pack_icon
 from utils.file_utils import create_build_dir
+
+logger = logging.getLogger(__name__)
 
 
 def generate_entity_geometry(registry_name: str) -> dict:
@@ -71,7 +74,11 @@ def assemble_bedrock_addon(job_id: str, spec: ModSpec, generated_files: Dict[str
 
     # Write all generated files (manifests, item/block JSONs)
     for rel_path, content in generated_files.items():
-        full_path = os.path.join(build_dir, rel_path)
+        # Prevent path traversal — ensure files stay within build_dir
+        full_path = os.path.normpath(os.path.join(build_dir, rel_path))
+        if not full_path.startswith(os.path.normpath(build_dir)):
+            logger.warning("Path traversal blocked: %s" % rel_path)
+            continue
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, 'w') as f:
             f.write(content)

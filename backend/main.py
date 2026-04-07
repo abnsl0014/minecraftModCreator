@@ -36,8 +36,15 @@ frontend_url = os.environ.get("FRONTEND_URL")
 if frontend_url:
     cors_origins.append(frontend_url)
 
+MAX_REQUEST_BODY = 52 * 1024 * 1024  # 52MB (matches Supabase Storage limit)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Reject oversized request bodies
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_REQUEST_BODY:
+            return Response("Request body too large", status_code=413)
         response: Response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"

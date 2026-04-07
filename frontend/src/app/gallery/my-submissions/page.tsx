@@ -20,6 +20,7 @@ function MySubmissionsContent() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [earnings, setEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -28,7 +29,7 @@ function MySubmissionsContent() {
         setSubmissions(data.submissions);
         setEarnings(data.earnings_balance);
       } catch {
-        // Not logged in or error
+        setError("Failed to load submissions. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -93,7 +94,11 @@ function MySubmissionsContent() {
           </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="mc-panel p-8 text-center">
+            <p className="text-red-400 text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>{error}</p>
+          </div>
+        ) : loading ? (
           <div className="mc-panel p-8 text-center">
             <p className="text-[#555] text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>Loading...</p>
           </div>

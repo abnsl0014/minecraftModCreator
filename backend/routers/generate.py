@@ -155,8 +155,9 @@ async def download_mod(job_id: str, user_id: str = Depends(require_auth)):
     if not jar_url:
         raise HTTPException(status_code=404, detail="File not found")
 
-    # Build a proper filename
-    mod_id = job.get("mod_id") or "mod"
+    # Build a proper filename — sanitize mod_id to prevent header injection
+    import re
+    mod_id = re.sub(r'[^a-zA-Z0-9_-]', '_', job.get("mod_id") or "mod")
     edition = job.get("edition", "java")
     ext = ".mcaddon" if edition == "bedrock" else "-forge-project.zip"
     filename = "%s%s" % (mod_id, ext)
@@ -170,15 +171,16 @@ async def download_mod(job_id: str, user_id: str = Depends(require_auth)):
 
 @router.get("/preview-texture")
 async def preview_texture(
-    item_type: str = Query("weapon"),
-    sub_type: str = Query("sword"),
-    material: str = Query("diamond"),
-    style: str = Query("classic"),
+    item_type: str = Query("weapon", max_length=50),
+    sub_type: str = Query("sword", max_length=50),
+    material: str = Query("diamond", max_length=50),
+    style: str = Query("classic", max_length=50),
+    _user_id: str = Depends(require_auth),
 ):
     """Generate a texture preview PNG (128x128 scaled up from 16x16)."""
     from services.procedural_textures import generate_preview_base64
     try:
         data_url = generate_preview_base64(item_type, sub_type, material, style)
         return {"preview": data_url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Texture generation failed")

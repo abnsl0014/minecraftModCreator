@@ -530,7 +530,8 @@ def generate_pack_icon_procedural(material, output_path, item_type="weapon", sub
     p = get_palette(material) if material in MATERIAL_PALETTES else get_palette("diamond")
 
     # Generate the actual item texture at 16x16
-    tmp = tempfile.mktemp(suffix=".png")
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+        tmp = tf.name
     try:
         generate_procedural_texture(item_type, sub_type, material, tmp)
         item_img = Image.open(tmp).convert("RGBA")
@@ -744,7 +745,8 @@ def generate_preview_base64(item_type, sub_type, material, style="classic"):
 
 def _generate_preview_image(item_type, sub_type, material, style="classic"):
     import tempfile
-    tmp = tempfile.mktemp(suffix=".png")
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+        tmp = tf.name
     try:
         generate_procedural_texture(item_type, sub_type, material, tmp, style)
         return Image.open(tmp).copy()

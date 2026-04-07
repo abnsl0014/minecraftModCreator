@@ -20,6 +20,8 @@ class ModelRouter:
         self.anthropic_client = AsyncAnthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else None
         self.anthropic_model = settings.anthropic_model
 
+    LLM_CALL_TIMEOUT = 120  # seconds per LLM call
+
     async def chat(
         self,
         messages: List[Dict],
@@ -36,13 +38,24 @@ class ModelRouter:
             fallback = self._call_anthropic
 
         try:
-            return await primary(messages, temperature, max_tokens, json_mode)
+            return await asyncio.wait_for(
+                primary(messages, temperature, max_tokens, json_mode),
+                timeout=self.LLM_CALL_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Primary model ({model_preference}) timed out after {self.LLM_CALL_TIMEOUT}s. Trying fallback.")
         except Exception as e:
             logger.warning(f"Primary model ({model_preference}) failed: {e}. Trying fallback.")
-            try:
-                return await fallback(messages, temperature, max_tokens, json_mode)
-            except Exception as fallback_err:
-                raise Exception(f"Both models failed. Primary: {e} | Fallback: {fallback_err}")
+
+        try:
+            return await asyncio.wait_for(
+                fallback(messages, temperature, max_tokens, json_mode),
+                timeout=self.LLM_CALL_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise Exception(f"Both models timed out after {self.LLM_CALL_TIMEOUT}s each")
+        except Exception as fallback_err:
+            raise Exception(f"Both models failed: {fallback_err}")
 
     async def _call_groq(
         self,

@@ -62,10 +62,12 @@ def assemble_mod(job_id: str, spec: ModSpec, generated_code: dict[str, str]) -> 
     with open(os.path.join(build_dir, "src", "main", "resources", "pack.mcmeta"), 'w') as f:
         json.dump(pack_mcmeta, f, indent=2)
 
-    # 5. Write generated Java code
+    # 5. Write generated Java code (with path traversal protection)
     java_base = os.path.join(build_dir, "src", "main", "java", "com", "modcreator", spec.mod_id)
     for rel_path, code in generated_code.items():
-        full_path = os.path.join(java_base, rel_path)
+        full_path = os.path.normpath(os.path.join(java_base, rel_path))
+        if not full_path.startswith(os.path.normpath(java_base)):
+            continue  # skip path traversal attempts
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, 'w') as f:
             f.write(code)

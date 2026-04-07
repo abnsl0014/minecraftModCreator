@@ -16,5 +16,11 @@ COPY backend/ .
 # Set default template dir for production
 ENV MOD_TEMPLATE_DIR=/app/mod-template
 
+# Create non-root user and set ownership
+RUN useradd -m -u 1000 appuser
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

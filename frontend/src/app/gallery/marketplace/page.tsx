@@ -63,13 +63,13 @@ function ModDetailModal({
   const versions = details?.versions ?? [];
   const sourceLabel = mod.source === "curseforge" ? "CurseForge" : "Modrinth";
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!selectedVersion || !mod) return;
     if (selectedVersion.third_party_allowed === false) {
       window.open(mod.url, "_blank");
       return;
     }
-    const url = getModDownloadUrl(mod.source, mod.id, selectedVersion.id);
+    const url = await getModDownloadUrl(mod.source, mod.id, selectedVersion.id);
     window.open(url, "_blank");
   }
 

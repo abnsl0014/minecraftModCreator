@@ -148,6 +148,14 @@ async def handle_payment_webhook(request: Request):
 
     logger.info(f"Webhook [{gateway.name}]: {event.event_type.value}")
 
+    # Idempotency: skip already-processed events
+    event_id = event.payment_id or event.subscription_id or ""
+    if event_id:
+        dup = supabase.table("webhook_events").select("id").eq("id", event_id).execute()
+        if dup.data:
+            logger.info(f"Webhook event {event_id} already processed, skipping")
+            return {"received": True}
+
     if event.event_type == WebhookEventType.SUBSCRIPTION_ACTIVE:
         await _handle_subscription_active(event, gateway)
     elif event.event_type == WebhookEventType.SUBSCRIPTION_RENEWED:
@@ -158,6 +166,17 @@ async def handle_payment_webhook(request: Request):
         logger.info(f"Payment succeeded: {event.payment_id or 'unknown'}")
     elif event.event_type == WebhookEventType.PAYMENT_FAILED:
         logger.warning(f"Payment failed: {event.payment_id or 'unknown'}")
+
+    # Record processed event for idempotency
+    if event_id:
+        try:
+            supabase.table("webhook_events").insert({
+                "id": event_id,
+                "provider": gateway.name,
+                "event_type": event.event_type.value,
+            }).execute()
+        except Exception:
+            pass  # Duplicate insert is fine — means concurrent processing
 
     return {"received": True}
 
@@ -289,7 +308,7 @@ async def _find_user_by_email(email: str) -> str | None:
             users = supabase.auth.admin.list_users(f"email=eq.{email}")
             if users and len(users) > 0:
                 user_id = users[0].id
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Admin API fallback failed for email lookup: {e}")
 
     return user_id

@@ -1,7 +1,10 @@
+import logging
 import os
 import shutil
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_build_dir(job_id: str) -> str:
@@ -13,4 +16,8 @@ def create_build_dir(job_id: str) -> str:
 def cleanup_build_dir(job_id: str):
     build_dir = os.path.join(settings.temp_dir_base, job_id)
     if os.path.exists(build_dir):
-        shutil.rmtree(build_dir, ignore_errors=True)
+        try:
+            shutil.rmtree(build_dir)
+            logger.info("Cleaned up build dir for job %s" % job_id)
+        except Exception as e:
+            logger.warning("Failed to clean up build dir for job %s: %s" % (job_id, e))

@@ -27,6 +27,16 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         spec = await parse_mod_request(request.description, request.mod_name, model_preference=model)
         spec.author_name = request.author_name
 
+        # Cap items/blocks to prevent resource exhaustion
+        MAX_ITEMS = 30
+        MAX_BLOCKS = 20
+        if len(spec.items) > MAX_ITEMS:
+            spec.items = spec.items[:MAX_ITEMS]
+            logger.warning("Job %s: truncated items to %d" % (job_id, MAX_ITEMS))
+        if len(spec.blocks) > MAX_BLOCKS:
+            spec.blocks = spec.blocks[:MAX_BLOCKS]
+            logger.warning("Job %s: truncated blocks to %d" % (job_id, MAX_BLOCKS))
+
         # Inject custom textures
         if request.custom_textures:
             tex_map = {t.registry_name: t.custom_texture for t in request.custom_textures}
@@ -70,12 +80,18 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         import traceback
         error_detail = str(e) or repr(e) or traceback.format_exc()
         logger.exception("Agent loop error for job %s: %s" % (job_id, error_detail))
+        # Sanitize error for client — don't expose internal paths or stack traces
+        safe_error = str(e)[:200] if str(e) else "An unexpected error occurred"
         await update_job(
             job_id,
             status="failed",
             progress_message="An unexpected error occurred",
-            error=error_detail[:2000],
+            error=safe_error,
         )
+    finally:
+        # Always clean up temp files
+        from utils.file_utils import cleanup_build_dir
+        cleanup_build_dir(job_id)
 
 
 async def _run_bedrock_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
@@ -231,7 +247,11 @@ async def run_edit_loop(job_id: str, edit_description: str):
 
     except Exception as e:
         logger.exception("Edit loop error for job %s" % job_id)
-        await update_job(job_id, status="failed", error=str(e)[:2000])
+        safe_error = str(e)[:200] if str(e) else "Edit failed"
+        await update_job(job_id, status="failed", error=safe_error)
+    finally:
+        from utils.file_utils import cleanup_build_dir
+        cleanup_build_dir(job_id)
 
 
 async def upload_file(job_id: str, file_path: str, filename: str) -> str:

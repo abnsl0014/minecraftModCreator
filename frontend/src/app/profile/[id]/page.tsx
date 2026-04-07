@@ -13,6 +13,7 @@ export default function PublicProfilePage() {
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -20,7 +21,7 @@ export default function PublicProfilePage() {
         const data = await getPublicProfile(userId);
         setProfile(data);
       } catch {
-        // Not found
+        setError("Failed to load profile. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -44,7 +45,7 @@ export default function PublicProfilePage() {
       <main className="min-h-screen px-4 py-8 pt-20">
         <Header />
         <div className="max-w-3xl mx-auto mc-panel p-8 text-center">
-          <p className="text-red-400 text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>User not found</p>
+          <p className="text-red-400 text-[10px]" style={{ fontFamily: "var(--font-pixel), monospace" }}>{error || "User not found"}</p>
         </div>
       </main>
     );

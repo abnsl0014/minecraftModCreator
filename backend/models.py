@@ -1,25 +1,38 @@
 from typing import Optional, List
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
+
+MAX_DESCRIPTION_LENGTH = 10000
+MAX_TITLE_LENGTH = 200
+MAX_NAME_LENGTH = 100
+MAX_TEXTURE_BASE64_LENGTH = 500_000  # ~375KB decoded
+MAX_CUSTOM_TEXTURES = 20
 
 
 class CustomTextureItem(BaseModel):
     """Carries custom texture data for a specific item."""
-    registry_name: str
-    custom_texture: str  # base64 data URL
+    registry_name: str = Field(max_length=MAX_NAME_LENGTH)
+    custom_texture: str = Field(max_length=MAX_TEXTURE_BASE64_LENGTH)
 
 
 class GenerateRequest(BaseModel):
-    description: str
-    mod_name: Optional[str] = None
-    author_name: str = "ModCreator User"
+    description: str = Field(max_length=MAX_DESCRIPTION_LENGTH)
+    mod_name: Optional[str] = Field(None, max_length=MAX_NAME_LENGTH)
+    author_name: str = Field("ModCreator User", max_length=MAX_NAME_LENGTH)
     edition: str = "java"  # "java" or "bedrock"
     model: str = "gpt-oss-120b"  # "gpt-oss-120b" | "sonnet-4.6"
-    custom_textures: Optional[List[CustomTextureItem]] = None  # uploaded textures
+    custom_textures: Optional[List[CustomTextureItem]] = None
+
+    @field_validator("custom_textures")
+    @classmethod
+    def limit_custom_textures(cls, v):
+        if v and len(v) > MAX_CUSTOM_TEXTURES:
+            raise ValueError(f"Maximum {MAX_CUSTOM_TEXTURES} custom textures allowed")
+        return v
 
 
 class EditRequest(BaseModel):
-    edit_description: str
+    edit_description: str = Field(max_length=MAX_DESCRIPTION_LENGTH)
 
 
 class RecipeSpec(BaseModel):
@@ -149,26 +162,26 @@ class JobStatus(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    title: str
-    description: str
+    title: str = Field(max_length=MAX_TITLE_LENGTH)
+    description: str = Field(max_length=MAX_DESCRIPTION_LENGTH)
     edition: str = "bedrock"
     category: str = "weapon"
-    tags: List[str] = []
-    video_url: Optional[str] = None
+    tags: List[str] = Field(default=[], max_length=20)
+    video_url: Optional[str] = Field(None, max_length=500)
     crafting_recipe: Optional[dict] = None
-    survival_guide: Optional[str] = None
-    job_id: Optional[str] = None  # link to AI-generated mod
+    survival_guide: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_LENGTH)
+    job_id: Optional[str] = None
 
 
 class SubmissionUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=MAX_TITLE_LENGTH)
+    description: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_LENGTH)
     edition: Optional[str] = None
     category: Optional[str] = None
-    tags: Optional[List[str]] = None
-    video_url: Optional[str] = None
+    tags: Optional[List[str]] = Field(None, max_length=20)
+    video_url: Optional[str] = Field(None, max_length=500)
     crafting_recipe: Optional[dict] = None
-    survival_guide: Optional[str] = None
+    survival_guide: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_LENGTH)
 
 
 class SubmissionResponse(BaseModel):

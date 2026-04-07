@@ -74,7 +74,9 @@ export async function generateMod(
 }
 
 export async function getStatus(jobId: string): Promise<JobStatus> {
-  const res = await fetch(`${API_BASE}/api/status/${jobId}`);
+  const res = await fetch(`${API_BASE}/api/status/${jobId}`, {
+    headers: await authHeaders(),
+  });
 
   if (!res.ok) {
     throw new Error("Failed to fetch status");
@@ -106,7 +108,9 @@ export function getDownloadUrl(jobId: string): string {
 }
 
 export async function getPreview(jobId: string) {
-  const res = await fetch(`${API_BASE}/api/preview/${jobId}`);
+  const res = await fetch(`${API_BASE}/api/preview/${jobId}`, {
+    headers: await authHeaders(),
+  });
 
   if (!res.ok) {
     throw new Error("Failed to fetch preview");
@@ -261,12 +265,17 @@ export async function getModDetails(
   return res.json();
 }
 
-export function getModDownloadUrl(
+export async function getModDownloadUrl(
   source: string,
   modId: string,
   versionId: string,
-): string {
-  return `${API_BASE}/api/browse/mod/${source}/${modId}/download?version_id=${versionId}`;
+): Promise<string> {
+  const token = await getAuthToken();
+  const url = `${API_BASE}/api/browse/mod/${source}/${modId}/download?version_id=${versionId}`;
+  if (token) {
+    return `${url}&token=${encodeURIComponent(token)}`;
+  }
+  return url;
 }
 
 // ---- My Mods API ----

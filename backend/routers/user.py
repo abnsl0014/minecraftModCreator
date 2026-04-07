@@ -71,12 +71,14 @@ async def get_token_history(
 
 
 async def deduct_tokens(user_id: str, amount: int, reason: str) -> int:
-    """Deduct tokens from user's balance. Returns new balance. Raises 402 if insufficient."""
-    # Get current balance
-    result = supabase.table("user_profiles").select("token_balance, tier").eq("id", user_id).execute()
+    """Deduct tokens from user's balance atomically. Returns new balance. Raises 402 if insufficient."""
+    from datetime import datetime, timezone
+
+    result = supabase.table("user_profiles").select(
+        "token_balance, tier, subscription_status, subscription_expires_at"
+    ).eq("id", user_id).execute()
 
     if not result.data:
-        # Auto-create profile
         supabase.table("user_profiles").insert({
             "id": user_id,
             "token_balance": 5,
@@ -85,12 +87,22 @@ async def deduct_tokens(user_id: str, amount: int, reason: str) -> int:
         balance = 5
         tier = "free"
     else:
-        balance = result.data[0]["token_balance"]
-        tier = result.data[0]["tier"]
+        profile = result.data[0]
+        balance = profile["token_balance"]
+        tier = profile["tier"]
 
-    # Unlimited tier skips token check
+        # Check subscription expiry — downgrade if expired
+        expires_at = profile.get("subscription_expires_at")
+        if tier != "free" and expires_at:
+            try:
+                exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                if exp < datetime.now(timezone.utc):
+                    tier = "free"
+            except (ValueError, TypeError):
+                pass
+
+    # Unlimited tier with active subscription skips token deduction
     if tier == "unlimited":
-        # Still log the transaction
         supabase.table("token_transactions").insert({
             "user_id": user_id,
             "amount": -amount,
@@ -98,27 +110,25 @@ async def deduct_tokens(user_id: str, amount: int, reason: str) -> int:
         }).execute()
         return balance
 
-    if balance < amount:
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "message": f"Insufficient tokens. Need {amount}, have {balance}.",
-                "balance": balance,
-                "cost": amount,
-            },
-        )
-
-    new_balance = balance - amount
-
-    # Update balance and log transaction
-    supabase.table("user_profiles").update({"token_balance": new_balance}).eq("id", user_id).execute()
-    supabase.table("token_transactions").insert({
-        "user_id": user_id,
-        "amount": -amount,
-        "reason": reason,
-    }).execute()
-
-    return new_balance
+    # Atomic deduction via RPC — prevents race conditions
+    try:
+        rpc_result = supabase.rpc("atomic_deduct_tokens", {
+            "p_user_id": user_id,
+            "p_amount": amount,
+            "p_reason": reason,
+        }).execute()
+        return rpc_result.data
+    except Exception as e:
+        if "Insufficient tokens" in str(e):
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "message": f"Insufficient tokens. Need {amount}, have {balance}.",
+                    "balance": balance,
+                    "cost": amount,
+                },
+            )
+        raise
 
 
 async def add_tokens(user_id: str, amount: int, reason: str) -> int:

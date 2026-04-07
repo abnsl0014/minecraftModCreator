@@ -49,27 +49,21 @@ async def track_download(submission_id: str, downloader_ip: str) -> dict:
             "downloader_ip": downloader_ip,
         }).execute()
 
-        # Increment download count
-        new_count = submission["download_count"] + 1
-        supabase.table("mod_submissions").update(
-            {"download_count": new_count}
-        ).eq("id", submission_id).execute()
+        # Atomic increment via RPC (prevents race conditions)
+        try:
+            supabase.rpc("atomic_increment_download", {
+                "p_submission_id": submission_id,
+                "p_earnings_per_download": settings.earnings_per_download,
+            }).execute()
+        except Exception as e:
+            # Fallback to non-atomic if RPC not yet deployed
+            logger.warning(f"atomic_increment_download RPC failed, using fallback: {e}")
+            new_count = submission["download_count"] + 1
+            supabase.table("mod_submissions").update(
+                {"download_count": new_count}
+            ).eq("id", submission_id).execute()
 
-        # Add earnings to author
-        author_id = submission["user_id"]
-        profile_result = (
-            supabase.table("user_profiles")
-            .select("earnings_balance")
-            .eq("id", author_id)
-            .execute()
-        )
-        if profile_result.data:
-            new_balance = profile_result.data[0]["earnings_balance"] + settings.earnings_per_download
-            supabase.table("user_profiles").update(
-                {"earnings_balance": new_balance}
-            ).eq("id", author_id).execute()
-
-        logger.info(f"Download tracked: submission={submission_id}, ip={downloader_ip}")
+        logger.info(f"Download tracked: submission={submission_id}")
 
     return {
         "download_url": submission["download_url"],
