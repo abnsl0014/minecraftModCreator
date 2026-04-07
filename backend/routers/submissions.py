@@ -123,13 +123,13 @@ async def get_single_submission(
         raise HTTPException(status_code=404, detail="Submission not found")
 
     if sub["status"] != "approved":
-        # Check if requester is owner or admin
-        if not user_id or user_id != sub["user_id"]:
-            # Check admin
+        if not user_id:
+            raise HTTPException(status_code=404, detail="Submission not found")
+        if user_id != sub["user_id"]:
             admin_check = (
                 supabase.table("user_profiles")
                 .select("is_admin")
-                .eq("id", user_id or "")
+                .eq("id", user_id)
                 .execute()
             )
             is_admin = admin_check.data and admin_check.data[0].get("is_admin")

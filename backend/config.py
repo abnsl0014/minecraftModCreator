@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-4-6"
     supabase_url: str
     supabase_key: str
-    supabase_jwt_secret: str = ""
     environment: str = "development"
     frontend_url: str = ""
     mod_template_dir: str = "../mod-template"
@@ -40,3 +39,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Validate critical auth settings are not empty
+_required = {"supabase_url": settings.supabase_url, "supabase_key": settings.supabase_key}
+_missing = [k for k, v in _required.items() if not v]
+if _missing:
+    raise RuntimeError(f"Missing required config: {', '.join(_missing)}")

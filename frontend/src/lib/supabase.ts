@@ -9,12 +9,25 @@ if (supabaseUrl.includes("placeholder")) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Keep session fresh — Supabase SDK auto-refreshes tokens on this listener
+supabase.auth.onAuthStateChange((_event, _session) => {
+  // SDK handles token refresh internally; listener keeps it active
+});
+
 export async function getAuthToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session) {
+    // Session expired or invalid — attempt a refresh
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshed.session) {
+      return null;
+    }
+    return refreshed.session.access_token;
+  }
+  return data.session.access_token;
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  const { data } = await supabase.auth.getSession();
-  return !!data.session;
+  const token = await getAuthToken();
+  return !!token;
 }

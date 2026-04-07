@@ -39,10 +39,13 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
 
 
 @router.get("/status/{job_id}")
-async def get_status(job_id: str):
+async def get_status(job_id: str, user_id: str = Depends(require_auth)):
     job = await get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     tex = job.get("texture_previews")
     texture_previews = TexturePreviews(**tex) if tex else None
@@ -68,6 +71,9 @@ async def edit_mod(job_id: str, request: EditRequest, background_tasks: Backgrou
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    if job.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     if not job.get("generated_files"):
         raise HTTPException(status_code=400, detail="No generated files to edit")
 
@@ -80,10 +86,13 @@ async def edit_mod(job_id: str, request: EditRequest, background_tasks: Backgrou
 
 
 @router.get("/preview/{job_id}")
-async def get_preview(job_id: str):
+async def get_preview(job_id: str, user_id: str = Depends(require_auth)):
     job = await get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     if job["status"] != "complete":
         raise HTTPException(status_code=400, detail="Mod is not ready for preview")
@@ -131,10 +140,13 @@ async def get_preview(job_id: str):
 
 
 @router.get("/download/{job_id}")
-async def download_mod(job_id: str):
+async def download_mod(job_id: str, user_id: str = Depends(require_auth)):
     job = await get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     if job["status"] != "complete":
         raise HTTPException(status_code=400, detail="Mod is not ready for download")

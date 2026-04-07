@@ -1,8 +1,12 @@
 """FastAPI dependency for Supabase auth validation."""
+import logging
+
 from fastapi import Depends, HTTPException, Header
 from typing import Optional
 from supabase import create_client
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 # Create a separate client for auth validation (uses service role key)
 _auth_client = create_client(settings.supabase_url, settings.supabase_key)
@@ -26,10 +30,11 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Optio
         if user_response and user_response.user:
             return user_response.user.id
         raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
-        if "401" in str(e) or "invalid" in str(e).lower():
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        raise HTTPException(status_code=401, detail=f"Auth validation failed: {str(e)}")
+        logger.warning("Auth validation failed: %s", e)
+        raise HTTPException(status_code=401, detail="Authentication failed")
 
 
 async def require_auth(user_id: Optional[str] = Depends(get_current_user)) -> str:
