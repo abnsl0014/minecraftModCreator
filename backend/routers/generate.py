@@ -7,6 +7,7 @@ from services.agent_loop import run_agent_loop, run_edit_loop
 from utils.auth import require_auth
 from utils.rate_limiter import check_rate_limit
 from routers.user import deduct_tokens
+from services.bedrock_assembler import generate_entity_geometry
 
 router = APIRouter(prefix="/api")
 
@@ -76,6 +77,57 @@ async def edit_mod(job_id: str, request: EditRequest, background_tasks: Backgrou
     background_tasks.add_task(run_edit_loop, job_id, request.edit_description)
 
     return {"job_id": job_id, "status": "editing"}
+
+
+@router.get("/preview/{job_id}")
+async def get_preview(job_id: str):
+    job = await get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job["status"] != "complete":
+        raise HTTPException(status_code=400, detail="Mod is not ready for preview")
+
+    mod_spec = job.get("mod_spec")
+    if not mod_spec:
+        raise HTTPException(status_code=404, detail="No mod spec found")
+
+    items = [
+        {
+            "registry_name": item["registry_name"],
+            "display_name": item["display_name"],
+            "item_type": item.get("item_type", "basic"),
+            "color": item.get("color", "#888888"),
+        }
+        for item in mod_spec.get("items", [])
+    ]
+
+    blocks = [
+        {
+            "registry_name": block["registry_name"],
+            "display_name": block["display_name"],
+            "color": block.get("color", "#888888"),
+        }
+        for block in mod_spec.get("blocks", [])
+    ]
+
+    mobs = [
+        {
+            "registry_name": mob["registry_name"],
+            "display_name": mob["display_name"],
+            "color": mob.get("color", "#888888"),
+            "geometry": generate_entity_geometry(mob["registry_name"]),
+        }
+        for mob in mod_spec.get("mobs", [])
+    ]
+
+    return {
+        "mod_name": mod_spec.get("mod_name", ""),
+        "mod_id": mod_spec.get("mod_id", ""),
+        "items": items,
+        "blocks": blocks,
+        "mobs": mobs,
+    }
 
 
 @router.get("/download/{job_id}")

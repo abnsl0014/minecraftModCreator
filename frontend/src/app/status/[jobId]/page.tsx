@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { getStatus, JobStatus } from "@/lib/api";
 import StatusDisplay from "@/components/StatusDisplay";
 import DownloadButton from "@/components/DownloadButton";
@@ -147,6 +148,18 @@ function JavaBuildGuide({ modId }: { modId: string }) {
   );
 }
 
+const PreviewPanel = dynamic(
+  () => import("@/components/preview/PreviewPanel"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-2xl mt-8">
+        <div className="w-full h-72 bg-gray-900 rounded-lg animate-pulse" />
+      </div>
+    ),
+  }
+);
+
 export default function StatusPage() {
   const params = useParams();
   const jobId = params.jobId as string;
@@ -288,6 +301,11 @@ export default function StatusPage() {
         <div className="mt-8">
           <DownloadButton status={status} />
         </div>
+      )}
+
+      {/* 3D Preview */}
+      {status?.download_ready && (
+        <PreviewPanel jobId={jobId} />
       )}
 
       {/* Edit form */}

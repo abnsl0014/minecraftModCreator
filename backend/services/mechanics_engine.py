@@ -271,6 +271,17 @@ def analyze_and_enrich(spec) -> str:
             item.glowing = True
             analysis_lines.append("%s: charm/amulet → converted to consumable with effects %s" % (item.display_name, item.food_effects))
 
+    # If user said "big cannon" or "placeable X", also add a handheld version
+    for item in list(spec.items):  # copy list since we might add
+        nl = item.display_name.lower()
+        if any(k in nl for k in ["big ", "placeable ", "mounted "]):
+            # This is likely a placeable weapon — user might want BOTH a block and handheld item
+            # The block version is handled by the parse prompt putting it in blocks
+            # But ensure the handheld version has proper mechanics
+            if item.item_type == "weapon" and not item.weapon_type:
+                item.weapon_type = "rpg"  # handheld version shoots
+            analysis_lines.append("%s: big/placeable weapon → ensuring rpg mechanics" % item.display_name)
+
     # Also infer material from name if not set properly
     for item in spec.items:
         if not item.material or item.material == "iron":

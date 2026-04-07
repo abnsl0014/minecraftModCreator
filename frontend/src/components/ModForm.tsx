@@ -321,6 +321,7 @@ export default function ModForm() {
     <form onSubmit={handleSubmit} className="w-full max-w-3xl space-y-6">
       {/* Edition selector */}
       <div className="flex justify-center gap-2">
+<<<<<<< HEAD
         <button type="button" onClick={() => {
             setJavaShake(true);
             setJavaTooltip(true);
@@ -347,6 +348,15 @@ export default function ModForm() {
         <button type="button" onClick={() => setEdition("bedrock")}
           className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "bedrock" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
           Bedrock Edition<span className="block text-xs opacity-70">.mcaddon (PC & Mobile)</span>
+=======
+        <button type="button" onClick={() => setEdition("java")}
+          className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "java" ? "bg-green-600 text-white shadow-lg shadow-green-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
+          Java Edition<span className="block text-xs opacity-70">.jar (Desktop with Forge)</span>
+        </button>
+        <button type="button" onClick={() => setEdition("bedrock")}
+          className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "bedrock" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
+          Bedrock Edition<span className="block text-xs opacity-70">.mcaddon (Desktop & Mobile)</span>
+>>>>>>> 3af6ddbb9e61fa462c13a8f93bf29250a3a31b4f
         </button>
       </div>
 

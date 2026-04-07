@@ -67,13 +67,18 @@ def build_detailed_description(spec: ModSpec) -> str:
 
 
 def _needs_scripts(spec: ModSpec) -> bool:
-    """Check if any item needs the Script API."""
+    """Check if any item/block needs the Script API."""
     for item in spec.items:
         if item.on_hit_effects:
             return True
         if item.item_type == "armor" and item.armor_effects:
             return True
         if item.special_ability:
+            return True
+    # Interactive blocks
+    interactive_kw = ["cannon", "turret", "launcher", "machine", "trap", "landmine", "dispenser"]
+    for block in spec.blocks:
+        if any(k in block.display_name.lower() for k in interactive_kw):
             return True
     return False
 
@@ -327,6 +332,66 @@ def fix_bedrock_item_json(data: dict, namespace: str) -> dict:
         has_food = "minecraft:food" in components
         components["minecraft:max_stack_size"] = 64 if has_food else 1
 
+    # Add digger component for tools — they actually mine faster
+    identifier = desc.get("identifier", "")
+    item_name_lower = identifier.split(":")[-1] if ":" in identifier else ""
+
+    # Check if this looks like a tool — add mining speed
+    tool_tags = {
+        "pickaxe": {"speed": 8, "blocks": ["stone", "iron_ore", "gold_ore", "diamond_ore", "coal_ore", "copper_ore", "cobblestone", "deepslate"]},
+        "axe": {"speed": 7, "blocks": ["oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log", "dark_oak_log", "planks", "oak_planks"]},
+        "shovel": {"speed": 8, "blocks": ["dirt", "grass_block", "sand", "gravel", "clay", "soul_sand", "snow"]},
+        "hoe": {"speed": 6, "blocks": ["hay_block", "sponge", "leaves", "oak_leaves"]},
+    }
+
+    for tool_key, tool_data in tool_tags.items():
+        if tool_key in item_name_lower and "minecraft:digger" not in components:
+            destroy_speeds = []
+            for block in tool_data["blocks"]:
+                destroy_speeds.append({
+                    "block": "minecraft:%s" % block,
+                    "speed": tool_data["speed"]
+                })
+            components["minecraft:digger"] = {
+                "use_efficiency": True,
+                "destroy_speeds": destroy_speeds
+            }
+            break
+
+    # Swing duration based on weapon speed
+    speed = None
+    for s_item in []:  # will be filled by inject_weapon_mechanics
+        pass  # placeholder
+    # Fast weapons swing faster, slow weapons swing slower
+    if "minecraft:damage" in components and "minecraft:swing_duration" not in components:
+        if "katana" in item_name_lower or "gauntlet" in item_name_lower or "whip" in item_name_lower:
+            components["minecraft:swing_duration"] = 0.3  # fast
+        elif "hammer" in item_name_lower or "axe" in item_name_lower:
+            components["minecraft:swing_duration"] = 0.6  # slow
+
+    # Weapons can destroy blocks in creative
+    if "minecraft:damage" in components and "minecraft:can_destroy_in_creative" not in components:
+        components["minecraft:can_destroy_in_creative"] = True
+
+    # Shields can go in off-hand
+    if "shield" in item_name_lower and "minecraft:allow_off_hand" not in components:
+        components["minecraft:allow_off_hand"] = True
+
+    # Fire resistant items don't burn in lava
+    # (already handled by inject_visual_properties, but ensure for tools too)
+
+    # Add enchantable for weapons/tools/armor
+    if "minecraft:enchantable" not in components:
+        if "minecraft:damage" in components:
+            components["minecraft:enchantable"] = {"value": 14, "slot": "sword"}
+        elif "minecraft:digger" in components:
+            components["minecraft:enchantable"] = {"value": 14, "slot": "pickaxe"}
+        elif "minecraft:wearable" in components:
+            slot = components["minecraft:wearable"].get("slot", "")
+            ench_map = {"slot.armor.head": "armor_head", "slot.armor.chest": "armor_torso",
+                       "slot.armor.legs": "armor_legs", "slot.armor.feet": "armor_feet"}
+            components["minecraft:enchantable"] = {"value": 10, "slot": ench_map.get(slot, "armor_torso")}
+
     item["description"] = desc
     item["components"] = components
     return data
@@ -511,6 +576,10 @@ def fix_bedrock_block_json(data: dict, namespace: str, block_name: str) -> dict:
         components["minecraft:material_instances"] = {
             "*": {"texture": tex_key, "render_method": "opaque"}
         }
+
+    # Add loot table reference so blocks drop themselves
+    if "minecraft:loot" not in components:
+        components["minecraft:loot"] = "loot_tables/blocks/%s.json" % block_name
 
     block["description"] = desc
     block["components"] = components
@@ -798,6 +867,65 @@ def generate_hit_effects_script(spec: ModSpec) -> str:
             lines.append('        } catch(ex){} }')
             lines.append('        dim.spawnParticle("minecraft:huge_explosion_emitter", loc);')
             lines.append('      }')
+            lines.append('    }')
+
+        lines.append('  } catch(e) {}')
+        lines.append('});')
+        lines.append('')
+
+    # === INTERACTIVE BLOCKS (cannons, turrets, traps) ===
+    interactive_keywords = ["cannon", "turret", "launcher", "machine", "trap", "landmine", "dispenser"]
+    interactive_blocks = [b for b in spec.blocks if any(k in b.display_name.lower() for k in interactive_keywords)]
+
+    if interactive_blocks:
+        lines.append('// === INTERACTIVE BLOCKS ===')
+        lines.append('world.beforeEvents.playerInteractWithBlock.subscribe((event) => {')
+        lines.append('  const player = event.player;')
+        lines.append('  const block = event.block;')
+        lines.append('  const blockId = block.typeId;')
+        lines.append('  try {')
+
+        for block in interactive_blocks:
+            block_id = "%s:%s" % (spec.mod_id, block.registry_name)
+            bl = block.display_name.lower()
+            lines.append('    if (blockId === "%s") {' % block_id)
+            lines.append('      event.cancel = true;')
+            lines.append('      system.run(() => {')
+            lines.append('        const dim = player.dimension;')
+            lines.append('        const loc = block.location;')
+            lines.append('        const dir = player.getViewDirection();')
+
+            if any(k in bl for k in ["cannon", "launcher"]):
+                lines.append('        // Fire cannon — shoots 3 fireballs')
+                lines.append('        for (let i = 0; i < 3; i++) {')
+                lines.append('          system.runTimeout(() => {')
+                lines.append('            dim.spawnEntity("minecraft:fireball", {x:loc.x+dir.x*(2+i*2), y:loc.y+1.5+dir.y*(2+i*2), z:loc.z+dir.z*(2+i*2)});')
+                lines.append('            dim.spawnParticle("minecraft:large_explosion", {x:loc.x, y:loc.y+1, z:loc.z});')
+                lines.append('          }, i * 5);')
+                lines.append('        }')
+                lines.append('        player.runCommand("title @s actionbar §c§lCANNON FIRED!");')
+
+            elif any(k in bl for k in ["turret", "machine"]):
+                lines.append('        // Turret — rapid fire arrows at nearest enemy')
+                lines.append('        const enemies = dim.getEntities({location:loc, maxDistance:20, excludeTypes:["minecraft:player"]});')
+                lines.append('        for (let i = 0; i < Math.min(5, enemies.length); i++) {')
+                lines.append('          system.runTimeout(() => {')
+                lines.append('            try { dim.spawnEntity("minecraft:arrow", {x:loc.x, y:loc.y+1, z:loc.z}); } catch(ex){}')
+                lines.append('          }, i * 3);')
+                lines.append('        }')
+                lines.append('        player.runCommand("title @s actionbar §e§lTURRET ACTIVE!");')
+
+            elif any(k in bl for k in ["trap", "landmine"]):
+                lines.append('        // Trap — explodes when activated')
+                lines.append('        dim.createExplosion(loc, 4, { breaksBlocks: true, causesFire: true });')
+                lines.append('        player.runCommand("title @s actionbar §4§lTRAP ACTIVATED!");')
+
+            else:
+                lines.append('        // Generic interact — spawn particles')
+                lines.append('        dim.spawnParticle("minecraft:huge_explosion_emitter", {x:loc.x, y:loc.y+1, z:loc.z});')
+                lines.append('        player.runCommand("title @s actionbar §a§lACTIVATED!");')
+
+            lines.append('      });')
             lines.append('    }')
 
         lines.append('  } catch(e) {}')
