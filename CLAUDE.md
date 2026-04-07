@@ -51,9 +51,18 @@ Two LLM providers available, user-selectable from the frontend:
 - **Anthropic** — Claude Sonnet 4.6
 Routing logic in `backend/services/model_router.py`.
 
+### Payment Gateway (Pluggable)
+Abstracted via Strategy pattern — switch providers by changing `PAYMENT_GATEWAY` env var:
+- **Interface**: `backend/services/payment_gateway.py` — `PaymentGateway` ABC + `WebhookEvent` types
+- **Factory**: `backend/services/payment_factory.py` — `get_gateway()` returns active provider
+- **Providers**: `dodo_gateway.py` (DodoPayments), `razorpay_gateway.py` (Razorpay)
+- **Webhook**: Unified at `/api/subscriptions/webhook` (legacy `/api/subscriptions/webhooks/dodo` still works)
+
+To add a new provider: implement `PaymentGateway`, register in `payment_factory.py`, add config to `config.py`.
+
 ### Token Economy
 - Free tier: 5 tokens, 1 token per generation, 10 jobs/day rate limit
-- Paid tiers via DodoPayments (INR): Basic Weekly ₹99, Basic Monthly ₹399, Unlimited ₹599/mo
+- Paid tiers (INR): Basic Weekly ₹99, Basic Monthly ₹399, Unlimited ₹599/mo
 - Token deduction + audit log in `token_transactions` table
 
 ### Authentication Flow
