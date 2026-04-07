@@ -1,16 +1,25 @@
-"""Browse mods from Modrinth (and later CurseForge)."""
-import logging
-from urllib.parse import quote
+"""Browse and download mods — thin router delegating to marketplace providers."""
 
-import httpx
-from fastapi import APIRouter, Query
+import logging
+from dataclasses import asdict
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import RedirectResponse
+
+from services.marketplace import get_provider, get_available_sources, PROVIDERS
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/browse")
 
-MODRINTH_BASE = "https://api.modrinth.com/v2"
-MODRINTH_HEADERS = {"User-Agent": "ModCrafter/1.0 (modcrafter.app)"}
+
+@router.get("/sources")
+async def list_sources():
+    """Return which marketplace sources are currently available."""
+    return {
+        "sources": get_available_sources(),
+        "all": list(PROVIDERS.keys()),
+    }
 
 
 @router.get("/search")
@@ -20,69 +29,62 @@ async def search_mods(
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     game_version: str = Query("", description="Filter by Minecraft version"),
-    category: str = Query("", description="Filter by category (e.g. weapons, tools)"),
+    category: str = Query("", description="Filter by category"),
 ):
     """Search for mods on external platforms."""
     results = []
 
-    if source in ("modrinth", "all"):
-        modrinth_results = await _search_modrinth(q, limit, offset, game_version, category)
-        results.extend(modrinth_results)
+    sources = list(PROVIDERS.keys()) if source == "all" else [source]
+    for src in sources:
+        try:
+            provider = get_provider(src)
+            hits = await provider.search(q, limit, offset, game_version, category)
+            results.extend(asdict(h) for h in hits)
+        except ValueError:
+            pass  # unknown source, skip
 
     return {"mods": results, "total": len(results), "source": source}
 
 
-async def _search_modrinth(
-    query: str, limit: int, offset: int, game_version: str, category: str,
-) -> list:
-    """Search Modrinth API for mods."""
-    params = {
-        "query": query,
-        "limit": limit,
-        "offset": offset,
-        "index": "relevance",
-    }
+@router.get("/mod/{source}/{mod_id}")
+async def get_mod_details(source: str, mod_id: str):
+    """Fetch mod details and available file versions from a marketplace."""
+    try:
+        provider = get_provider(source)
+    except ValueError:
+        raise HTTPException(400, f"Unknown source: {source}")
 
-    # Build facets filter
-    facets = [['project_type:mod']]
-    if game_version:
-        facets.append([f'versions:{game_version}'])
-    if category:
-        facets.append([f'categories:{category}'])
-
-    # Modrinth expects facets as JSON array
-    import json
-    params["facets"] = json.dumps(facets)
+    if not provider.is_available():
+        raise HTTPException(503, f"{source} is not configured (missing API key?)")
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{MODRINTH_BASE}/search",
-                params=params,
-                headers=MODRINTH_HEADERS,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception as e:
-        logger.error(f"Modrinth search failed: {e}")
-        return []
+        mod = await provider.get_mod(mod_id)
+    except LookupError as e:
+        raise HTTPException(404, str(e))
 
-    mods = []
-    for hit in data.get("hits", []):
-        mods.append({
-            "id": hit["project_id"],
-            "name": hit["title"],
-            "description": hit.get("description", ""),
-            "author": hit.get("author", "Unknown"),
-            "icon_url": hit.get("icon_url"),
-            "downloads": hit.get("downloads", 0),
-            "follows": hit.get("follows", 0),
-            "categories": hit.get("categories", []),
-            "game_versions": hit.get("versions", [])[-5:] if hit.get("versions") else [],
-            "source": "modrinth",
-            "url": f"https://modrinth.com/mod/{hit['slug']}",
-            "created_at": hit.get("date_created"),
-            "updated_at": hit.get("date_modified"),
-        })
+    return asdict(mod)
 
-    return mods
+
+@router.get("/mod/{source}/{mod_id}/download")
+async def download_mod(
+    source: str,
+    mod_id: str,
+    version_id: str = Query(..., description="Version/file ID to download"),
+):
+    """Redirect to the mod file download URL on the source CDN."""
+    try:
+        provider = get_provider(source)
+    except ValueError:
+        raise HTTPException(400, f"Unknown source: {source}")
+
+    if not provider.is_available():
+        raise HTTPException(503, f"{source} is not configured")
+
+    try:
+        url = await provider.get_download_url(mod_id, version_id)
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
+
+    return RedirectResponse(url=url, status_code=302)

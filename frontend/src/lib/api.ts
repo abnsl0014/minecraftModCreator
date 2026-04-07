@@ -214,6 +214,51 @@ export async function searchExternalMods(
   return res.json();
 }
 
+// ---- Browse: Mod Details + Download ----
+
+export interface ModVersion {
+  id: string;
+  name: string;
+  version_number: string;
+  game_versions: string[];
+  loaders: string[];
+  download_url: string | null;
+  filename: string;
+  size: number;
+  date_published: string | null;
+  third_party_allowed?: boolean;
+}
+
+export interface ModDetails {
+  id: string;
+  name: string;
+  description: string;
+  body: string;
+  author: string;
+  icon_url: string | null;
+  downloads: number;
+  source: "modrinth" | "curseforge";
+  url: string;
+  versions: ModVersion[];
+}
+
+export async function getModDetails(
+  source: string,
+  modId: string,
+): Promise<ModDetails> {
+  const res = await fetch(`${API_BASE}/api/browse/mod/${source}/${modId}`);
+  if (!res.ok) throw new Error("Failed to fetch mod details");
+  return res.json();
+}
+
+export function getModDownloadUrl(
+  source: string,
+  modId: string,
+  versionId: string,
+): string {
+  return `${API_BASE}/api/browse/mod/${source}/${modId}/download?version_id=${versionId}`;
+}
+
 // ---- My Mods API ----
 
 export async function getMyMods(
