@@ -24,30 +24,48 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function refreshProfile() {
+      try {
+        const p = await getUserProfile();
+        if (cancelled) return;
+        setTokenBalance(p.token_balance);
+        setIsAdmin(!!p.is_admin);
+      } catch {
+        /* stay silent — unauth'd users hit this too */
+      }
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       const loggedIn = !!data.session;
       setAuthed(loggedIn);
-      if (loggedIn) {
-        getUserProfile().then(p => {
-          setTokenBalance(p.token_balance);
-          setIsAdmin(!!p.is_admin);
-        }).catch(() => {});
-      }
+      if (loggedIn) refreshProfile();
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const loggedIn = !!session;
       setAuthed(loggedIn);
       if (loggedIn) {
-        getUserProfile().then(p => {
-          setTokenBalance(p.token_balance);
-          setIsAdmin(!!p.is_admin);
-        }).catch(() => {});
+        refreshProfile();
       } else {
         setTokenBalance(null);
         setIsAdmin(false);
       }
     });
-    return () => listener.subscription.unsubscribe();
+
+    // ChatInterface (and any other caller) fires `mc-tokens-updated` after a
+    // job finishes so the nav balance stays in sync without a page reload.
+    function onTokensUpdated() {
+      if (!cancelled) refreshProfile();
+    }
+    window.addEventListener("mc-tokens-updated", onTokensUpdated);
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+      window.removeEventListener("mc-tokens-updated", onTokensUpdated);
+    };
   }, []);
 
   function isActive(href: string) {

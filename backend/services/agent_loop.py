@@ -4,7 +4,7 @@ import shutil
 
 from config import settings
 from models import GenerateRequest
-from services.job_manager import update_job
+from services.job_manager import update_job, get_job
 from services.mod_request_parser import parse_mod_request
 from services.code_generator import generate_all_code
 from services.mod_assembler import assemble_mod
@@ -88,6 +88,16 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
             progress_message="An unexpected error occurred",
             error=safe_error,
         )
+        # Refund the token we deducted at /api/generate — the user got nothing.
+        try:
+            job = await get_job(job_id)
+            owner_id = job.get("user_id") if job else None
+            if owner_id:
+                from routers.user import add_tokens
+                await add_tokens(owner_id, 1, "mod_generation_refund")
+                logger.info("Refunded 1 token to %s for failed job %s" % (owner_id, job_id))
+        except Exception:
+            logger.exception("Failed to refund token for job %s" % job_id)
     finally:
         # Always clean up temp files
         from utils.file_utils import cleanup_build_dir

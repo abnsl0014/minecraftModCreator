@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ItemData } from "@/lib/dummyResponses";
-import { generateMod, getStatus, TexturePreviews } from "@/lib/api";
+import { generateMod, getStatus, editMod, TexturePreviews, JobStatus } from "@/lib/api";
 import LootReveal from "@/components/LootReveal";
 import SignupModal from "@/components/SignupModal";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +41,30 @@ const MODEL_OPTIONS = [
   { id: "sonnet-4.6", label: "Sonnet 4.6", color: "#8b5cf6", disabled: true },
 ];
 
+type Stage = "parsing" | "generating" | "packaging" | "complete" | "failed";
+
+const STAGE_ORDER: Stage[] = ["parsing", "generating", "packaging", "complete"];
+const STAGE_LABELS: Record<Stage, string> = {
+  parsing: "Parsing your request",
+  generating: "Generating mod code",
+  packaging: "Packaging files",
+  complete: "Done",
+  failed: "Failed",
+};
+
+interface LiveStatus {
+  jobId: string;
+  stage: Stage;
+  progressMessage: string;
+  error?: string;
+}
+
+function notifyTokensChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("mc-tokens-updated"));
+  }
+}
+
 function ItemCard({ item }: { item: ItemData }) {
   return (
     <div className="mc-panel p-3 flex gap-3" style={{ borderLeftColor: CATEGORY_COLORS[item.category], borderLeftWidth: "4px" }}>
@@ -76,6 +100,47 @@ function TypingIndicator() {
   );
 }
 
+function ProgressCard({ live }: { live: LiveStatus }) {
+  const currentIndex = STAGE_ORDER.indexOf(live.stage);
+  return (
+    <div className="mc-panel p-4">
+      <p className="text-[10px] text-[#d4a017] mb-3" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+        Building your mod
+      </p>
+      <div className="space-y-2 mb-4">
+        {STAGE_ORDER.map((stage, idx) => {
+          const done = idx < currentIndex || live.stage === "complete";
+          const active = idx === currentIndex && live.stage !== "complete";
+          const color = done ? "#55ff55" : active ? "#d4a017" : "#555";
+          const marker = done ? "\u2713" : active ? "\u25B6" : "\u25CB";
+          return (
+            <div key={stage} className="flex items-center gap-3">
+              <span className="text-[10px]" style={{ color, fontFamily: "var(--font-pixel), monospace" }}>
+                {marker}
+              </span>
+              <span className="text-[9px]" style={{ color, fontFamily: "var(--font-pixel), monospace" }}>
+                {STAGE_LABELS[stage]}
+              </span>
+              {active && (
+                <span className="inline-flex ml-auto">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {live.progressMessage && (
+        <p className="text-[8px] text-[#808080] whitespace-pre-line" style={{ fontFamily: "var(--font-pixel), monospace" }}>
+          {live.progressMessage}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function ChatInterface({ initialPrompt }: { initialPrompt?: string }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -93,6 +158,12 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
   const [authed, setAuthed] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gpt-oss-120b");
+  // The most recent successfully-generated job id. When set, subsequent chat
+  // messages are routed through /api/edit/{jobId} instead of creating a new mod.
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  // Live status for the currently-running generation or edit, surfaced in the
+  // preview pane so the user sees stage-by-stage progress instead of an empty panel.
+  const [liveStatus, setLiveStatus] = useState<LiveStatus | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("mc_model_preference");
@@ -128,6 +199,104 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
 
   const allItems = messages.filter((m) => m.role === "ai" && m.items).flatMap((m) => m.items!);
 
+  async function pollJob(jobId: string, kind: "generate" | "edit") {
+    const startedText = kind === "edit" ? "Applying your edit..." : "Starting mod generation...";
+    const successText = kind === "edit" ? "Edit applied!" : "Your mod is ready!";
+    const failPrefix = kind === "edit" ? "Edit failed" : "Generation failed";
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "generation-started" as MessageRole,
+        text: startedText,
+        jobId,
+      },
+    ]);
+    setLiveStatus({ jobId, stage: "parsing", progressMessage: startedText });
+
+    const maxPolls = 120;
+    let finalStatus: JobStatus | null = null;
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise((r) => setTimeout(r, 2500));
+      let status: JobStatus;
+      try {
+        status = await getStatus(jobId);
+      } catch {
+        continue;
+      }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.jobId === jobId && m.role === "generation-started"
+            ? { ...m, text: status.progress_message || "Working..." }
+            : m
+        )
+      );
+      setLiveStatus({
+        jobId,
+        stage: status.status as Stage,
+        progressMessage: status.progress_message || "Working...",
+        error: status.error || undefined,
+      });
+
+      if (status.status === "complete" || status.status === "failed") {
+        finalStatus = status;
+        break;
+      }
+    }
+
+    if (!finalStatus) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.jobId === jobId && m.role === "generation-started"
+            ? {
+                role: "generation-failed" as MessageRole,
+                text: `${failPrefix}: timed out. Try again.`,
+                jobId,
+              }
+            : m
+        )
+      );
+      setLiveStatus(null);
+      notifyTokensChanged();
+      return;
+    }
+
+    if (finalStatus.status === "complete") {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.jobId === jobId && m.role === "generation-started"
+            ? {
+                role: "generation-complete" as MessageRole,
+                text: successText,
+                jobId,
+                downloadUrl: finalStatus!.jar_url || undefined,
+                modelUsed: finalStatus!.model_used,
+                texturePreviews: finalStatus!.texture_previews || undefined,
+                edition: finalStatus!.edition,
+              }
+            : m
+        )
+      );
+      setCurrentJobId(jobId);
+      setLiveStatus(null);
+    } else {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.jobId === jobId && m.role === "generation-started"
+            ? {
+                role: "generation-failed" as MessageRole,
+                text: finalStatus!.error || `${failPrefix}. Try again.`,
+                jobId,
+              }
+            : m
+        )
+      );
+      setLiveStatus(null);
+    }
+    notifyTokensChanged();
+  }
+
   async function submitPrompt(text: string) {
     if (!text.trim() || typing) return;
 
@@ -137,79 +306,35 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
     setTyping(true);
 
     try {
-      const model = localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
-      const { job_id } = await generateMod(text.trim(), undefined, undefined, "java", undefined, model);
-
-      // Add generation-started message
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "generation-started" as MessageRole,
-          text: "Starting mod generation...",
-          jobId: job_id,
-        },
-      ]);
-
-      // Poll for status
-      const maxPolls = 120;
-      for (let i = 0; i < maxPolls; i++) {
-        await new Promise((r) => setTimeout(r, 2500));
-        const status = await getStatus(job_id);
-
-        // Update progress text
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.jobId === job_id && m.role === "generation-started"
-              ? { ...m, text: status.progress_message || "Generating..." }
-              : m
-          )
-        );
-
-        if (status.status === "complete") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.jobId === job_id
-                ? {
-                    role: "generation-complete" as MessageRole,
-                    text: "Your mod is ready!",
-                    jobId: job_id,
-                    downloadUrl: status.jar_url || undefined,
-                    modelUsed: status.model_used,
-                    texturePreviews: status.texture_previews || undefined,
-                    edition: status.edition,
-                  }
-                : m
-            )
-          );
-          break;
-        }
-
-        if (status.status === "failed") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.jobId === job_id
-                ? {
-                    role: "generation-failed" as MessageRole,
-                    text: status.error || "Generation failed. Try again.",
-                    jobId: job_id,
-                  }
-                : m
-            )
-          );
-          break;
-        }
+      if (currentJobId) {
+        // Follow-up message — edit the existing mod rather than create a new one.
+        await editMod(currentJobId, text.trim());
+        await pollJob(currentJobId, "edit");
+      } else {
+        const model = localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
+        const { job_id } = await generateMod(text.trim(), undefined, undefined, "java", undefined, model);
+        await pollJob(job_id, "generate");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to start generation";
       setMessages((prev) => [
         ...prev,
         {
           role: "generation-failed" as MessageRole,
-          text: err.message || "Failed to start generation",
+          text: message,
         },
       ]);
+      setLiveStatus(null);
+      notifyTokensChanged();
     } finally {
       setTyping(false);
     }
+  }
+
+  function startNewMod() {
+    setCurrentJobId(null);
+    setMessages([]);
+    setLiveStatus(null);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -290,60 +415,10 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                 downloadUrl={msg.downloadUrl}
                 edition={msg.edition || "java"}
                 onEditStarted={() => {
-                  setMessages((prev) => [
-                    ...prev,
-                    {
-                      role: "generation-started" as MessageRole,
-                      text: "Applying edit...",
-                      jobId: msg.jobId,
-                    },
-                  ]);
+                  // LootReveal has already POSTed /api/edit for us; just poll.
+                  const id = msg.jobId!;
                   setTyping(true);
-                  // Re-poll for the edit
-                  const pollEdit = async () => {
-                    for (let j = 0; j < 120; j++) {
-                      await new Promise((r) => setTimeout(r, 2500));
-                      const s = await getStatus(msg.jobId!);
-                      setMessages((prev) =>
-                        prev.map((m) =>
-                          m.jobId === msg.jobId && m.role === "generation-started"
-                            ? { ...m, text: s.progress_message || "Applying edit..." }
-                            : m
-                        )
-                      );
-                      if (s.status === "complete") {
-                        setMessages((prev) =>
-                          prev.map((m) =>
-                            m.jobId === msg.jobId && m.role === "generation-started"
-                              ? {
-                                  role: "generation-complete" as MessageRole,
-                                  text: "Edit applied!",
-                                  jobId: msg.jobId,
-                                  downloadUrl: s.jar_url || undefined,
-                                  modelUsed: s.model_used,
-                                  texturePreviews: s.texture_previews || undefined,
-                                  edition: s.edition,
-                                }
-                              : m
-                          )
-                        );
-                        setTyping(false);
-                        break;
-                      }
-                      if (s.status === "failed") {
-                        setMessages((prev) =>
-                          prev.map((m) =>
-                            m.jobId === msg.jobId && m.role === "generation-started"
-                              ? { role: "generation-failed" as MessageRole, text: s.error || "Edit failed", jobId: msg.jobId }
-                              : m
-                          )
-                        );
-                        setTyping(false);
-                        break;
-                      }
-                    }
-                  };
-                  pollEdit();
+                  pollJob(id, "edit").finally(() => setTyping(false));
                 }}
               />
             ) : (
@@ -560,9 +635,22 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
             Bedrock
           </span>
+          {currentJobId && (
+            <button
+              type="button"
+              onClick={startNewMod}
+              className="text-[8px] px-2 py-1 border border-[#3d3d3d] text-[#808080] hover:text-[#d4a017] hover:border-[#d4a017]"
+              style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}
+              title="Discard this mod and start a new conversation"
+            >
+              + New mod
+            </button>
+          )}
         </div>
 
-        {allItems.length === 0 ? (
+        {liveStatus && liveStatus.stage !== "failed" ? (
+          <ProgressCard live={liveStatus} />
+        ) : allItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-[20px] mb-3 opacity-30">{"\u{1F4E6}"}</p>
             <p className="text-[9px] text-[#808080]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
