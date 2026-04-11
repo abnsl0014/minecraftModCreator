@@ -30,12 +30,12 @@ class ModelRouter:
         json_mode: bool = False,
         model_preference: str = GROQ_MODEL,
     ) -> str:
-        if model_preference == SONNET_MODEL:
+        if model_preference == SONNET_MODEL and self.anthropic_client:
             primary = self._call_anthropic
-            fallback = self._call_groq
+            fallback = self._call_groq if self.groq_client else None
         else:
             primary = self._call_groq
-            fallback = self._call_anthropic
+            fallback = self._call_anthropic if self.anthropic_client else None
 
         try:
             return await asyncio.wait_for(
@@ -43,8 +43,12 @@ class ModelRouter:
                 timeout=self.LLM_CALL_TIMEOUT,
             )
         except asyncio.TimeoutError:
+            if fallback is None:
+                raise Exception(f"{model_preference} timed out after {self.LLM_CALL_TIMEOUT}s (no fallback configured)")
             logger.warning(f"Primary model ({model_preference}) timed out after {self.LLM_CALL_TIMEOUT}s. Trying fallback.")
         except Exception as e:
+            if fallback is None:
+                raise
             logger.warning(f"Primary model ({model_preference}) failed: {e}. Trying fallback.")
 
         try:

@@ -14,6 +14,8 @@ cd frontend && npm run dev      # Dev server on :3000
 cd frontend && npm run build    # Production build
 ```
 
+Requires `frontend/.env.local` (see `frontend/.env.example`). **`NEXT_PUBLIC_API_URL` must be set** — without it, `API_BASE` in `src/lib/api.ts` falls back to empty string and every `/api/*` call hits the Next origin (404).
+
 ### Backend (`/backend`)
 ```bash
 cd backend && uvicorn main:app --reload   # Dev server on :8000

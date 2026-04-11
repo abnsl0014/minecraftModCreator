@@ -6,6 +6,7 @@ load_dotenv()
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from routers.generate import router as generate_router
@@ -18,6 +19,7 @@ from routers.admin import router as admin_router
 from routers.skins import router as skins_router
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Minecraft Mod Creator", version="0.3.0")
 
@@ -72,6 +74,18 @@ app.include_router(subscriptions_router)
 app.include_router(submissions_router)
 app.include_router(admin_router)
 app.include_router(skins_router)
+
+
+# Catch unhandled exceptions and return JSON so the CORS middleware
+# attaches headers — otherwise the browser sees net::ERR_FAILED instead
+# of a parsable 500 response.
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")

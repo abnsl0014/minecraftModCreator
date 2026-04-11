@@ -124,15 +124,19 @@ export default function Home() {
               GPT-OSS 120B (Fast)
             </button>
             <button
-              onClick={() => handleModelChange("sonnet-4.6")}
-              className={`px-4 py-2 rounded-lg text-[9px] font-semibold transition ${
-                selectedModel === "sonnet-4.6"
-                  ? "bg-[#8b5cf6] text-white"
-                  : "bg-[#1a1a2e] text-gray-400 border border-gray-700 hover:border-[#8b5cf6]/50"
-              }`}
+              type="button"
+              disabled
+              title="Sonnet 4.6 is coming soon"
+              className="relative px-4 py-2 rounded-lg text-[9px] font-semibold bg-[#1a1a2e] text-gray-600 border border-gray-800 cursor-not-allowed opacity-60"
               style={{ fontFamily: "var(--font-pixel), monospace" }}
             >
               Sonnet 4.6 (Quality)
+              <span
+                className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded bg-[#d4a017] text-black text-[7px] font-bold"
+                style={{ fontFamily: "var(--font-pixel), monospace" }}
+              >
+                SOON
+              </span>
             </button>
           </div>
 

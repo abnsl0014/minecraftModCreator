@@ -227,15 +227,19 @@ export default function SkinsPage() {
                     GPT-OSS 120B
                   </button>
                   <button
-                    onClick={() => setModel("sonnet-4.6")}
-                    className={`mc-btn flex-1 px-3 py-2 text-[9px] ${
-                      model === "sonnet-4.6"
-                        ? "bg-[#222]! text-[#d4a017]! border-[#d4a017]!"
-                        : ""
-                    }`}
+                    type="button"
+                    disabled
+                    title="Sonnet 4.6 is coming soon"
+                    className="mc-btn flex-1 px-3 py-2 text-[9px] relative opacity-50 cursor-not-allowed"
                     style={pixelFont}
                   >
                     Sonnet 4.6
+                    <span
+                      className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded bg-[#d4a017] text-black text-[7px] font-bold"
+                      style={pixelFont}
+                    >
+                      SOON
+                    </span>
                   </button>
                 </div>
               </div>

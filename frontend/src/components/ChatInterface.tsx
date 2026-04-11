@@ -37,8 +37,8 @@ const CREATE_CATEGORIES = [
 ];
 
 const MODEL_OPTIONS = [
-  { id: "gpt-oss-120b", label: "GPT-OSS 120B", color: "#00ff88" },
-  { id: "sonnet-4.6", label: "Sonnet 4.6", color: "#8b5cf6" },
+  { id: "gpt-oss-120b", label: "GPT-OSS 120B", color: "#00ff88", disabled: false },
+  { id: "sonnet-4.6", label: "Sonnet 4.6", color: "#8b5cf6", disabled: true },
 ];
 
 function ItemCard({ item }: { item: ItemData }) {
@@ -491,9 +491,13 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             <button
               key={m.id}
               type="button"
-              onClick={() => handleModelChange(m.id)}
-              className={`text-[8px] px-2 py-1 rounded border transition ${
-                selectedModel === m.id
+              onClick={() => !m.disabled && handleModelChange(m.id)}
+              disabled={m.disabled}
+              title={m.disabled ? "Coming soon" : undefined}
+              className={`relative text-[8px] px-2 py-1 rounded border transition ${
+                m.disabled
+                  ? "border-[#3d3d3d] opacity-40 cursor-not-allowed"
+                  : selectedModel === m.id
                   ? "border-current opacity-100"
                   : "border-[#3d3d3d] opacity-50 hover:opacity-75"
               }`}
@@ -503,6 +507,14 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
               }}
             >
               {m.label}
+              {m.disabled && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 px-1 py-0.5 rounded bg-[#d4a017] text-black text-[6px] font-bold"
+                  style={{ fontFamily: "var(--font-pixel), monospace" }}
+                >
+                  SOON
+                </span>
+              )}
             </button>
           ))}
           <span className="text-[7px] text-[#555] ml-auto" style={{ fontFamily: "var(--font-pixel), monospace" }}>
