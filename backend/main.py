@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -38,6 +39,13 @@ frontend_url = os.environ.get("FRONTEND_URL")
 if frontend_url:
     cors_origins.append(frontend_url)
 
+# In production, also accept any *.vercel.app subdomain (the alias plus
+# every preview URL). Once a real custom domain is wired up, drop this
+# regex and rely solely on FRONTEND_URL.
+cors_origin_regex: Optional[str] = None
+if os.environ.get("ENVIRONMENT") == "production":
+    cors_origin_regex = r"https://[a-z0-9-]+\.vercel\.app"
+
 MAX_REQUEST_BODY = 52 * 1024 * 1024  # 52MB (matches Supabase Storage limit)
 
 
@@ -61,6 +69,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
