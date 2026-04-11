@@ -108,15 +108,30 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        {/*
+          Label/htmlFor + matching id + name="email"/"password" + autocomplete
+          hints are all required for password managers (Chrome, 1Password,
+          Bitwarden) to reliably pair the email with the password when saving.
+          Without these, the browser saves only the password and loses the
+          username. autocomplete also switches between "new-password" (signup)
+          and "current-password" (login) so managers know whether to offer
+          generation vs autofill.
+        */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4" autoComplete="on">
           <div>
-            <label className="block text-[9px] text-[#808080] mb-1.5"
+            <label
+              htmlFor="auth-email"
+              className="block text-[9px] text-[#808080] mb-1.5"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
               Email *
             </label>
             <div className="mc-panel-inset">
               <input
+                id="auth-email"
+                name="email"
                 type="email"
+                autoComplete="email"
+                inputMode="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 placeholder="you@example.com"
@@ -124,24 +139,32 @@ export default function SignupModal({ open, onClose, onSignup }: Props) {
                 style={{ fontFamily: "var(--font-pixel), monospace" }}
                 autoFocus
                 disabled={loading}
+                required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[9px] text-[#808080] mb-1.5"
+            <label
+              htmlFor="auth-password"
+              className="block text-[9px] text-[#808080] mb-1.5"
               style={{ fontFamily: "var(--font-pixel), monospace" }}>
               Password *
             </label>
             <div className="mc-panel-inset">
               <input
+                id="auth-password"
+                name="password"
                 type="password"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 placeholder="Min 6 characters"
                 className="w-full bg-transparent px-3 py-2.5 text-[10px] text-[#c0c0c0] focus:outline-none placeholder-[#555]"
                 style={{ fontFamily: "var(--font-pixel), monospace" }}
                 disabled={loading}
+                required
+                minLength={6}
               />
             </div>
           </div>
