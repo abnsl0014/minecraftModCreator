@@ -18,7 +18,6 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
   const [category, setCategory] = useState<ModSubmission["category"]>("weapon");
-  const [edition, setEdition] = useState<"java" | "bedrock">("bedrock");
   const [videoUrl, setVideoUrl] = useState("");
   const [survivalGuide, setSurvivalGuide] = useState("");
   const [tags, setTags] = useState("");
@@ -43,7 +42,6 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
       name: name.trim(),
       description: description.trim(),
       author: author.trim() || "Anonymous",
-      edition,
       category,
       thumbnail: null,
       videoUrl: videoUrl.trim(),
@@ -74,7 +72,6 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
     setDescription("");
     setAuthor("");
     setCategory("weapon");
-    setEdition("bedrock");
     setVideoUrl("");
     setSurvivalGuide("");
     setTags("");
@@ -192,24 +189,6 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
                           </option>
                         ))}
                       </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[8px] text-[#808080] mb-1.5"
-                      style={{ fontFamily: "var(--font-pixel), monospace" }}>
-                      Edition
-                    </label>
-                    <div className="flex mc-panel-inset">
-                      {(["bedrock", "java"] as const).map(e => (
-                        <button key={e} type="button"
-                          onClick={() => setEdition(e)}
-                          className={`flex-1 px-3 py-2 text-[10px] capitalize ${
-                            edition === e ? "bg-[#3d3d3d] text-white" : "text-[#555]"
-                          }`}
-                          style={{ fontFamily: "var(--font-pixel), monospace", transition: "none" }}>
-                          {e}
-                        </button>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -342,9 +321,6 @@ export default function SubmitModModal({ open, onClose, onSubmitted }: SubmitMod
                     <span className="text-[#808080]">by {author || "Anonymous"}</span>
                     <span style={{ color: CATEGORY_CONFIG[category].color }}>
                       {CATEGORY_CONFIG[category].label}
-                    </span>
-                    <span style={{ color: edition === "java" ? "#55ff55" : "#5555ff" }}>
-                      {edition}
                     </span>
                   </div>
 

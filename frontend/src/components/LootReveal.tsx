@@ -25,7 +25,6 @@ interface LootRevealProps {
   previews: TexturePreviews;
   jobId: string;
   downloadUrl?: string;
-  edition: "java" | "bedrock";
   onEditStarted?: () => void;
 }
 
@@ -150,7 +149,7 @@ function LootCard({
   );
 }
 
-export default function LootReveal({ previews, jobId, downloadUrl, edition, onEditStarted }: LootRevealProps) {
+export default function LootReveal({ previews, jobId, downloadUrl, onEditStarted }: LootRevealProps) {
   const allItems = [...previews.items, ...previews.blocks];
 
   if (allItems.length === 0) return null;
@@ -163,14 +162,10 @@ export default function LootReveal({ previews, jobId, downloadUrl, edition, onEd
           + {allItems.length} {allItems.length === 1 ? "item" : "items"} created
         </span>
         <span
-          className={`text-[8px] px-2 py-0.5 rounded ${
-            edition === "bedrock"
-              ? "bg-blue-900/50 text-blue-300 border border-blue-800"
-              : "bg-[#1a1a1a] text-[#d4a017] border border-[#d4a017]/30"
-          }`}
+          className="text-[8px] px-2 py-0.5 rounded bg-[#1a1a1a] text-[#d4a017] border border-[#d4a017]/30"
           style={FONT}
         >
-          {edition === "bedrock" ? "Bedrock" : "Java"} Edition
+          Java Forge
         </span>
       </div>
 
@@ -201,7 +196,7 @@ export default function LootReveal({ previews, jobId, downloadUrl, edition, onEd
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Download {edition === "bedrock" ? ".mcaddon" : "Project .zip"}
+            Download Project .zip
           </a>
         </div>
       )}

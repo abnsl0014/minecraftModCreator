@@ -203,12 +203,9 @@ export default function ModForm() {
   const [description, setDescription] = useState("");
   const [modName, setModName] = useState("");
   const [authorName, setAuthorName] = useState("");
-  const [edition, setEdition] = useState<"java" | "bedrock">("bedrock");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quickTextures, setQuickTextures] = useState<{name: string; dataUrl: string}[]>([]);
-  const [javaShake, setJavaShake] = useState(false);
-  const [javaTooltip, setJavaTooltip] = useState(false);
 
   // Builder state
   const [activeTab, setActiveTab] = useState<BuilderTab>("weapons");
@@ -298,7 +295,7 @@ export default function ModForm() {
           }
         }
       }
-      const { job_id } = await generateMod(finalDescription, modName, authorName, edition, customTextures);
+      const { job_id } = await generateMod(finalDescription, modName, authorName, customTextures);
       router.push(`/status/${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -307,7 +304,7 @@ export default function ModForm() {
   };
 
   const totalEntries = weapons.length + tools.length + armor.length + food.length + blocks.length;
-  const accentColor = edition === "bedrock" ? "blue" : "green";
+  const accentColor = "green";
 
   const TABS: { key: BuilderTab; label: string; icon: string; count: number }[] = [
     { key: "weapons", label: "Weapons", icon: "M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z", count: weapons.length },
@@ -319,35 +316,17 @@ export default function ModForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-3xl space-y-6">
-      {/* Edition selector */}
-      <div className="flex justify-center gap-2">
-        <button type="button" onClick={() => {
-            setJavaShake(true);
-            setJavaTooltip(true);
-            setTimeout(() => setJavaShake(false), 300);
-            setTimeout(() => setJavaTooltip(false), 3000);
-          }}
-          className={`relative px-5 py-2.5 rounded-lg font-medium text-sm bg-gray-800/30 text-gray-500 border border-gray-700/50 cursor-not-allowed ${javaShake ? "mc-shake" : ""}`}>
-          <span className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {/* Edition indicator (Java only) */}
+      <div className="flex justify-center">
+        <div className="px-5 py-2.5 rounded-lg bg-green-900/20 border border-green-700/40 text-green-300">
+          <span className="flex items-center gap-2 font-medium text-sm">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            Java Edition
+            Java Forge
           </span>
-          <span className="block text-xs opacity-50">.zip Project (Desktop)</span>
-          <span className="absolute -top-2 -right-2 bg-yellow-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">
-            SOON
-          </span>
-          {javaTooltip && (
-            <span className="mc-tooltip-smooth">
-              Java Edition is coming soon! Bedrock is fully supported.
-            </span>
-          )}
-        </button>
-        <button type="button" onClick={() => setEdition("bedrock")}
-          className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${edition === "bedrock" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" : "bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700"}`}>
-          Bedrock Edition<span className="block text-xs opacity-70">.mcaddon (PC & Mobile)</span>
-        </button>
+          <span className="block text-xs opacity-70">Forge project .zip — import into any modding workspace</span>
+        </div>
       </div>
 
       {/* Mode toggle */}
@@ -389,11 +368,11 @@ export default function ModForm() {
                 className={`flex items-center gap-1.5 px-3 py-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
                   activeTab === tab.key ? "text-white" : "border-transparent text-gray-400 hover:text-gray-200"
                 }`}
-                style={activeTab === tab.key ? { borderBottomColor: edition === "bedrock" ? "#3b82f6" : "#22c55e" } : {}}>
+                style={activeTab === tab.key ? { borderBottomColor: "#22c55e" } : {}}>
                 <svg className="w-4 h-4 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} /></svg>
                 {tab.label}
                 {tab.count > 0 && (
-                  <span className={`px-1.5 py-0.5 text-xs rounded-full ${edition === "bedrock" ? "bg-blue-600/30 text-blue-300" : "bg-green-600/30 text-green-300"}`}>{tab.count}</span>
+                  <span className="px-1.5 py-0.5 text-xs rounded-full bg-green-600/30 text-green-300">{tab.count}</span>
                 )}
               </button>
             ))}
@@ -426,9 +405,7 @@ export default function ModForm() {
       {error && <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>}
 
       <button type="submit" disabled={loading || (mode === "quick" ? !description.trim() : totalEntries === 0)}
-        className={`w-full py-3.5 px-6 font-semibold rounded-lg transition-colors duration-200 text-white ${
-          edition === "bedrock" ? "bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700" : "bg-green-600 hover:bg-green-500 disabled:bg-gray-700"
-        } disabled:cursor-not-allowed`}>
+        className="w-full py-3.5 px-6 font-semibold rounded-lg transition-colors duration-200 text-white bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed">
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -441,8 +418,8 @@ export default function ModForm() {
           <span className="flex items-center justify-center gap-2">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             {mode === "builder"
-              ? `Generate ${edition === "bedrock" ? "Add-On" : "Mod"} (${totalEntries} ${totalEntries === 1 ? "entry" : "entries"})`
-              : edition === "bedrock" ? "Generate Add-On" : "Generate Mod"}
+              ? `Generate Mod (${totalEntries} ${totalEntries === 1 ? "entry" : "entries"})`
+              : "Generate Mod"}
           </span>
         )}
       </button>

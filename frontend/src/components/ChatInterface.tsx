@@ -19,7 +19,6 @@ interface Message {
   downloadUrl?: string;
   modelUsed?: string;
   texturePreviews?: TexturePreviews;
-  edition?: "java" | "bedrock";
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -273,7 +272,6 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                 downloadUrl: finalStatus!.jar_url || undefined,
                 modelUsed: finalStatus!.model_used,
                 texturePreviews: finalStatus!.texture_previews || undefined,
-                edition: finalStatus!.edition,
               }
             : m
         )
@@ -312,7 +310,7 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
         await pollJob(currentJobId, "edit");
       } else {
         const model = localStorage.getItem("mc_model_preference") || "gpt-oss-120b";
-        const { job_id } = await generateMod(text.trim(), undefined, undefined, "java", undefined, model);
+        const { job_id } = await generateMod(text.trim(), undefined, undefined, undefined, model);
         await pollJob(job_id, "generate");
       }
     } catch (err: unknown) {
@@ -413,7 +411,6 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
                 previews={msg.texturePreviews}
                 jobId={msg.jobId}
                 downloadUrl={msg.downloadUrl}
-                edition={msg.edition || "java"}
                 onEditStarted={() => {
                   // LootReveal has already POSTed /api/edit for us; just poll.
                   const id = msg.jobId!;
@@ -631,9 +628,9 @@ export default function ChatInterface({ initialPrompt }: { initialPrompt?: strin
             className="bg-transparent text-[12px] text-[#d4a017] focus:outline-none focus:border-b-2 focus:border-[#d4a017] flex-1"
             style={{ fontFamily: "var(--font-pixel), monospace" }}
           />
-          <span className="text-[8px] px-2 py-1 bg-[#5555ff]/20 text-[#5555ff] border border-[#5555ff]/40"
+          <span className="text-[8px] px-2 py-1 bg-[#55ff55]/20 text-[#55ff55] border border-[#55ff55]/40"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Bedrock
+            Java Forge
           </span>
           {currentJobId && (
             <button

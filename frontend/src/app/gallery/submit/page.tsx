@@ -24,7 +24,6 @@ export default function SubmitModPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("weapon");
-  const [edition, setEdition] = useState<"java" | "bedrock">("bedrock");
   const [tags, setTags] = useState("");
 
   // Step 2: Media
@@ -88,7 +87,6 @@ export default function SubmitModPage() {
       const formData = new FormData();
       formData.append("title", title.trim());
       formData.append("description", description.trim());
-      formData.append("edition", edition);
       formData.append("category", category);
       formData.append("tags", tags);
       if (videoUrl) formData.append("video_url", videoUrl);
@@ -182,14 +180,6 @@ export default function SubmitModPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-[8px] text-[#808080] mb-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>Edition</label>
-                <select value={edition} onChange={(e) => setEdition(e.target.value as "java" | "bedrock")}
-                  className="w-full bg-[#111] border border-[#333] p-2 text-sm text-white rounded focus:border-[#d4a017] outline-none">
-                  <option value="bedrock">Bedrock</option>
-                  <option value="java">Java</option>
-                </select>
-              </div>
             </div>
             <div>
               <label className="block text-[8px] text-[#808080] mb-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>Tags (comma separated)</label>
@@ -271,7 +261,7 @@ export default function SubmitModPage() {
           <div className="mc-panel p-4 space-y-4">
             <div>
               <label className="block text-[8px] text-[#808080] mb-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>
-                Mod File * (.zip, .jar, .mcaddon, .mcpack)
+                Mod File * (.zip, .jar)
               </label>
               <div onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-[#333] rounded p-6 text-center cursor-pointer hover:border-[#d4a017]">
@@ -281,7 +271,7 @@ export default function SubmitModPage() {
                   <p className="text-[#555] text-sm">Click to select mod file</p>
                 )}
               </div>
-              <input ref={fileInputRef} type="file" accept=".zip,.jar,.mcaddon,.mcpack"
+              <input ref={fileInputRef} type="file" accept=".zip,.jar"
                 onChange={(e) => setModFile(e.target.files?.[0] || null)} className="hidden" />
             </div>
             <div className="space-y-2 text-sm">
@@ -289,7 +279,6 @@ export default function SubmitModPage() {
               <div className="grid grid-cols-2 gap-2 text-[#808080]">
                 <span>Title:</span><span className="text-white">{title}</span>
                 <span>Category:</span><span className="text-white">{CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG]?.label}</span>
-                <span>Edition:</span><span className="text-white capitalize">{edition}</span>
                 <span>Screenshots:</span><span className="text-white">{screenshots.length}</span>
                 <span>Video:</span><span className="text-white">{videoUrl ? "Yes" : "No"}</span>
               </div>

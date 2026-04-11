@@ -29,7 +29,7 @@ const PLANS = [
       "5 tokens per day",
       "Basic mod creation",
       "Community gallery access",
-      "Bedrock edition only",
+      "Java Forge project downloads",
       "Ad-supported",
     ],
   },
@@ -44,7 +44,7 @@ const PLANS = [
     features: [
       "600 tokens per week",
       "No ads",
-      "Java + Bedrock editions",
+      "Java Forge projects",
       "All mod categories",
       "Custom textures",
     ],
@@ -60,7 +60,7 @@ const PLANS = [
     features: [
       "600 tokens per month",
       "No ads",
-      "Java + Bedrock editions",
+      "Java Forge projects",
       "All mod categories",
       "Custom textures",
     ],

@@ -70,7 +70,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const { job_id } = await generateMod(prompt.trim(), undefined, undefined, "bedrock", undefined, selectedModel);
+      const { job_id } = await generateMod(prompt.trim(), undefined, undefined, undefined, selectedModel);
       router.push(`/status/${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -104,10 +104,8 @@ export default function Home() {
 
           <p className="text-[14px] text-[#808080] text-center mb-8 max-w-xl leading-relaxed"
             style={{ fontFamily: "var(--font-pixel-body), monospace" }}>
-            Describe what you want. Download a working mod.{" "}
-            <span className="text-[#55ff55]">Java</span>
-            <span className="text-[#555555] text-[12px]"> (soon)</span> &amp;{" "}
-            <span className="text-[#5555ff]">Bedrock</span> supported.
+            Describe what you want. Download a working{" "}
+            <span className="text-[#55ff55]">Java Forge</span> mod.
           </p>
 
           {/* Model toggle */}
@@ -143,7 +141,7 @@ export default function Home() {
           {/* Token cost hint */}
           <p className="text-[8px] text-[#555] mb-3"
             style={{ fontFamily: "var(--font-pixel), monospace" }}>
-            Cost: <span className="text-[#5555ff]">1 token</span> (Bedrock) · <span className="text-[#55ff55]">2 tokens</span> (Java) · <a href="/pricing" className="text-[#d4a017] hover:text-[#f0c040]" style={{ transition: "none" }}>View pricing →</a>
+            Cost: <span className="text-[#55ff55]">1 token</span> per mod · <a href="/pricing" className="text-[#d4a017] hover:text-[#f0c040]" style={{ transition: "none" }}>View pricing →</a>
           </p>
 
           {/* Prompt input */}
@@ -386,17 +384,17 @@ function ShowcaseSection() {
 
 function ShowcaseCards() {
   const [mods, setMods] = useState<Array<{
-    name: string; description: string; edition: string;
+    name: string; description: string;
     weapons: number; tools: number; armor: number; food: number; blocks: number;
   }>>([]);
   const [loading, setLoading] = useState(true);
 
   const fallbackMods = [
-    { name: "Thunder Blade Pack", description: "Lightning swords with chain damage", edition: "java", weapons: 3, tools: 0, armor: 0, food: 0, blocks: 0 },
-    { name: "Crystal Armor Set", description: "Full crystal armor with glow effects", edition: "bedrock", weapons: 0, tools: 0, armor: 4, food: 0, blocks: 0 },
-    { name: "Mystic Foods", description: "Enchanted foods with potion effects", edition: "java", weapons: 0, tools: 0, armor: 0, food: 5, blocks: 0 },
-    { name: "Neon Blocks", description: "Glowing neon building blocks", edition: "bedrock", weapons: 0, tools: 0, armor: 0, food: 0, blocks: 8 },
-    { name: "Void Tools", description: "Obsidian tools with silk touch", edition: "java", weapons: 0, tools: 4, armor: 0, food: 0, blocks: 0 },
+    { name: "Thunder Blade Pack", description: "Lightning swords with chain damage", weapons: 3, tools: 0, armor: 0, food: 0, blocks: 0 },
+    { name: "Crystal Armor Set", description: "Full crystal armor with glow effects", weapons: 0, tools: 0, armor: 4, food: 0, blocks: 0 },
+    { name: "Mystic Foods", description: "Enchanted foods with potion effects", weapons: 0, tools: 0, armor: 0, food: 5, blocks: 0 },
+    { name: "Neon Blocks", description: "Glowing neon building blocks", weapons: 0, tools: 0, armor: 0, food: 0, blocks: 8 },
+    { name: "Void Tools", description: "Obsidian tools with silk touch", weapons: 0, tools: 4, armor: 0, food: 0, blocks: 0 },
   ];
 
   useEffect(() => {
@@ -404,8 +402,8 @@ function ShowcaseCards() {
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         if (data.mods?.length) {
-          setMods(data.mods.map((m: { name: string; description: string; edition: string; weapons_count: number; tools_count: number; armor_count: number; food_count: number; blocks_count: number }) => ({
-            name: m.name, description: m.description, edition: m.edition,
+          setMods(data.mods.map((m: { name: string; description: string; weapons_count: number; tools_count: number; armor_count: number; food_count: number; blocks_count: number }) => ({
+            name: m.name, description: m.description,
             weapons: m.weapons_count, tools: m.tools_count, armor: m.armor_count,
             food: m.food_count, blocks: m.blocks_count,
           })));
@@ -460,13 +458,6 @@ function ShowcaseCards() {
               }}>
                 {badge.label}
               </span>
-              <span className="text-[8px] px-1.5 py-0.5" style={{
-                fontFamily: "var(--font-pixel), monospace",
-                color: mod.edition === "java" ? "#55ff55" : "#5555ff",
-                border: `1px solid ${mod.edition === "java" ? "#55ff55" : "#5555ff"}`
-              }}>
-                {mod.edition === "java" ? "J" : "B"}
-              </span>
             </div>
           </div>
         );
@@ -479,7 +470,7 @@ function ShowcaseCards() {
 function HowItWorksSection() {
   const steps = [
     { num: "1", title: "Describe Your Mod", desc: "Tell the AI what items, weapons, armor, or blocks you want. Be as creative as you like.", icon: "\u{1F4AC}" },
-    { num: "2", title: "AI Builds It", desc: "Textures, recipes, behaviors, and pack files are generated automatically. Java Forge project or Bedrock .mcaddon.", icon: "\u2692" },
+    { num: "2", title: "AI Builds It", desc: "Textures, recipes, behaviors, and source files are generated automatically as a Java Forge project.", icon: "\u2692" },
     { num: "3", title: "Download & Play", desc: "Drop the file into your mods folder. Works with vanilla Minecraft — no other mods required.", icon: "\u{1F4E6}" },
   ];
 

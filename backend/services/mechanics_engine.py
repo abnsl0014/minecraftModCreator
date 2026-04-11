@@ -251,7 +251,7 @@ def analyze_and_enrich(spec) -> str:
             analysis_lines.append("%s: lucky/mystery item → added glow+rare" % item.display_name)
 
     # Handle passive/charm items — if user asks for amulet/charm/ring/totem
-    # These work as armor helmet slot (easiest way to make passive items in Bedrock)
+    # These work as armor helmet slot (easiest way to make passive items)
     for item in spec.items:
         nl = item.display_name.lower()
         if item.item_type not in ("armor", "food") and any(k in nl for k in ["charm", "amulet", "ring", "totem", "pendant", "necklace", "talisman", "relic"]):

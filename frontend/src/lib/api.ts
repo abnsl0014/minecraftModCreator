@@ -30,7 +30,6 @@ export interface JobStatus {
   download_ready: boolean;
   jar_url: string | null;
   error: string | null;
-  edition: "java" | "bedrock";
   can_edit: boolean;
   mod_id: string | null;
   model_used: string;
@@ -46,7 +45,6 @@ export async function generateMod(
   description: string,
   modName?: string,
   authorName?: string,
-  edition: string = "java",
   customTextures?: CustomTexture[],
   model: string = "gpt-oss-120b",
 ): Promise<{ job_id: string }> {
@@ -57,7 +55,6 @@ export async function generateMod(
       description,
       mod_name: modName || null,
       author_name: authorName || "ModCreator User",
-      edition,
       custom_textures: customTextures?.length ? customTextures : null,
       model,
     }),
@@ -124,7 +121,6 @@ export interface GalleryMod {
   name: string;
   description: string;
   author: string;
-  edition: "java" | "bedrock";
   created_at: string;
   download_url: string;
   model_used: string;
@@ -139,11 +135,10 @@ export interface GalleryResponse {
 
 export async function getGalleryMods(
   sort: string = "recent",
-  edition: string = "all",
   limit: number = 20,
   offset: number = 0,
 ): Promise<GalleryResponse> {
-  const params = new URLSearchParams({ sort, edition, limit: String(limit), offset: String(offset) });
+  const params = new URLSearchParams({ sort, limit: String(limit), offset: String(offset) });
   const res = await fetch(`${API_BASE}/api/gallery?${params}`);
   if (!res.ok) throw new Error("Failed to fetch gallery");
   return res.json();
@@ -348,7 +343,6 @@ export interface Submission {
   job_id: string | null;
   title: string;
   description: string;
-  edition: "java" | "bedrock";
   category: "weapon" | "tool" | "armor" | "food" | "block" | "ability";
   tags: string[];
   screenshots: string[];
@@ -369,7 +363,6 @@ export interface GalleryItem {
   id: string;
   name: string;
   description: string;
-  edition: "java" | "bedrock";
   author: string;
   category: string;
   created_at: string;
@@ -388,12 +381,11 @@ export interface GalleryListResponse {
 
 export async function getGalleryItems(
   sort: string = "recent",
-  edition: string = "all",
   category: string = "all",
   limit: number = 20,
   offset: number = 0,
 ): Promise<GalleryListResponse> {
-  const params = new URLSearchParams({ sort, edition, category, limit: String(limit), offset: String(offset) });
+  const params = new URLSearchParams({ sort, category, limit: String(limit), offset: String(offset) });
   const res = await fetch(`${API_BASE}/api/gallery?${params}`);
   if (!res.ok) throw new Error("Failed to fetch gallery");
   return res.json();
@@ -440,7 +432,7 @@ export async function getSubmission(id: string): Promise<Submission> {
 
 export async function updateSubmission(
   id: string,
-  updates: Partial<Pick<Submission, "title" | "description" | "edition" | "category" | "tags" | "video_url" | "crafting_recipe" | "survival_guide">>,
+  updates: Partial<Pick<Submission, "title" | "description" | "category" | "tags" | "video_url" | "crafting_recipe" | "survival_guide">>,
 ): Promise<Submission> {
   const res = await fetch(`${API_BASE}/api/submissions/${id}`, {
     method: "PUT",
@@ -531,7 +523,6 @@ export interface PublicProfile {
     id: string;
     title: string;
     description: string;
-    edition: string;
     category: string;
     download_count: number;
     featured: boolean;

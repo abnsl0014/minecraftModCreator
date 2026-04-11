@@ -8,8 +8,6 @@ from services.job_manager import update_job, get_job
 from services.mod_request_parser import parse_mod_request
 from services.code_generator import generate_all_code
 from services.mod_assembler import assemble_mod
-from services.bedrock_generator import generate_all_bedrock_code
-from services.bedrock_assembler import assemble_bedrock_addon
 from services.ai_texture_generator import generate_all_textures, collect_texture_previews
 from services.mechanics_engine import analyze_and_enrich
 from utils.file_utils import create_build_dir
@@ -19,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 async def run_agent_loop(job_id: str, request: GenerateRequest):
-    edition = request.edition
     model = request.model
     try:
         # Step 1: Processing user prompt
@@ -71,10 +68,7 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
             progress_message="Processing user prompt... Done\nAnalyzing item mechanics... Done\nGenerating mod details: %s" % ", ".join(items_summary),
         )
 
-        if edition == "bedrock":
-            await _run_bedrock_loop(job_id, spec, model_preference=model)
-        else:
-            await _run_java_loop(job_id, spec, model_preference=model)
+        await _run_java_loop(job_id, spec, model_preference=model)
 
     except Exception as e:
         import traceback
@@ -104,39 +98,6 @@ async def run_agent_loop(job_id: str, request: GenerateRequest):
         cleanup_build_dir(job_id)
 
 
-async def _run_bedrock_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
-    """Bedrock: generate JSON files, zip into .mcaddon. No compilation needed."""
-    # Step 2: Generating code
-    await update_job(job_id, status="generating", progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code...")
-    generated_files = await generate_all_bedrock_code(spec, model_preference=model_preference)
-    logger.info("Generated %d Bedrock files" % len(generated_files))
-    await update_job(job_id, generated_files=generated_files)
-
-    # Step 3: Crafting textures
-    await update_job(job_id, progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures...")
-    build_dir = create_build_dir(job_id)
-    await generate_all_textures(spec, build_dir, edition="bedrock")
-
-    # Collect texture previews for the frontend
-    previews = collect_texture_previews(spec, build_dir, edition="bedrock")
-
-    # Step 4: Packaging files
-    await update_job(job_id, status="packaging", progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files...")
-    mcaddon_path = assemble_bedrock_addon(job_id, spec, generated_files)
-
-    # Step 5: Upload
-    addon_url = await upload_file(job_id, mcaddon_path, "%s.mcaddon" % spec.mod_id)
-    await update_job(
-        job_id,
-        status="complete",
-        progress_message="Processing user prompt... Done\nGenerating mod details... Done\nGenerating code... Done\nCrafting textures... Done\nPackaging files... Done",
-        jar_file_url=addon_url,
-        jar_file_path=mcaddon_path,
-        texture_previews=previews,
-    )
-    logger.info("Bedrock job %s completed" % job_id)
-
-
 async def _run_java_loop(job_id: str, spec, model_preference: str = "gpt-oss-120b"):
     """Java: generate code, assemble project, package as ZIP (no compilation)."""
     # Step 2: Generate code
@@ -153,10 +114,10 @@ async def _run_java_loop(job_id: str, spec, model_preference: str = "gpt-oss-120
 
     # Step 3.5: Generate AI textures (overwrites solid color fallbacks)
     await update_job(job_id, progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project... Done\nCrafting textures...")
-    await generate_all_textures(spec, project_dir, edition="java")
+    await generate_all_textures(spec, project_dir)
 
     # Collect texture previews for the frontend
-    previews = collect_texture_previews(spec, project_dir, edition="java")
+    previews = collect_texture_previews(spec, project_dir)
 
     # Step 4: Package as ZIP
     await update_job(job_id, status="packaging", progress_message="Processing user prompt... Done\nGenerating mod code... Done\nAssembling mod project... Done\nCrafting textures... Done\nPackaging project...")
@@ -194,7 +155,6 @@ async def run_edit_loop(job_id: str, edit_description: str):
     # Clear old error when starting edit
     await update_job(job_id, error=None, status="generating", progress_message="Processing edit request...")
 
-    edition = job.get("edition", "java")
     model_preference = job.get("model_used", "gpt-oss-120b")
     spec_data = job.get("mod_spec", {})
     old_files = job.get("generated_files", {})
@@ -210,50 +170,30 @@ async def run_edit_loop(job_id: str, edit_description: str):
             progress_message="Processing edit request... Done\nApplying changes to code...")
 
         # Apply edits to existing files
-        new_files = await apply_edits(old_files, edit_description, spec, edition, model_preference=model_preference)
+        new_files = await apply_edits(old_files, edit_description, spec, model_preference=model_preference)
 
-        if edition == "bedrock":
-            await update_job(job_id, generated_files=new_files,
-                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures...")
+        await update_job(job_id, generated_files=new_files,
+                       progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod...")
+        project_dir = assemble_mod(job_id, spec, new_files)
 
-            build_dir = create_build_dir(job_id)
-            await generate_all_textures(spec, build_dir, edition="bedrock")
-            previews = collect_texture_previews(spec, build_dir, edition="bedrock")
+        await update_job(job_id, progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures...")
+        await generate_all_textures(spec, project_dir)
+        previews = collect_texture_previews(spec, project_dir)
 
-            await update_job(job_id, status="packaging",
-                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files...")
-
-            mcaddon_path = assemble_bedrock_addon(job_id, spec, new_files)
-            addon_url = await upload_file(job_id, mcaddon_path, "%s.mcaddon" % spec.mod_id)
-            await update_job(
-                job_id, status="complete",
-                progress_message="Processing edit request... Done\nApplying changes to code... Done\nRegenerating textures... Done\nPackaging files... Done",
-                jar_file_url=addon_url,
-                texture_previews=previews,
-            )
-        else:
-            await update_job(job_id, generated_files=new_files,
-                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod...")
-            project_dir = assemble_mod(job_id, spec, new_files)
-
-            await update_job(job_id, progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures...")
-            await generate_all_textures(spec, project_dir, edition="java")
-            previews = collect_texture_previews(spec, project_dir, edition="java")
-
-            await update_job(job_id, status="packaging",
-                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project...")
-            zip_filename = "%s-forge-project" % spec.mod_id
-            zip_path = shutil.make_archive(
-                os.path.join(settings.temp_dir_base, job_id, zip_filename),
-                "zip",
-                root_dir=os.path.dirname(project_dir),
-                base_dir=os.path.basename(project_dir),
-            )
-            zip_url = await upload_file(job_id, zip_path, "%s-forge-project.zip" % spec.mod_id)
-            await update_job(job_id, status="complete",
-                           progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project... Done",
-                           jar_file_url=zip_url,
-                           texture_previews=previews)
+        await update_job(job_id, status="packaging",
+                       progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project...")
+        zip_filename = "%s-forge-project" % spec.mod_id
+        zip_path = shutil.make_archive(
+            os.path.join(settings.temp_dir_base, job_id, zip_filename),
+            "zip",
+            root_dir=os.path.dirname(project_dir),
+            base_dir=os.path.basename(project_dir),
+        )
+        zip_url = await upload_file(job_id, zip_path, "%s-forge-project.zip" % spec.mod_id)
+        await update_job(job_id, status="complete",
+                       progress_message="Processing edit request... Done\nApplying changes to code... Done\nRebuilding mod... Done\nCrafting textures... Done\nPackaging project... Done",
+                       jar_file_url=zip_url,
+                       texture_previews=previews)
 
     except Exception as e:
         logger.exception("Edit loop error for job %s" % job_id)

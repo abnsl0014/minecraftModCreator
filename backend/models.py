@@ -19,7 +19,6 @@ class GenerateRequest(BaseModel):
     description: str = Field(max_length=MAX_DESCRIPTION_LENGTH)
     mod_name: Optional[str] = Field(None, max_length=MAX_NAME_LENGTH)
     author_name: str = Field("ModCreator User", max_length=MAX_NAME_LENGTH)
-    edition: str = "java"  # "java" or "bedrock"
     model: str = "gpt-oss-120b"  # "gpt-oss-120b" | "sonnet-4.6"
     custom_textures: Optional[List[CustomTextureItem]] = None
 
@@ -154,7 +153,6 @@ class JobStatus(BaseModel):
     download_ready: bool = False
     jar_url: Optional[str] = None
     error: Optional[str] = None
-    edition: str = "java"
     can_edit: bool = False
     mod_id: Optional[str] = None
     model_used: str = "gpt-oss-120b"
@@ -164,7 +162,6 @@ class JobStatus(BaseModel):
 class SubmissionCreate(BaseModel):
     title: str = Field(max_length=MAX_TITLE_LENGTH)
     description: str = Field(max_length=MAX_DESCRIPTION_LENGTH)
-    edition: str = "bedrock"
     category: str = "weapon"
     tags: List[str] = Field(default=[], max_length=20)
     video_url: Optional[str] = Field(None, max_length=500)
@@ -176,7 +173,6 @@ class SubmissionCreate(BaseModel):
 class SubmissionUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=MAX_TITLE_LENGTH)
     description: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_LENGTH)
-    edition: Optional[str] = None
     category: Optional[str] = None
     tags: Optional[List[str]] = Field(None, max_length=20)
     video_url: Optional[str] = Field(None, max_length=500)
@@ -190,7 +186,6 @@ class SubmissionResponse(BaseModel):
     job_id: Optional[str] = None
     title: str
     description: str
-    edition: str
     category: str
     tags: List[str] = []
     screenshots: List[str] = []

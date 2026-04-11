@@ -233,14 +233,10 @@ export default function StatusPage() {
         </h1>
         <div className="flex items-center justify-center gap-3 mt-2">
           <span
-            className={`text-xs font-medium px-2 py-0.5 ${
-              status?.edition === "bedrock"
-                ? "bg-blue-900/50 text-blue-300 border border-blue-800"
-                : "bg-[#1a1a1a] text-[#d4a017] border border-[#d4a017]"
-            }`}
+            className="text-xs font-medium px-2 py-0.5 bg-[#1a1a1a] text-[#d4a017] border border-[#d4a017]"
             style={{ fontFamily: "var(--font-pixel), monospace" }}
           >
-            {status?.edition === "bedrock" ? "Bedrock" : "Java"} Edition
+            Java Forge
           </span>
           {status?.model_used && (
             <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -313,29 +309,8 @@ export default function StatusPage() {
         <EditForm jobId={jobId} onEditStarted={handleEditStarted} />
       )}
 
-      {/* Usage hints — edition-specific */}
-      {isComplete && status?.mod_id && status?.edition === "bedrock" && (
-        <div className="mt-6 w-full max-w-2xl">
-          <details className="mc-panel border border-gray-700/50">
-            <summary
-              className="px-4 py-2 text-xs text-[#808080] cursor-pointer hover:text-white"
-              style={{ fontFamily: "var(--font-pixel), monospace" }}
-            >
-              How to use in Minecraft
-            </summary>
-            <div className="px-4 pb-3 text-xs text-[#808080] space-y-2">
-              <p>1. Import the .mcaddon file on your device</p>
-              <p>2. Create a new world &rarr; enable both packs (Behavior + Resource)</p>
-              <p>3. Enable <span className="text-yellow-300">Beta APIs</span> in Experiments (for weapon effects)</p>
-              <p>4. Give items with: <code className="text-[#d4a017] bg-[#1a1a1a] px-1">/give @s {status.mod_id}:item_name</code></p>
-              <p>5. Or craft them at a crafting table in survival mode</p>
-            </div>
-          </details>
-        </div>
-      )}
-
       {/* Java build guide — inline smart guide */}
-      {isComplete && status?.mod_id && status?.edition === "java" && (
+      {isComplete && status?.mod_id && (
         <JavaBuildGuide modId={status.mod_id} />
       )}
 

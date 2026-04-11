@@ -72,10 +72,6 @@ export default function ModDetailModal({ mod, onClose }: ModDetailModalProps) {
                 style={{ fontFamily: "var(--font-pixel), monospace" }}>
                 <span>by {mod.author}</span>
                 <span>•</span>
-                <span style={{ color: mod.edition === "java" ? "#55ff55" : "#5555ff" }}>
-                  {mod.edition === "java" ? "Java" : "Bedrock"}
-                </span>
-                <span>•</span>
                 <span>{new Date(mod.createdAt).toLocaleDateString()}</span>
               </div>
             </div>

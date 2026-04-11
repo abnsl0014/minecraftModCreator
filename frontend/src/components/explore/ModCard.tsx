@@ -60,16 +60,6 @@ export default function ModCard({ mod, onSelect }: ModCardProps) {
           </div>
         )}
 
-        {/* Edition badge */}
-        <div className="absolute top-2 left-3 px-1.5 py-0.5 text-[8px]"
-          style={{
-            fontFamily: "var(--font-pixel), monospace",
-            background: "#0a0a0a99",
-            color: mod.edition === "java" ? "#55ff55" : "#5555ff",
-            border: `1px solid ${mod.edition === "java" ? "#55ff5533" : "#5555ff33"}`,
-          }}>
-          {mod.edition === "java" ? "JAVA" : "BEDROCK"}
-        </div>
       </div>
 
       {/* Content */}

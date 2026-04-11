@@ -7,7 +7,6 @@ from services.agent_loop import run_agent_loop, run_edit_loop
 from utils.auth import require_auth
 from utils.rate_limiter import check_rate_limit
 from routers.user import deduct_tokens
-from services.bedrock_assembler import generate_entity_geometry
 
 router = APIRouter(prefix="/api")
 
@@ -17,9 +16,6 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
     if not request.description.strip():
         raise HTTPException(status_code=400, detail="Description cannot be empty")
 
-    if request.edition not in ("java", "bedrock"):
-        raise HTTPException(status_code=400, detail="Edition must be 'java' or 'bedrock'")
-
     # Deduct tokens: 1 per generation (no server-side compilation)
     token_cost = 1
     await deduct_tokens(user_id, token_cost, "mod_generation")
@@ -28,7 +24,6 @@ async def generate_mod(request: GenerateRequest, background_tasks: BackgroundTas
         description=request.description,
         mod_name=request.mod_name,
         author_name=request.author_name,
-        edition=request.edition,
         model_used=request.model,
         user_id=user_id,
     )
@@ -57,7 +52,6 @@ async def get_status(job_id: str, user_id: str = Depends(require_auth)):
         download_ready=job["status"] == "complete",
         jar_url=job.get("jar_file_url"),
         error=job.get("error"),
-        edition=job.get("edition", "java"),
         can_edit=job["status"] in ("complete", "failed") and bool(job.get("generated_files")),
         mod_id=job.get("mod_id"),
         model_used=job.get("model_used", "gpt-oss-120b"),
@@ -120,22 +114,11 @@ async def get_preview(job_id: str, user_id: str = Depends(require_auth)):
         for block in mod_spec.get("blocks", [])
     ]
 
-    mobs = [
-        {
-            "registry_name": mob["registry_name"],
-            "display_name": mob["display_name"],
-            "color": mob.get("color", "#888888"),
-            "geometry": generate_entity_geometry(mob["registry_name"]),
-        }
-        for mob in mod_spec.get("mobs", [])
-    ]
-
     return {
         "mod_name": mod_spec.get("mod_name", ""),
         "mod_id": mod_spec.get("mod_id", ""),
         "items": items,
         "blocks": blocks,
-        "mobs": mobs,
     }
 
 
@@ -158,9 +141,7 @@ async def download_mod(job_id: str, user_id: str = Depends(require_auth)):
     # Build a proper filename — sanitize mod_id to prevent header injection
     import re
     mod_id = re.sub(r'[^a-zA-Z0-9_-]', '_', job.get("mod_id") or "mod")
-    edition = job.get("edition", "java")
-    ext = ".mcaddon" if edition == "bedrock" else "-forge-project.zip"
-    filename = "%s%s" % (mod_id, ext)
+    filename = "%s-forge-project.zip" % mod_id
 
     # Redirect to Supabase URL with content-disposition header hint
     return RedirectResponse(

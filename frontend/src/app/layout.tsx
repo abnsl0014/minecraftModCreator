@@ -23,7 +23,7 @@ const silkscreen = Silkscreen({
 
 export const metadata: Metadata = {
   title: "ModCrafter — Create Minecraft Mods with AI",
-  description: "Create Minecraft mods with AI. Describe your mod and download a ready-to-build Forge project or .mcaddon instantly.",
+  description: "Create Minecraft mods with AI. Describe your mod and download a ready-to-build Java Forge project instantly.",
   manifest: "/manifest.json",
 };
 

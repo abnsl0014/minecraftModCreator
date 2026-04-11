@@ -11,7 +11,6 @@ async def create_submission(
     user_id: str,
     title: str,
     description: str,
-    edition: str,
     category: str,
     download_url: str,
     tags: list[str] | None = None,
@@ -26,7 +25,8 @@ async def create_submission(
         "user_id": user_id,
         "title": title,
         "description": description,
-        "edition": edition,
+        # Legacy column — marketplace DB still expects it. Always "java" now.
+        "edition": "java",
         "category": category,
         "download_url": download_url,
         "tags": tags or [],
@@ -69,7 +69,6 @@ async def get_user_submissions(
 
 async def get_approved_submissions(
     sort: str = "recent",
-    edition: str = "all",
     category: str = "all",
     limit: int = 20,
     offset: int = 0,
@@ -81,8 +80,6 @@ async def get_approved_submissions(
         .eq("status", "approved")
     )
 
-    if edition != "all":
-        query = query.eq("edition", edition)
     if category != "all":
         query = query.eq("category", category)
 

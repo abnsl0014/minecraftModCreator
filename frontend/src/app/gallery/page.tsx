@@ -8,7 +8,7 @@ import ModDetailModal from "@/components/explore/ModDetailModal";
 import SubmitModModal from "@/components/explore/SubmitModModal";
 import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
-import { getGalleryMods, getGalleryItems, getMyMods, GalleryMod, GalleryItem, MyMod } from "@/lib/api";
+import { getGalleryItems, getMyMods, GalleryItem, MyMod } from "@/lib/api";
 import { isAuthenticated } from "@/lib/supabase";
 import AdBanner from "@/components/AdBanner";
 
@@ -23,7 +23,6 @@ function toExploreMod(g: GalleryItem): ExploreMod {
     name: g.name,
     description: g.description,
     author: g.author,
-    edition: g.edition as "java" | "bedrock",
     category: (g.category || "tool") as ExploreMod["category"],
     thumbnail: g.screenshots?.[0] || null,
     videoUrl: null,
@@ -47,7 +46,6 @@ function myModToExploreMod(m: MyMod): ExploreMod {
     name: m.name,
     description: m.description,
     author: m.author,
-    edition: m.edition as "java" | "bedrock",
     category: "tool",
     thumbnail: null,
     videoUrl: null,
@@ -96,8 +94,7 @@ export default function ExplorePage() {
             setTotalMods(data.total);
           }
         } else {
-          const editionParam = "all";
-          const data = await getGalleryItems(sort, editionParam, category);
+          const data = await getGalleryItems(sort, category);
           if (!cancelled) {
             setMods(data.mods);
             setTotalMods(data.total);

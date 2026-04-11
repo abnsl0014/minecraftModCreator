@@ -131,7 +131,6 @@ function MySubmissionsContent() {
                       <p className="text-[#808080] text-xs mb-2">{sub.description.slice(0, 100)}...</p>
                       <div className="flex gap-3 text-[8px] text-[#555]" style={{ fontFamily: "var(--font-pixel), monospace" }}>
                         <span style={{ color: catConfig?.color }}>{catConfig?.icon} {catConfig?.label}</span>
-                        <span className="capitalize">{sub.edition}</span>
                         {sub.status === "approved" && <span>{sub.download_count} downloads</span>}
                       </div>
                       {sub.status === "rejected" && sub.rejection_reason && (

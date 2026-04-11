@@ -6,30 +6,9 @@ import Header from "@/components/Header";
 
 const FONT = { fontFamily: "var(--font-pixel), monospace" } as const;
 
-type Tab = "bedrock" | "java-forge" | "java-fabric";
+type Tab = "java-forge" | "java-fabric";
 
 const GUIDES: Record<Tab, { title: string; steps: { title: string; detail: string }[] }> = {
-  bedrock: {
-    title: "Bedrock Edition (.mcaddon)",
-    steps: [
-      {
-        title: "1. Download the .mcaddon file",
-        detail: "After your mod is generated, click the Download button on the status page. The file will be saved as a .mcaddon file.",
-      },
-      {
-        title: "2. Open the file",
-        detail: "On mobile (iOS/Android): Tap the downloaded .mcaddon file. Minecraft will automatically open and import the addon.\n\nOn Windows 10/11: Double-click the .mcaddon file. Minecraft should launch and show \"Import started...\" followed by \"Import successful!\"",
-      },
-      {
-        title: "3. Activate in your world",
-        detail: "Open Minecraft > Settings > Create New World (or edit existing) > Behavior Packs > Find your mod > Activate it. Also check Resource Packs if the mod includes textures.",
-      },
-      {
-        title: "4. Play!",
-        detail: "Create or enter the world. Your custom items and blocks will be available. Use the /give command to get items: /give @s modid:item_name",
-      },
-    ],
-  },
   "java-forge": {
     title: "Java Edition — Forge (Build from Source)",
     steps: [
@@ -87,7 +66,7 @@ const GUIDES: Record<Tab, { title: string; steps: { title: string; detail: strin
 };
 
 export default function GuidePage() {
-  const [tab, setTab] = useState<Tab>("bedrock");
+  const [tab, setTab] = useState<Tab>("java-forge");
   const guide = GUIDES[tab];
 
   return (
@@ -116,7 +95,6 @@ export default function GuidePage() {
           {/* Tabs */}
           <div className="flex mc-panel p-1 mb-8 w-fit">
             {([
-              { key: "bedrock" as Tab, label: "Bedrock" },
               { key: "java-forge" as Tab, label: "Java (Forge)" },
               { key: "java-fabric" as Tab, label: "Java (Fabric)" },
             ]).map(t => (

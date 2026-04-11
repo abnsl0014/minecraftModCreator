@@ -10,7 +10,6 @@ async def create_job(
     description: str,
     mod_name: Optional[str],
     author_name: str,
-    edition: str = "java",
     model_used: str = "gpt-oss-120b",
     user_id: Optional[str] = None,
 ) -> str:
@@ -21,15 +20,13 @@ async def create_job(
         "status": "queued",
         "progress_message": "Queued...",
         "model_used": model_used,
+        # Legacy column — DB still expects it. Always write "java" now that
+        # Bedrock is gone.
+        "edition": "java",
+        "generated_files": {},
     }
     if user_id is not None:
         data["user_id"] = user_id
-    # Only add edition/generated_files if columns exist
-    try:
-        data["edition"] = edition
-        data["generated_files"] = {}
-    except Exception:
-        pass
 
     result = supabase.table("jobs").insert(data).execute()
     return result.data[0]["id"]

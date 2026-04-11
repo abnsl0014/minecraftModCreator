@@ -128,7 +128,6 @@ export default function AdminPage() {
                       <h3 className="text-[11px] text-white" style={{ fontFamily: "var(--font-pixel), monospace" }}>{sub.title}</h3>
                       <div className="flex gap-3 text-[8px] mt-1" style={{ fontFamily: "var(--font-pixel), monospace" }}>
                         <span style={{ color: catConfig?.color }}>{catConfig?.icon} {catConfig?.label}</span>
-                        <span className="text-[#555] capitalize">{sub.edition}</span>
                         <span className="text-[#555]">{new Date(sub.created_at).toLocaleDateString()}</span>
                         <span className="text-[#555]">{sub.screenshots.length} screenshots</span>
                       </div>

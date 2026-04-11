@@ -115,7 +115,6 @@ export default function ModDetailPage() {
                   </Link>
                 </span>
                 <span style={{ color: catConfig?.color }}>{catConfig?.icon} {catConfig?.label}</span>
-                <span className="text-[#808080] capitalize">{submission.edition}</span>
                 {submission.featured && <span className="text-[#d4a017]">★ Featured</span>}
               </div>
             </div>

@@ -27,7 +27,6 @@ router = APIRouter(prefix="/api/submissions")
 async def submit_mod(
     title: str = Form(...),
     description: str = Form(...),
-    edition: str = Form("bedrock"),
     category: str = Form("weapon"),
     tags: str = Form(""),  # comma-separated
     video_url: Optional[str] = Form(None),
@@ -44,18 +43,14 @@ async def submit_mod(
     if category not in valid_categories:
         raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
 
-    # Validate edition
-    if edition not in ("java", "bedrock"):
-        raise HTTPException(status_code=400, detail=f"Invalid edition: {edition}")
-
     # Upload mod file to mod-jars bucket
     submission_id = str(uuid.uuid4())
     file_ext = mod_file.filename.split(".")[-1] if mod_file.filename else "zip"
     mod_file_path = f"submissions/{submission_id}/mod.{file_ext}"
     mod_file_content = await mod_file.read()
 
-    # Validate file extension
-    allowed_extensions = {"zip", "jar", "mcaddon", "mcpack"}
+    # Validate file extension — Java Forge outputs only
+    allowed_extensions = {"zip", "jar"}
     if file_ext.lower() not in allowed_extensions:
         raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
 
@@ -95,7 +90,6 @@ async def submit_mod(
         user_id=user_id,
         title=title,
         description=description,
-        edition=edition,
         category=category,
         download_url=mod_file_url,
         tags=tag_list,

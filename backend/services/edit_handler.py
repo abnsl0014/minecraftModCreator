@@ -8,34 +8,31 @@ from services.code_generator import strip_code_fences
 
 logger = logging.getLogger(__name__)
 
-EDIT_SYSTEM_PROMPT = """You are editing an existing Minecraft Bedrock add-on file. Apply the user's requested changes.
+EDIT_SYSTEM_PROMPT = """You are editing an existing Minecraft Forge Java mod file. Apply the user's requested changes.
 
 RULES:
-- Output ONLY the modified JSON, no explanations
-- Keep the same structure and format_version
+- Output ONLY the modified Java source, no explanations or markdown fences
+- Keep the same package declaration, class name, and imports unless the change requires new ones
+- Preserve the existing Forge annotations and registration scheme
 - Only change what the user requested
-- For damage changes: use {"value": N} format
-- For adding effects: add to on_hit_effects or food effects array
-- Keep minecraft:icon, minecraft:display_name, minecraft:durability intact unless asked to change
-- Output valid JSON only"""
+- For damage/durability tweaks: update the item properties or constructor arguments
+- For new effects/behaviours: add the minimum code needed, keep existing logic working
+- Output valid, compilable Java only"""
 
 
 async def apply_edits(
     old_files: Dict[str, str],
     edit_description: str,
     spec: ModSpec,
-    edition: str,
     model_preference: str = GROQ_MODEL,
 ) -> Dict[str, str]:
-    """Apply user's edit request to existing generated files."""
+    """Apply user's edit request to existing generated Java source files."""
     new_files = dict(old_files)
 
-    # Get editable files (skip manifests)
-    editable = {p: c for p, c in old_files.items() if "manifest" not in p and (p.endswith(".json") or p.endswith(".js"))}
+    editable = {p: c for p, c in old_files.items() if p.endswith(".java")}
 
     file_summary = "\n".join("- %s" % path for path in editable.keys())
 
-    # Step 1: Ask which files need editing
     plan_response = await model_router.chat(
         messages=[
             {"role": "system", "content": "You identify which files need editing. Output ONLY a JSON object: {\"files\": [\"path1\", \"path2\"]}"},
@@ -53,11 +50,10 @@ async def apply_edits(
     except json.JSONDecodeError:
         files_to_edit = []
 
-    # If LLM couldn't identify files, edit all item files
+    # Fallback: edit any file whose name looks item-related
     if not files_to_edit:
-        files_to_edit = [p for p in editable.keys() if "items/" in p]
+        files_to_edit = [p for p in editable.keys() if "Item" in p or "Items" in p]
 
-    # Step 2: Edit each file
     for file_path in files_to_edit:
         if file_path not in old_files:
             matches = [p for p in old_files if file_path in p]
@@ -66,12 +62,15 @@ async def apply_edits(
             else:
                 continue
 
+        if not file_path.endswith(".java"):
+            continue
+
         current_code = old_files[file_path]
 
         response = await model_router.chat(
             messages=[
                 {"role": "system", "content": EDIT_SYSTEM_PROMPT},
-                {"role": "user", "content": "File: %s\n```json\n%s\n```\n\nEdit: %s\n\nOutput modified JSON only." % (file_path, current_code, edit_description)},
+                {"role": "user", "content": "File: %s\n```java\n%s\n```\n\nEdit: %s\n\nOutput modified Java only." % (file_path, current_code, edit_description)},
             ],
             temperature=0.3,
             max_tokens=4096,
@@ -80,37 +79,7 @@ async def apply_edits(
 
         edited = strip_code_fences(response)
         if edited:
-            # Validate it's still valid JSON for .json files
-            if file_path.endswith(".json"):
-                try:
-                    json.loads(edited)
-                    new_files[file_path] = edited
-                    logger.info("Edited %s" % file_path)
-                except json.JSONDecodeError:
-                    logger.warning("Edit produced invalid JSON for %s, keeping original" % file_path)
-            else:
-                new_files[file_path] = edited
-
-    # Step 3: If edit mentions effects, regenerate the script
-    effect_keywords = ["lightning", "fire", "freeze", "explosion", "poison", "wither", "knockback",
-                       "lifesteal", "blindness", "levitation", "teleport", "effect", "on hit"]
-    needs_script_regen = any(k in edit_description.lower() for k in effect_keywords)
-
-    if needs_script_regen:
-        # Re-parse item files to rebuild effects
-        from services.bedrock_generator import generate_hit_effects_script, _needs_scripts
-        # Rebuild spec from edited files
-        for path, content in new_files.items():
-            if "items/" in path and path.endswith(".json"):
-                try:
-                    d = json.loads(content)
-                    # Don't need to update spec — script is generated from spec
-                except json.JSONDecodeError:
-                    pass
-
-        if _needs_scripts(spec):
-            script = generate_hit_effects_script(spec)
-            new_files["behavior_pack/scripts/main.js"] = script
-            logger.info("Regenerated hit effects script after edit")
+            new_files[file_path] = edited
+            logger.info("Edited %s" % file_path)
 
     return new_files

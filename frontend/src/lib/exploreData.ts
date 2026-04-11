@@ -11,7 +11,6 @@ export interface ExploreMod {
   name: string;
   description: string;
   author: string;
-  edition: "java" | "bedrock";
   category: "weapon" | "armor" | "food" | "block" | "tool" | "ability";
   thumbnail: string | null;       // image URL or null
   videoUrl: string | null;        // video URL or null
@@ -32,7 +31,6 @@ export interface ModSubmission {
   name: string;
   description: string;
   author: string;
-  edition: "java" | "bedrock";
   category: ExploreMod["category"];
   thumbnail: string | null;
   videoUrl: string;

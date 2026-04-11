@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import shutil
 from typing import List, Tuple
 
 from PIL import Image
@@ -406,36 +405,6 @@ This is a mod pack icon — it should be eye-catching and recognizable at small 
         return False
 
 
-def _save_custom_pack_icon(data_url: str, output_path: str):
-    """Save custom texture as 128x128 pack icon with background."""
-    import base64 as b64mod
-    import io as iomod
-    from PIL import Image as PILImage
-
-    if "," in data_url:
-        data_url = data_url.split(",", 1)[1]
-    img_data = b64mod.b64decode(data_url)
-    custom_img = PILImage.open(iomod.BytesIO(img_data)).convert("RGBA")
-    # Resize to 16x16 first (pixel art), then scale to 80x80
-    custom_small = custom_img.resize((16, 16), PILImage.NEAREST)
-    custom_big = custom_small.resize((80, 80), PILImage.NEAREST)
-
-    # Create 128x128 with dark background
-    icon = PILImage.new("RGBA", (128, 128), (30, 30, 40, 255))
-    px = icon.load()
-    # Border
-    for x in range(128):
-        for y in range(128):
-            if x < 4 or x >= 124 or y < 4 or y >= 124:
-                px[x, y] = (15, 15, 20, 255)
-            elif x < 8 or x >= 120 or y < 8 or y >= 120:
-                px[x, y] = (50, 50, 60, 255)
-    # Paste custom image in center
-    icon.paste(custom_big, (24, 24), custom_big)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    icon.save(output_path)
-
-
 def _save_custom_texture(data_url: str, output_path: str):
     """Save a base64 data URL as a 16x16 PNG file."""
     import base64 as b64mod
@@ -453,19 +422,14 @@ def _save_custom_texture(data_url: str, output_path: str):
     img.save(output_path)
 
 
-def collect_texture_previews(spec, build_dir: str, edition: str = "java") -> dict:
+def collect_texture_previews(spec, build_dir: str) -> dict:
     """Read generated texture PNGs and return as base64 previews for the frontend."""
     import base64 as b64mod
     previews = {"items": [], "blocks": []}
 
-    if edition == "bedrock":
-        tex_base = os.path.join(build_dir, "resource_pack", "textures")
-        item_dir = os.path.join(tex_base, "items")
-        block_dir = os.path.join(tex_base, "blocks")
-    else:
-        tex_base = os.path.join(build_dir, "src", "main", "resources", "assets", spec.mod_id, "textures")
-        item_dir = os.path.join(tex_base, "item")
-        block_dir = os.path.join(tex_base, "block")
+    tex_base = os.path.join(build_dir, "src", "main", "resources", "assets", spec.mod_id, "textures")
+    item_dir = os.path.join(tex_base, "item")
+    block_dir = os.path.join(tex_base, "block")
 
     for item in spec.items:
         tex_path = os.path.join(item_dir, "%s.png" % item.registry_name)
@@ -496,66 +460,21 @@ def collect_texture_previews(spec, build_dir: str, edition: str = "java") -> dic
     return previews
 
 
-async def generate_all_textures(spec, build_dir: str, edition: str = "java"):
+async def generate_all_textures(spec, build_dir: str):
     """Generate textures — uses custom uploaded texture if provided, otherwise procedural."""
-    from services.procedural_textures import (
-        generate_procedural_texture, generate_pack_icon_procedural
-    )
+    from services.procedural_textures import generate_procedural_texture
 
-    if edition == "bedrock":
-        rp_dir = os.path.join(build_dir, "resource_pack")
+    assets_base = os.path.join(build_dir, "src", "main", "resources", "assets", spec.mod_id)
 
-        for item in spec.items:
-            tex_path = os.path.join(rp_dir, "textures", "items", "%s.png" % item.registry_name)
-            if item.custom_texture:
-                _save_custom_texture(item.custom_texture, tex_path)
-                logger.info("Using custom texture for %s" % item.display_name)
-            else:
-                sub = item.weapon_type or item.tool_type or item.armor_slot or ""
-                mat = item.material or "iron"
-                generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
-                logger.info("Generated texture for %s" % item.display_name)
-
-        for block in spec.blocks:
-            tex_path = os.path.join(rp_dir, "textures", "blocks", "%s.png" % block.registry_name)
-            generate_procedural_texture("block", "", "ore", tex_path)
-
-        # Pack icon — use custom texture if uploaded, else procedural
-        rp_icon = os.path.join(rp_dir, "pack_icon.png")
-        bp_icon = os.path.join(build_dir, "behavior_pack", "pack_icon.png")
-
-        # Check if any item has a custom texture — use it as pack icon
-        custom_icon_item = None
-        for item in spec.items:
-            if item.custom_texture:
-                custom_icon_item = item
-                break
-
-        if custom_icon_item:
-            _save_custom_pack_icon(custom_icon_item.custom_texture, rp_icon)
-            logger.info("Using custom texture as pack icon")
+    for item in spec.items:
+        tex_path = os.path.join(assets_base, "textures", "item", "%s.png" % item.registry_name)
+        if item.custom_texture:
+            _save_custom_texture(item.custom_texture, tex_path)
         else:
-            first_item = spec.items[0] if spec.items else None
-            primary_mat = first_item.material if first_item else "diamond"
-            icon_item_type = first_item.item_type if first_item else "weapon"
-            icon_sub_type = (first_item.weapon_type or first_item.tool_type or first_item.armor_slot or "") if first_item else "sword"
-            generate_pack_icon_procedural(primary_mat, rp_icon, icon_item_type, icon_sub_type)
+            sub = item.weapon_type or item.tool_type or item.armor_slot or ""
+            mat = item.material or "iron"
+            generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
 
-        os.makedirs(os.path.dirname(bp_icon), exist_ok=True)
-        shutil.copy2(rp_icon, bp_icon)
-
-    else:  # java
-        assets_base = os.path.join(build_dir, "src", "main", "resources", "assets", spec.mod_id)
-
-        for item in spec.items:
-            tex_path = os.path.join(assets_base, "textures", "item", "%s.png" % item.registry_name)
-            if item.custom_texture:
-                _save_custom_texture(item.custom_texture, tex_path)
-            else:
-                sub = item.weapon_type or item.tool_type or item.armor_slot or ""
-                mat = item.material or "iron"
-                generate_procedural_texture(item.item_type or "weapon", sub, mat, tex_path)
-
-        for block in spec.blocks:
-            tex_path = os.path.join(assets_base, "textures", "block", "%s.png" % block.registry_name)
-            generate_procedural_texture("block", "", "ore", tex_path)
+    for block in spec.blocks:
+        tex_path = os.path.join(assets_base, "textures", "block", "%s.png" % block.registry_name)
+        generate_procedural_texture("block", "", "ore", tex_path)
