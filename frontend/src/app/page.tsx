@@ -10,7 +10,7 @@ import { ThunderBladeScene, CrystalArmorScene, MysticFoodsScene, NeonBlocksScene
 import SignupModal from "@/components/SignupModal";
 import { supabase } from "@/lib/supabase";
 import PixelEmoji from "@/components/PixelEmoji";
-import AdBanner from "@/components/AdBanner";
+import AdSlot from "@/components/AdSlot";
 
 const EXAMPLE_PROMPTS = [
   "Diamond sword that shoots lightning",
@@ -211,7 +211,7 @@ export default function Home() {
             </a>
           </p>
 
-          <AdBanner slot="home-hero" className="mt-8 max-w-2xl mx-auto" />
+          <AdSlot slot="home-hero" className="mt-8 max-w-2xl mx-auto" />
 
           {/* Mods counter */}
           <ModsCounter />

@@ -9,7 +9,7 @@ import StatusDisplay from "@/components/StatusDisplay";
 import DownloadButton from "@/components/DownloadButton";
 import EditForm from "@/components/EditForm";
 import Header from "@/components/Header";
-import AdBanner from "@/components/AdBanner";
+import AdSlot from "@/components/AdSlot";
 
 const FONT = { fontFamily: "var(--font-pixel), monospace" } as const;
 
@@ -264,7 +264,7 @@ export default function StatusPage() {
       {/* Progress / Status */}
       {status && <StatusDisplay status={status} />}
 
-      <AdBanner slot="status-wait" className="mt-6" />
+      <AdSlot slot="status-wait" className="mt-6" />
 
       {/* Texture Previews */}
       {isComplete && status?.texture_previews && (

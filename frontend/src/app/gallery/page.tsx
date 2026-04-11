@@ -10,7 +10,7 @@ import PixelEmoji from "@/components/PixelEmoji";
 import { ExploreMod, CATEGORY_CONFIG } from "@/lib/exploreData";
 import { getGalleryItems, getMyMods, GalleryItem, MyMod } from "@/lib/api";
 import { isAuthenticated } from "@/lib/supabase";
-import AdBanner from "@/components/AdBanner";
+import AdSlot from "@/components/AdSlot";
 
 type Tab = "explore" | "featured" | "community" | "my-mods";
 type CategoryFilter = "all" | ExploreMod["category"];
@@ -287,7 +287,7 @@ export default function ExplorePage() {
           ))}
         </div>
 
-        <AdBanner slot="gallery-feed" className="my-4" />
+        <AdSlot slot="gallery-feed" className="my-4" />
 
         {/* My Mods tab content */}
         {tab === "my-mods" ? (
